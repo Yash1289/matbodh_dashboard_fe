@@ -4,7 +4,7 @@
 |---|---|
 | Status | Draft for review |
 | Date | 2026-11-08 |
-| Engine | `matbodh-survey-backend` 0.8.0, repo `MatBodh-Dash`, commit `2fb1af6` plus the uncommitted `coverage_mode: common` change |
+| Engine | `matbodh-survey-backend` 0.8.0, repo `MatBodh-Dash`, commit `cb96fde` (adds `coverage_mode: common`) |
 | Wireframe | [Figma — MatBodh Dashboard – Wireframes](https://www.figma.com/design/KAwwifuB30DnFUatxqYVN6), page "State Pulse – wireframe" (frames A–E; predates §8 composite cells) |
 
 This document records every decision agreed during design brainstorming. Items still undecided are listed in §20 and must not be resolved silently during implementation.
@@ -48,7 +48,7 @@ Verified against the engine repo during brainstorming.
 | `collection_level` is derived from the registry `weighing_level` (`ac_no→ac, pc_no→pc, ac_zone/pc_zone→zone, state→state`) | Survey level = the level weighting was done at; it drives the capability table |
 | Extrapolated datasets borrow earlier-round responses for missing native levels within the same cycle/series; they are emitted only when borrowing adds IDs; zone/state datasets never borrow | Extrapolated default with Normal fallback; borrowed values flagged |
 | `coverage_mode`: `independent`, `reference_complete`, `common` (new). Alignment is enforced only when `ac_num`/`pc_num` appear in grouping sets or filters; `common` reports `coverage.excluded_by_observation` | "Matched seats only" = `common`; coverage note comes from the contract |
-| Automatic alliances map **all survey scenarios with current (SURVEY) alliances**; actual endpoints use ACTUAL with explicit year/type | Cross-era deltas compare today's coalitions (open decision §20) |
+| Automatic alliances today map **all survey scenarios with one current (SURVEY) state-level context**, require exactly one matching context (NULL attributes are wildcards; no specificity precedence) and apply one party policy per question across all rounds; actual endpoints use ACTUAL with explicit year/type | The agreed alliance policy (§6.1) needs engine changes (§21) |
 | Survey competition is alliance-first; actual competition is party-first then alliance attribution; PC results pool all constituent ACs; partially covered PCs are excluded | Seat cells and PC counts follow these rules |
 | Gender differential applies to party scenarios only | Gender gap offered only for party questions |
 | The engine never caches respondent rows or results; the metadata session must be cleared after metadata publication | The dashboard owns a result cache keyed by versions (§13) |
@@ -132,6 +132,18 @@ Version mode only matters for cuts that involve seats.
 
 **Delta:** `Δ = anchor round − compare round`, in percentage points (or seats), computed by the engine: a `Comparison` for shares and scores, a paired benchmark for seats. A seat Δ from the paired benchmark uses only seats eligible in both rounds, so when the two rounds' coverage differs it can differ from the gap between the two displayed per-round totals; such cells carry a footnote ("Δ on N common seats"). The compare round is global in the context; a card may override it. Delta headers always name both rounds (`Δ 27 AC CAPI R3 − 22 AC CAPI R4`). A side missing coverage or the question → "—" with a reason.
 
+### 6.1 Alliance policy (decided 2026-11-09)
+
+- **Canonical alliance labels (headers) are the same everywhere;** only which parties subscribe to each alliance can differ.
+- **Default mapping:** every survey round uses the state's default alliance mapping.
+- **Survey-specific override:** if an alliance mapping has been ingested for a specific survey, that survey's rounds use it instead of the default.
+- **Alliance type:** where separate `voteshare_cal` and `seat_cal` mappings exist, vote-share cells use `voteshare_cal` and seat cells use `seat_cal`; where they don't, both use the default mapping.
+- **Precedence:** the most specific mapping wins (survey-specific over default; specific alliance type over untyped). Only genuinely conflicting mappings at the same specificity are errors.
+- **Visibility:** the round hover card and method drawer show which mapping (default or survey-specific, alliance type, version) each round used.
+- Comparisons across rounds with different memberships stay valid because the labels are identical; deltas therefore compare each round under its own applicable mapping.
+
+This requires engine changes (§21 items 2 and 3); until they land, the dashboard can use only the default mapping and untyped alliance contexts.
+
 ## 7. Sections
 
 Every section opens with a lead card and companion cards. All cards follow §8.
@@ -140,7 +152,7 @@ Every section opens with a lead card and companion cards. All cards follow §8.
 
 - **Lead: Party scoreboard.** One row per canonical party (preset keep list + Other + Undecided/NOTA). Composite-cell columns:
   - **Vote share** — value · Δ · trend (distribution + comparison).
-  - **Seats AC · PC** — anchor-round seat leads at AC and PC level, each with Δ (one benchmark per round per level; Δ from the paired benchmark). AC/PC-level surveys only; PC-level surveys show PC only.
+  - **Seats AC · PC** — anchor-round seat leads at AC and PC level, each with Δ (one benchmark per round per level; Δ from the paired benchmark). AC/PC-level surveys only; PC-level surveys show PC only. Benchmark summaries cover only the listed contenders, so the compiler passes every party as a contender and the scoreboard shows any party winning at least one seat in any selected round as its own row, even outside the keep list (seat counts are never summed into "Other").
   - **Gender gap** — women − men, pp, with F/M shares as secondary (gender differential).
   The top row of the scoreboard replaces the separate headline tiles; the anchor round is named under the header.
 - **Companions:** leader & government scorecard (net scores; "Not asked" cells); appetite for change of state government (Yes / No / Net — a statewide question, not per party, so a separate card); Shakti (needs a focus party; empty prompt otherwise); vote by party zone (AC/PC only; value · Δ · trend cells, heat on Δ); drill-down to other sections.
@@ -280,7 +292,7 @@ Pure function: context + card instance + template + preset + catalogue → **run
 | Distribution, opinion, gender gap, relationship | 1 per state, all rounds as observations |
 | Delta / compare-with | added as `comparisons` to the same request |
 | Seat or demographic ranking | 1 per (state, round) |
-| Benchmark seat counts | 1 per (state, round, level); Δ via a paired benchmark (anchor vs compare) |
+| Benchmark seat counts | 1 paired benchmark per (state, level) for anchor vs compare — it returns both rounds' seat counts and the seat Δ; 1 single-endpoint benchmark per (state, level) for each other selected round |
 | Benchmark vs actual election | 1 per (state, round) against the same election |
 | Entity selection | upstream once; downstream with all rounds |
 | Party scoreboard | distribution + comparison, AC and PC benchmarks, gender gap — joined on canonical party |
@@ -377,11 +389,11 @@ Before phase 1: visual design (wireframes updated for §8, then polished design)
 
 **These change numbers**
 
-1. Alliance mapping for older-cycle surveys: keep current (engine today) or add time-of-survey mapping (engine change).
-2. Method preset values per state (weights, invalid/zero, answer exclusions, keep list, caste threshold/reference, opinion weights, gender labels).
+1. ~~Alliance mapping for older-cycle surveys~~ — **decided 2026-11-09**, see §6.1.
+2. Method preset values per state — **deferred; configured last by the product owner.** Provisional UP values for development and fixtures only: weight mode `mj_cap`; invalid/zero handling as in the repo examples (to be confirmed); answer exclusions blank only, Undecided/NOTA kept in the base; keep list `NDA, SP+, BSP, INC` + Other; unmapped parties pass through; opinion weights `base`; caste threshold 0.5% with the latest selected round as reference; gender labels `Female` / `Male`; competition excludes `NOTA`; benchmark/segmentation reference 2022 VS; no low-base flag. Questions without embedded weights (e.g. `state_govt_change_party`, `cm_choice_party`) still need an approved weight binding.
 3. Low-base flag threshold (none by default).
 4. Uncertainty / margin-of-error display: requires an approved method; none until then.
-5. Whether seat-attribute axes (party zone, district) trigger coverage alignment under the engine's coverage rule.
+5. ~~Whether seat-attribute axes trigger coverage alignment~~ — answered by the 2026-11-09 spike (Appendix A): party-zone cuts with deltas run under `independent` without alignment. Dashboard rule: geographic slices use `common` whenever the selected rounds' seat coverage differs, so zone deltas never compare different seat sets.
 
 **Product and operations**
 
@@ -395,10 +407,37 @@ Before phase 1: visual design (wireframes updated for §8, then polished design)
 
 ## 21. Engine and metadata follow-ups
 
-1. Commit the `coverage_mode: common` change in the engine repo (currently uncommitted).
-2. Publish the detailed weighting level (distinguish AC zone vs PC zone) and `data_level` in survey metadata; add district/vibhag levels to collation and the engine.
-3. Optional: tag engine queries with IDs to allow cancelling running ClickHouse queries.
-4. Optional: store series name as an explicit metadata column instead of parsing survey names.
+1. ~~Commit the `coverage_mode: common` change~~ — done (`cb96fde`).
+2. **Alliance precedence:** resolve the most specific matching alliance context instead of requiring exactly one match (specific `alliance_type` over untyped; survey-specific over default), failing only on conflicts at equal specificity. Needed for §6.1.
+3. **Survey-specific alliances:** add a survey/dataset key to `alliance_context_config` (or an equivalent ingestion table) and support a per-round party mapping in the compiler, so one request can apply different memberships per observation under the same canonical labels. Needed for §6.1.
+4. Publish the detailed weighting level (distinguish AC zone vs PC zone) and `data_level` in survey metadata; add district/vibhag levels to collation and the engine.
+5. Optional: tag engine queries with IDs to allow cancelling running ClickHouse queries.
+6. Optional: store series name as an explicit metadata column instead of parsing survey names.
+
+## Appendix A. Live read-only spike — 2026-11-09
+
+Scope: Party scoreboard building blocks for Uttar Pradesh, `2027 VS CAPI R1` and `2027 VS CAPI R2` (AC level), run through `NamedSurveyRuntime` with the engine CLI's limits (120 s, 100,000 rows), alliances `MatBodh`, provisional preset (mj_cap, exclude invalid, include zero, blank excluded), keep list `NDA, SP+, BSP`. Read-only queries only; timings are single dated runs, not acceptance thresholds.
+
+| Config | Result | Time |
+|---|---|---|
+| Vote share, both rounds (no grouping) | OK | 3.1 s |
+| Vote share + R2−R1 Δ + gender gap | OK; 8 share rows, 4 Δ rows, 8 gender-gap rows | ~10 s |
+| Vote share by party zone + Δ, `independent` | OK; 15 zones, no coverage alignment required | 7.5 s |
+| Same, `common` | OK; 403 seats included, none excluded | 8.6 s |
+| AC benchmark, R2 vs R1 (paired) | OK; both rounds' seat counts + seat Δ | ~23 s |
+| PC benchmark, R2 vs R1 (paired) | OK; 80 PCs eligible | ~23.5 s |
+| AC benchmark, single round | OK | 8.6–15.3 s |
+
+Findings:
+
+1. **No Extrapolated version exists for either round**; both are Normal with full coverage (403 ACs, 80 PCs). The Normal fallback is a common case, not an edge case.
+2. **Real labels differ from the provisional preset:** INC does not appear as a separate label; small parties (ASPKR, AIMIM, AAP, JDL, …) and a raw answer "Others" exist. Raw "Others" folds into the "Other" summary row under the keep list. Keep lists must be built from catalogue labels per state.
+3. **Party-zone cuts do not trigger coverage alignment** under `independent` (closes open decision 5; see §20).
+4. **Benchmark summaries cover listed contenders only;** unlisted winners are preserved in seat results (JDL led 2 AC seats in R1). Hence the §7.1 rule: pass every party as a contender and show any seat-winning party as its own row.
+5. **A paired benchmark returns both rounds' seat counts and the seat Δ,** so two-round seat cells need one benchmark per level, not three (§12).
+6. **Flips and margin buckets are empty without a focal party,** as designed: they belong to the focus-party lens.
+7. **No query-size (`TOO_BIG_AST`) or timeout failures.** Scoreboard cost: about 57 s if run sequentially; about 24 s if the three runs execute in parallel (bounded by the slowest benchmark). Caste clubbing with gender gap, the known heavy case, was not tested and should be spiked before Voter Coalitions.
+8. **Undecided and NOTA are negligible** (≈0.01% and ≈0.0004% of weighted answers), suggesting most such answers are already excluded or recoded upstream; their presentation should be confirmed with the method preset.
 
 ## 22. Wireframe status
 
