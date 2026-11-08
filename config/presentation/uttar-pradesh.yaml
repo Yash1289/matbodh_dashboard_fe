@@ -1,0 +1,20 @@
+rules:
+  - field: party_zone
+    scope: {state: Uttar Pradesh}
+    # Seed order: alphabetical (editable later).
+    order:
+      - Big Leader Politics Belt
+      - Brahmin-Kurmi-Pasi Belt
+      - Bundelkhand
+      - Devipatan
+      - Gorakhpur Division
+      - Jat Belt
+      - Jat-Lodhi Belt of Brij
+      - Kashi-Vindhyachal Belt
+      - Kurmi-Bind-Pasi Belt
+      - Lucknow-Kanpur Belt
+      - Muslim Belt
+      - Potato Belt
+      - Rohilkhand
+      - Urban Belt of Western UP
+      - Yadav-Kurmi-Rajbhar Belt

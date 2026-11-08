@@ -1,0 +1,6 @@
+rules:
+  - field: party
+    order: [NDA, SP+, BSP, Other, Undecided, NOTA]
+    pin_last: [Other, Undecided, NOTA]
+    unknown: append_alpha
+    # colours: one per canonical party label; none seeded yet (editable later)
