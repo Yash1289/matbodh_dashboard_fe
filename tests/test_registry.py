@@ -35,6 +35,7 @@ rules:
 
 
 def _write(tmp_path: Path, **files: str) -> Path:
+    tmp_path.mkdir(parents=True, exist_ok=True)
     for name, text in files.items():
         (tmp_path / f"{name}.yaml").write_text(text, encoding="utf-8")
     return tmp_path
@@ -117,10 +118,51 @@ def test_within_selects_rule(tmp_path):
 
 def test_invalid_rules_rejected(tmp_path):
     bad = "rules:\n  - field: f\n    unknown: nope\n"
-    with pytest.raises(ValueError):
-        load_rules(_write(tmp_path, g=bad))
-    with pytest.raises(ValueError):
-        load_rules(_write(tmp_path, h="rules:\n  - field: f\n    bogus: 1\n"))
+    with pytest.raises(ValueError, match="'unknown' must be one of"):
+        load_rules(_write(tmp_path / "a", g=bad))
+    extra = "rules:\n  - field: f\n    bogus: 1\n"
+    with pytest.raises(ValueError, match="unknown rule keys"):
+        load_rules(_write(tmp_path / "b", h=extra))
+
+
+def test_unknown_top_level_key_rejected(tmp_path):
+    with pytest.raises(ValueError, match="unknown top-level keys"):
+        load_rules(_write(tmp_path / "a", g="rulez: []\nrules: []\n"))
+
+
+def test_duplicate_rule_rejected(tmp_path):
+    dup = "rules:\n  - field: f\n    order: [A]\n  - field: f\n    order: [B]\n"
+    with pytest.raises(ValueError, match="duplicate rule"):
+        load_rules(_write(tmp_path / "a", g=dup))
+    one = "rules:\n  - field: f\n    order: [A]\n"
+    with pytest.raises(ValueError, match="duplicate rule"):
+        load_rules(_write(tmp_path / "b", g1=one, g2=one))
+
+
+def test_bom_file_loads(tmp_path):
+    (tmp_path / "g.yaml").write_bytes(
+        b"\xef\xbb\xbf" + b"rules:\n  - field: f\n    order: [B, A]\n"
+    )
+    assert load_rules(tmp_path).order("f", ["A", "B"]) == ["B", "A"]
+
+
+def test_append_alpha_is_case_insensitive(tmp_path):
+    text = "rules:\n  - field: f\n    order: [A]\n"
+    rules = load_rules(_write(tmp_path, g=text))
+    assert rules.order("f", ["b", "C", "A", "a2"]) == ["A", "a2", "b", "C"]
+
+
+def test_hidden_count_respects_within(tmp_path):
+    text = (
+        "rules:\n"
+        "  - field: f\n    hidden: [X]\n"
+        "  - field: f\n    within: g\n    hidden: [X, Y]\n"
+    )
+    rules = load_rules(_write(tmp_path, g=text))
+    values = ["X", "Y", "Z"]
+    assert rules.hidden_count("f", values) == 1
+    assert rules.hidden_count("f", values, within="g") == 2
+    assert rules.order("f", values, within="g") == ["Z"]
 
 
 def test_version_changes_when_rule_changes(tmp_path):

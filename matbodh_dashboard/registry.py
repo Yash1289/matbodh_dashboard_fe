@@ -175,13 +175,18 @@ class RuleSet:
         known_set = set(known)
         rest = [v for v in body if v not in known_set]
         if unknown == "append_alpha":
-            rest = sorted(rest)
+            rest = sorted(rest, key=str.casefold)
         return first + known + rest + last
 
     def hidden_count(
-        self, field: str, values: Iterable[str], *, states: Sequence[str] = ()
+        self,
+        field: str,
+        values: Iterable[str],
+        *,
+        states: Sequence[str] = (),
+        within: str | None = None,
     ) -> int:
-        patterns = self._hidden_patterns(field, states, None)
+        patterns = self._hidden_patterns(field, states, within)
         return sum(
             1 for v in _dedupe(values) if any(_matches(h, v) for h in patterns)
         )
@@ -210,12 +215,25 @@ def load_rules(dir: Path) -> RuleSet:
     """Load every *.yaml in `dir` (sorted by name); version = hash of the files."""
     digest = hashlib.sha256()
     rules: list[_Rule] = []
+    seen: dict[tuple[str, str | None, str | None], str] = {}
     for path in sorted(Path(dir).glob("*.yaml")):
         raw_bytes = path.read_bytes()
         digest.update(path.name.encode("utf-8") + b"\0" + raw_bytes + b"\0")
-        doc = yaml.safe_load(raw_bytes.decode("utf-8")) or {}
+        doc = yaml.safe_load(raw_bytes.decode("utf-8-sig")) or {}
         if not isinstance(doc, dict) or not isinstance(doc.get("rules", []), list):
             raise ValueError(f"{path.name}: expected a mapping with a 'rules' list")
+        extra = set(doc) - {"rules"}
+        if extra:
+            raise ValueError(f"{path.name}: unknown top-level keys {sorted(extra)}")
         for i, raw in enumerate(doc.get("rules", [])):
-            rules.append(_parse_rule(raw, f"{path.name}[{i}]"))
+            rule = _parse_rule(raw, f"{path.name}[{i}]")
+            key = (rule.field, rule.state, rule.within)
+            if key in seen:
+                raise ValueError(
+                    f"{path.name}[{i}]: duplicate rule for field={rule.field!r}, "
+                    f"state={rule.state!r}, within={rule.within!r} "
+                    f"(first defined in {seen[key]})"
+                )
+            seen[key] = f"{path.name}[{i}]"
+            rules.append(rule)
     return RuleSet(rules=tuple(rules), version=digest.hexdigest()[:16])
