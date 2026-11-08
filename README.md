@@ -43,6 +43,33 @@ rq worker engine --url "$DASHBOARD_REDIS_URL"
   fingerprint, card, part, state, timings, row count, cache hit, error kind and
   versions; no respondent data.
 
+## Live smoke check (State Pulse scoreboard)
+
+`scripts/smoke_state_pulse.py` runs the `pulse.party_scoreboard` card through
+the real engine and `CardRunService` synchronously (`InlineQueue`) and prints
+per-job timings, the scoreboard rows and any errors.
+
+Prerequisites:
+
+- The setup above, including the `dev` extra (the script keeps results in an
+  in-process `fakeredis`, so no Redis server is needed).
+- `ENGINE_ENV_FILE` pointing at the engine env file (read-only MySQL and
+  ClickHouse credentials). Run it only with the product owner's go-ahead.
+
+```bash
+.venv/Scripts/python.exe scripts/smoke_state_pulse.py --state "Uttar Pradesh" --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
+```
+
+- It is read-only: the catalogue query and every engine job use read-only
+  connections, and nothing is written to any database. Output is aggregates
+  only. It lives outside `tests/`, so pytest never collects it.
+- The first `--rounds` entry is the compare round, the last is the anchor.
+- Timings are for information, not acceptance thresholds.
+- Expected (Appendix A of the spec): rows BSP, NDA, Other, SP+ (plus JDL in the
+  seat columns) and no errors; seat counts AC NDA 243 to 154, SP+ 158 to 249;
+  PC NDA 49 to 26, SP+ 31 to 54.
+- Exit code 0 only when the run state is `done`.
+
 ## Docs
 
 - Spec: [docs/specs/2026-11-08-dashboard-design.md](docs/specs/2026-11-08-dashboard-design.md)
