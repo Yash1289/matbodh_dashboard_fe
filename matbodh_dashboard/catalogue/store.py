@@ -54,7 +54,7 @@ class CatalogueRound:
         if mode == "extrapolated" and self.extrapolated is not None:
             return self.extrapolated, False
         if self.normal is None:
-            raise KeyError(f"round {self.identity.base_name!r} has no normal dataset")
+            raise ValueError(f"no Normal version for {self.identity.base_name}")
         return self.normal, mode == "extrapolated"
 
 
@@ -87,59 +87,93 @@ class Catalogue:
             raise KeyError(f"no round {base_name!r} for state {state!r}") from None
 
 
+_LEVELS = ("ac", "pc", "zone", "state")
+_VARIANTS = ("normal", "extrapolated")
+
+
+def _build_version(row: Mapping[str, object], levels: Mapping[str, object] | None):
+    """Validate one dataset row and build (identity, version); raise ValueError."""
+    identity = parse_round(
+        row["state"], row["survey_name"], row["cycle_id"], row["round_number"]
+    )
+    identity.sort_key  # validate cycle id is sortable
+    if row["variant"] not in _VARIANTS:
+        raise ValueError(f"unknown variant {row['variant']!r}")
+    if row["collection_level"] not in _LEVELS:
+        raise ValueError(f"unknown collection level {row['collection_level']!r}")
+    try:
+        revision = int(row["update_revision"])
+    except (TypeError, ValueError):
+        raise ValueError(f"invalid update_revision {row['update_revision']!r}") from None
+    if levels is None:
+        raise ValueError("no active levels")
+    version = DatasetVersion(
+        dataset_id=row["dataset_id"],
+        survey_name=row["survey_name"],
+        variant=row["variant"],
+        level=row["collection_level"],
+        seat_ids=frozenset(levels.get("seat_ids") or ()),
+        borrowed_seat_ids=frozenset(levels.get("borrowed") or ()),
+        fields=frozenset(row.get("available_fields") or ())
+        | frozenset(row.get("available_fields_miscellaneous") or ()),
+        scenarios=frozenset(row.get("available_scenarios") or ()),
+        start_date=row.get("survey_start_date"),
+        end_date=row.get("survey_end_date"),
+        revision=revision,
+    )
+    return identity, version
+
+
 def load_catalogue(query: QueryFn) -> Catalogue:
-    """Load rounds from metadata. Unusable datasets go to Catalogue.skipped."""
+    """Load rounds from metadata. Unusable datasets go to Catalogue.skipped.
+
+    Pairing is deterministic: valid datasets are ordered by (state, base_name,
+    variant with Normal first, dataset_id). The first dataset of a round fixes
+    its collection level; a later dataset with the same variant (duplicate) or a
+    different level is skipped. Revision is the max over accepted datasets.
+    """
     dataset_rows = query(_DATASETS_SQL, {})
     seats_by_dataset = {row["dataset_id"]: row for row in query(_LEVELS_SQL, {})}
 
     skipped: list[tuple[str, str]] = []
-    # (state, base_name) -> {"identity", "level", "normal", "extrapolated"}
-    grouped: dict[tuple[str, str], dict] = {}
-    revision = 0
-
+    candidates: list[tuple[RoundIdentity, DatasetVersion]] = []
     for row in dataset_rows:
         dataset_id = row["dataset_id"]
-        revision = max(revision, int(row["update_revision"]))
         try:
-            identity = parse_round(
-                row["state"], row["survey_name"], row["cycle_id"], row["round_number"]
-            )
-            identity.sort_key  # validate cycle id is sortable
-        except ValueError as exc:
+            candidates.append(_build_version(row, seats_by_dataset.get(dataset_id)))
+        except (ValueError, KeyError) as exc:
             skipped.append((dataset_id, str(exc)))
-            continue
-        variant = row["variant"]
-        if variant not in ("normal", "extrapolated"):
-            skipped.append((dataset_id, f"unknown variant {variant!r}"))
-            continue
 
-        levels = seats_by_dataset.get(dataset_id, {})
-        version = DatasetVersion(
-            dataset_id=dataset_id,
-            survey_name=row["survey_name"],
-            variant=variant,
-            level=row["collection_level"],
-            seat_ids=frozenset(levels.get("seat_ids", ())),
-            borrowed_seat_ids=frozenset(levels.get("borrowed", ())),
-            fields=frozenset(row.get("available_fields") or ())
-            | frozenset(row.get("available_fields_miscellaneous") or ()),
-            scenarios=frozenset(row.get("available_scenarios") or ()),
-            start_date=row.get("survey_start_date"),
-            end_date=row.get("survey_end_date"),
-            revision=int(row["update_revision"]),
+    candidates.sort(
+        key=lambda c: (
+            c[0].state,
+            c[0].base_name,
+            c[1].variant != "normal",
+            c[1].dataset_id,
         )
+    )
+    grouped: dict[tuple[str, str], dict] = {}
+    revision = 0
+    for identity, version in candidates:
         entry = grouped.setdefault(
             (identity.state, identity.base_name),
             {"identity": identity, "level": version.level, "normal": None,
              "extrapolated": None},
         )
-        if entry[variant] is not None:
-            skipped.append((dataset_id, f"duplicate {variant} dataset for {identity.base_name!r}"))
-            continue
-        if entry["level"] != version.level:
-            skipped.append((dataset_id, f"collection level {version.level!r} differs from paired dataset"))
-            continue
-        entry[variant] = version
+        if entry[version.variant] is not None:
+            skipped.append(
+                (version.dataset_id,
+                 f"duplicate {version.variant} dataset for {identity.base_name!r}")
+            )
+        elif entry["level"] != version.level:
+            skipped.append(
+                (version.dataset_id,
+                 f"collection level {version.level!r} differs from paired "
+                 f"dataset level {entry['level']!r}")
+            )
+        else:
+            entry[version.variant] = version
+            revision = max(revision, version.revision)
 
     rounds = {
         key: CatalogueRound(e["identity"], e["level"], e["normal"], e["extrapolated"])

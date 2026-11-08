@@ -80,3 +80,74 @@ def test_clickhouse_query_wraps_client():
     c = Client()
     assert clickhouse_query(c)("SELECT 1", {"x": 1}) == [{"a": 1, "b": 2}]
     assert c.seen[2] == {"readonly": 1, "max_execution_time": 60}
+
+
+def _levels_plus(*dataset_ids):
+    from tests.fixtures.catalogue_rows import LEVEL_ROWS, level_row
+
+    return LEVEL_ROWS + [level_row(d, range(1, 5)) for d in dataset_ids]
+
+
+def test_dataset_without_levels_is_skipped():
+    rows = DATASET_ROWS + [dataset_row("2027 VS CAPI R3", round_number=3)]
+    cat = load_catalogue(make_query(dataset_rows=rows))
+    assert cat.skipped == (("2027 VS CAPI R3", "no active levels"),)
+    assert len(cat.rounds("Uttar Pradesh")) == 3
+
+
+def test_duplicate_variant_skipped_regardless_of_row_order():
+    dup = dataset_row("2027 VS CAPI R1", round_number=1, revision=50)
+    dup["dataset_id"] = "2027 VS CAPI R1 dup"
+    dup["survey_name"] = "2027 VS CAPI R1"
+    levels = _levels_plus(dup["dataset_id"])
+    for order in (DATASET_ROWS + [dup], [dup] + DATASET_ROWS):
+        cat = load_catalogue(make_query(dataset_rows=order, level_rows=levels))
+        assert cat.skipped[0][0] == "2027 VS CAPI R1 dup"
+        assert "duplicate normal" in cat.skipped[0][1]
+        r1 = cat.find("Uttar Pradesh", "2027 VS CAPI R1")
+        assert r1.normal.dataset_id == "2027 VS CAPI R1"
+        assert cat.revision == 9  # skipped dataset's revision ignored
+
+
+def test_unknown_variant_skipped():
+    bad = dataset_row("2027 VS CAPI R7", variant="weird", round_number=7)
+    cat = load_catalogue(
+        make_query(dataset_rows=DATASET_ROWS + [bad], level_rows=_levels_plus(bad["dataset_id"]))
+    )
+    assert "unknown variant" in dict(cat.skipped)["2027 VS CAPI R7"]
+
+
+def test_level_mismatch_skips_extrapolated_regardless_of_row_order():
+    ext = dataset_row("2027 VS CAPI R1 (Extrapolated)", variant="extrapolated",
+                      level="pc", round_number=1)
+    levels = _levels_plus(ext["dataset_id"])
+    for order in (DATASET_ROWS + [ext], [ext] + DATASET_ROWS):
+        cat = load_catalogue(make_query(dataset_rows=order, level_rows=levels))
+        assert "differs" in dict(cat.skipped)[ext["dataset_id"]]
+        r1 = cat.find("Uttar Pradesh", "2027 VS CAPI R1")
+        assert r1.level == "ac" and r1.extrapolated is None
+
+
+def test_invalid_revision_and_level_skipped_and_excluded_from_revision():
+    bad_rev = dataset_row("2027 VS CAPI R8", round_number=8, revision="x")
+    bad_lvl = dataset_row("2027 VS CAPI R9", round_number=9, level="district",
+                          revision=999)
+    cat = load_catalogue(
+        make_query(dataset_rows=DATASET_ROWS + [bad_rev, bad_lvl],
+                   level_rows=_levels_plus("2027 VS CAPI R8", "2027 VS CAPI R9"))
+    )
+    skipped = dict(cat.skipped)
+    assert "update_revision" in skipped["2027 VS CAPI R8"]
+    assert "collection level" in skipped["2027 VS CAPI R9"]
+    assert cat.revision == 9
+
+
+def test_extrapolated_only_round():
+    ext = dataset_row("2027 VS CAPI R5 (Extrapolated)", variant="extrapolated",
+                      round_number=5)
+    cat = load_catalogue(make_query(dataset_rows=[ext],
+                                    level_rows=_levels_plus(ext["dataset_id"])))
+    r5 = cat.find("Uttar Pradesh", "2027 VS CAPI R5")
+    assert r5.version("extrapolated") == (r5.extrapolated, False)
+    with pytest.raises(ValueError, match="no Normal version for 2027 VS CAPI R5"):
+        r5.version("matched")
