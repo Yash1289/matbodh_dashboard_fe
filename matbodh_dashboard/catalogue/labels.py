@@ -41,9 +41,16 @@ def parse_round(
 ) -> RoundIdentity:
     """Build a RoundIdentity from survey metadata."""
     base_name = _EXTRAPOLATED_SUFFIX.sub("", survey_name).strip()
-    remainder = base_name
-    if remainder.startswith(cycle_id):
-        remainder = remainder[len(cycle_id):]
+    _split_cycle(cycle_id)  # validate the cycle id at parse time
+    if not base_name.startswith(cycle_id):
+        raise ValueError(
+            f"survey name {survey_name!r} does not start with cycle id {cycle_id!r}"
+        )
+    remainder = base_name[len(cycle_id):]
+    if remainder and not remainder[0].isspace():
+        raise ValueError(
+            f"survey name {survey_name!r} does not start with cycle id {cycle_id!r}"
+        )
     remainder = _ROUND_TOKEN.sub(" ", remainder)
     series = " ".join(remainder.split())
     return RoundIdentity(
@@ -64,11 +71,18 @@ def short_labels(rounds: Sequence[RoundIdentity]) -> dict[RoundIdentity, str]:
     multi_cycle = len({r.cycle for r in unique}) > 1
     multi_series = len({r.series for r in unique}) > 1
 
+    cycles_per_year: dict[int, set[str]] = {}
+    for r in unique:
+        cycles_per_year.setdefault(_split_cycle(r.cycle)[0], set()).add(r.cycle)
+
     labels: dict[RoundIdentity, str] = {}
     for r in unique:
         parts: list[str] = []
         if multi_cycle:
-            parts.append(f"{_split_cycle(r.cycle)[0] % 100:02d}")
+            year, rest = _split_cycle(r.cycle)
+            parts.append(f"{year % 100:02d}")
+            if len(cycles_per_year[year]) > 1 and rest:
+                parts.append(rest)  # same year, different cycle suffix
         if multi_cycle or multi_series:
             if r.series:
                 parts.append(r.series)

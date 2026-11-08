@@ -1,3 +1,5 @@
+import pytest
+
 from matbodh_dashboard.catalogue.labels import (
     RoundIdentity,
     parse_round,
@@ -62,3 +64,38 @@ def test_series_groups_order():
     groups = series_groups([r27_2, r22_4, r27_1])
     assert [h for h, _ in groups] == ["2022 VS · CAPI", "2027 VS · CAPI"]
     assert groups[1][1] == [r27_1, r27_2]
+
+
+def test_short_labels_same_year_different_cycle_suffix():
+    rs = [_r("2027 VS CAPI R1", "2027 VS", 1), _r("2027 LS CAPI R1", "2027 LS", 1)]
+    labels = short_labels(rs)
+    assert [labels[r] for r in rs] == ["27 VS CAPI R1", "27 LS CAPI R1"]
+
+
+def test_short_labels_same_year_collision_keeps_other_years_short():
+    rs = [
+        _r("2022 VS CAPI R1", "2022 VS", 1),
+        _r("2027 VS CAPI R1", "2027 VS", 1),
+        _r("2027 LS CAPI R1", "2027 LS", 1),
+    ]
+    labels = short_labels(rs)
+    assert [labels[r] for r in rs] == ["22 CAPI R1", "27 VS CAPI R1", "27 LS CAPI R1"]
+
+
+def test_short_labels_ambiguous_raises():
+    a = parse_round("UP", "2027 VS CAPI R1", "2027 VS", 1)
+    b = parse_round("MP", "2027 VS CAPI R1", "2027 VS", 1)
+    with pytest.raises(ValueError, match="ambiguous"):
+        short_labels([a, b])
+
+
+def test_parse_round_name_not_starting_with_cycle_raises():
+    with pytest.raises(ValueError):
+        parse_round("UP", "2022 VS CAPI R1", "2027 VS", 1)
+    with pytest.raises(ValueError):
+        parse_round("UP", "2027 VSX CAPI R1", "2027 VS", 1)
+
+
+def test_parse_round_cycle_without_year_raises():
+    with pytest.raises(ValueError):
+        parse_round("UP", "VS CAPI R1", "VS", 1)
