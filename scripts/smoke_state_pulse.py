@@ -122,8 +122,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     service = build_service(settings, catalogue, runner)
     ctx = StateContext(state=args.state, level="ac", rounds=list(args.rounds),
                        compare_round=args.rounds[0])
-    status, seconds = run_card(service, ctx)
-    print("\n".join(report(service, status, seconds)))
+    run_id, status, seconds = run_card(service, ctx)
+    print("\n".join(report(service, run_id, status, seconds)))
     return 0 if status.state == "done" else 1
 
 

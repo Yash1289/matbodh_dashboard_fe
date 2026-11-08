@@ -27,3 +27,30 @@ def test_script_runs_scoreboard_end_to_end_with_fakes():
     nda = next(line for line in lines if line.lstrip().startswith("NDA"))
     assert "154 (-88)" in nda and "26 (-22)" in nda  # AC and PC seats, engine deltas
     assert not any(line.startswith("ERROR") for line in lines)
+
+
+def test_main_end_to_end_with_stubbed_database_pieces(monkeypatch, capsys):
+    import matbodh_dashboard.catalogue.store as store
+    import matbodh_dashboard.runner.engine as engine
+    import matbodh_views.connections as connections
+
+    closed = []
+
+    class FakeClient:
+        def close(self):
+            closed.append(True)
+
+    monkeypatch.setattr(smoke, "load_settings",
+                        lambda: Settings(Path("unused.env"), "redis://unused", 3600, ROOT / "config"))
+    monkeypatch.setattr(connections, "create_clickhouse_client", lambda env_file: FakeClient())
+    monkeypatch.setattr(store, "clickhouse_query", lambda client: None)
+    monkeypatch.setattr(store, "load_catalogue", lambda query: catalogue())
+    monkeypatch.setattr(engine, "build_runtime", lambda env_file: FakeRunner())
+    monkeypatch.setattr(engine, "EngineRunner", lambda runtime: runtime)
+
+    code = smoke.main(["--state", STATE, "--rounds", R1, R2])
+
+    out = capsys.readouterr().out
+    assert code == 0 and closed == [True]
+    nda = next(line for line in out.splitlines() if line.lstrip().startswith("NDA"))
+    assert "154 (-88)" in nda and "26 (-22)" in nda
