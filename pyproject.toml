@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matbodh-dashboard"
+version = "0.1.0"
+description = "Backend for the MatBodh survey-analytics dashboard"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic>=2",
+    "pyyaml",
+    "redis",
+    "rq",
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "fakeredis"]
+
+[tool.setuptools.packages.find]
+include = ["matbodh_dashboard*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
