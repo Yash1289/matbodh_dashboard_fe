@@ -35,7 +35,7 @@ def test_preset_loads_provisional_values():
 
 def test_preset_rejects_unknown_key(tmp_path):
     bad = tmp_path / "bad.yaml"
-    bad.write_text(PRESET_PATH.read_text(encoding="utf-8") + "surprise: 1\n")
+    bad.write_text(PRESET_PATH.read_text(encoding="utf-8") + "surprise: 1\n", encoding="utf-8")
     with pytest.raises(ValidationError):
         load_preset(bad)
 
