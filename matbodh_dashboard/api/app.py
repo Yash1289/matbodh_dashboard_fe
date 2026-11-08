@@ -109,12 +109,17 @@ def create_app(
         if catalogue_loader is None:
             raise HTTPException(
                 503, "metadata refresh is not configured: no catalogue loader was provided")
+        # Exception messages may carry connection details: log only the type.
         try:
             catalogue = catalogue_loader()
-        except Exception:  # the message may carry connection details: log, don't echo
-            log.exception("catalogue reload failed")
+        except Exception as exc:
+            log.error("catalogue reload failed: %s", type(exc).__name__)
             raise HTTPException(502, "catalogue reload failed; see server logs") from None
-        epoch = service.refresh_metadata(catalogue)
+        try:
+            epoch = service.refresh_metadata(catalogue)
+        except Exception as exc:
+            log.error("metadata refresh failed: %s", type(exc).__name__)
+            raise HTTPException(502, "metadata refresh failed; see server logs") from None
         return MetadataRefreshed(revision=catalogue.revision, alliance_epoch=epoch)
 
     return app

@@ -6,6 +6,8 @@ from the service tests; the API itself must never compute survey numbers.
 
 from __future__ import annotations
 
+import logging
+
 import fakeredis
 import pytest
 from fastapi import Request
@@ -173,15 +175,32 @@ def test_refresh_without_loader_is_503(client):
     assert "loader" in response.json()["detail"]
 
 
-def test_refresh_loader_failure_is_502_without_details(service):
+def test_refresh_loader_failure_is_502_without_details(service, caplog):
     def loader():
         raise RuntimeError("password=hunter2 refused")
 
     client = TestClient(create_app(service, catalogue_loader=loader))
-    response = client.post("/admin/metadata/refreshed")
+    with caplog.at_level(logging.DEBUG):
+        response = client.post("/admin/metadata/refreshed")
     assert response.status_code == 502
     assert "hunter2" not in response.text
+    assert "hunter2" not in caplog.text and "Traceback" not in caplog.text
+    assert "RuntimeError" in caplog.text
     assert service.cache.alliance_epoch() == 0
+
+
+def test_refresh_service_failure_is_502_without_details(service, caplog):
+    def broken(catalogue):
+        raise ConnectionError("redis://:hunter2@host down")
+
+    service.refresh_metadata = broken
+    client = TestClient(create_app(service, catalogue_loader=lambda: service.catalogue))
+    with caplog.at_level(logging.DEBUG):
+        response = client.post("/admin/metadata/refreshed")
+    assert response.status_code == 502
+    assert "hunter2" not in response.text
+    assert "hunter2" not in caplog.text and "Traceback" not in caplog.text
+    assert "ConnectionError" in caplog.text
 
 
 def test_principal_header_copied_to_request_state(service):
