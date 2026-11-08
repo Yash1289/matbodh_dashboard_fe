@@ -8,12 +8,14 @@ None + ``not_asked``; None is never turned into zero.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from matbodh_dashboard.normalise.rows import NormalRow
 
 NOT_ASKED = "not_asked"
 NOT_CONTENDER = "not_contender"
+NO_DELTA = "no_delta"
+VOTE_FROM_SEAT_VIEW = "vote_from_seat_view"
 
 _DELTA_OF = {
     "support_share": "delta_support",
@@ -52,17 +54,26 @@ def _statewide(r: NormalRow) -> bool:
 
 
 def _index(rows: Sequence[NormalRow], keep: Callable[[NormalRow], bool],
-           series_of: Callable[[NormalRow], tuple]) -> dict[tuple, NormalRow]:
+           series_of: Callable[[NormalRow], tuple],
+           round_ids: Sequence[str]) -> dict[tuple, NormalRow]:
+    """Index selected-round rows; two rows with one key and different values
+    are ambiguous and raise rather than silently keeping the first."""
     out: dict[tuple, NormalRow] = {}
     for r in rows:
-        if keep(r):
-            out.setdefault((r.measure, *series_of(r), r.obs_id), r)
+        if r.obs_id not in round_ids or not keep(r):
+            continue
+        key = (r.measure, *series_of(r), r.obs_id)
+        prior = out.get(key)
+        if prior is not None and prior.value != r.value:
+            raise ValueError(f"Conflicting duplicate rows for {key}: "
+                             f"{prior.value!r} vs {r.value!r}")
+        out.setdefault(key, r)
     return out
 
 
 def _cell(idx: dict[tuple, NormalRow], measure: str, ident: tuple,
           round_ids: Sequence[str], anchor: str, compare: str | None,
-          secondary: str | None = None, delta_measure: str | None = None) -> Cell:
+          secondary: str | None = None) -> Cell:
     trend: list[float | None] = []
     flags: set[str] = set()
     for rid in round_ids:
@@ -75,9 +86,12 @@ def _cell(idx: dict[tuple, NormalRow], measure: str, ident: tuple,
             flags |= r.flags
     anchor_row = idx.get((measure, *ident, anchor))
     delta = None
-    if compare is not None:
-        d = idx.get((delta_measure or _DELTA_OF.get(measure, ""), *ident, anchor))
+    delta_measure = _DELTA_OF.get(measure)
+    if compare is not None and delta_measure is not None:
+        d = idx.get((delta_measure, *ident, anchor))
         delta = d.value if d is not None else None
+        if d is None:
+            flags.add(NO_DELTA)
     return Cell(anchor_row.value if anchor_row is not None else None, delta,
                 tuple(trend), secondary, frozenset(flags))
 
@@ -89,11 +103,11 @@ def _has(idx: dict[tuple, NormalRow], measure: str, ident: tuple) -> bool:
 def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anchor: str,
                      compare: str | None, keep: Sequence[str], other_label: str,
                      non_parties: Sequence[str] = ("Undecided", "NOTA")) -> list[ScoreboardRow]:
-    idx = _index(rows, _statewide, lambda r: (r.series,))
-    present = {r.series for r in rows if _statewide(r)}
+    idx = _index(rows, _statewide, lambda r: (r.series,), round_ids)
+    present = {r.series for r in rows if _statewide(r) and r.obs_id in round_ids}
     seat_winners = sorted(
         {r.series for r in rows
-         if _statewide(r) and r.measure in ("seats_ac", "seats_pc")
+         if _statewide(r) and r.obs_id in round_ids and r.measure in ("seats_ac", "seats_pc")
          and r.value is not None and r.value > 0}
         - set(keep) - {other_label} - set(non_parties))
 
@@ -108,10 +122,12 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
     out: list[ScoreboardRow] = []
     for party in order:
         ident = (party,)
-        measure = "support_share" if (_has(idx, "support_share", ident)
-                                      or not _has(idx, "vote_share_bench", ident)) \
-            else "vote_share_bench"
-        vote = cell(measure, party)
+        # vote_share_bench is a seat-view share: only for seat winners outside keep.
+        from_seat_view = (party in seat_winners and not _has(idx, "support_share", ident)
+                          and _has(idx, "vote_share_bench", ident))
+        vote = cell("vote_share_bench" if from_seat_view else "support_share", party)
+        if from_seat_view:
+            vote = replace(vote, flags=vote.flags | {VOTE_FROM_SEAT_VIEW})
 
         seats: dict[str, Cell | None] = {}
         for m in ("seats_ac", "seats_pc"):
@@ -136,18 +152,19 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
 
 def build_opinion_cells(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anchor: str,
                         compare: str | None) -> dict[str, Cell]:
-    idx = _index(rows, _statewide, lambda r: (r.scenario,))
-    scenarios = sorted({r.scenario for r in rows
-                        if _statewide(r) and r.measure == "net_score" and r.scenario})
+    idx = _index(rows, _statewide, lambda r: (r.scenario, r.series), round_ids)
     out: dict[str, Cell] = {}
-    for sc in scenarios:
-        pos = idx.get(("positive_share", sc, anchor))
-        neg = idx.get(("negative_share", sc, anchor))
+    for key in sorted({k[1:-1] for k in idx if k[0] == "net_score" and k[1] is not None}):
+        sc = key[0]
+        if sc in out:
+            raise ValueError(f"Several net-score series for scenario {sc!r}")
+        pos = idx.get(("positive_share", *key, anchor))
+        neg = idx.get(("negative_share", *key, anchor))
         sec = None
         if pos is not None and neg is not None and pos.value is not None \
                 and neg.value is not None:
             sec = f"{pos.value:.0f} sat · {neg.value:.0f} dis"
-        out[sc] = _cell(idx, "net_score", (sc,), round_ids, anchor, compare, secondary=sec)
+        out[sc] = _cell(idx, "net_score", key, round_ids, anchor, compare, secondary=sec)
     return out
 
 
@@ -162,7 +179,7 @@ def build_grid(rows: Sequence[NormalRow], *, row_dim: str, round_ids: Sequence[s
     def ident(r: NormalRow) -> tuple:
         return (next(v for n, v, _ in r.dims if n == row_dim), r.series)
 
-    idx = _index(rows, on_row_dim, ident)
+    idx = _index(rows, on_row_dim, ident, round_ids)
     keys = {k[1:-1] for k in idx if k[0] == measure}
     return {(v, s): _cell(idx, measure, (v, s), round_ids, anchor, compare)
             for v, s in sorted(keys, key=lambda k: (str(k[0]), k[1]))}

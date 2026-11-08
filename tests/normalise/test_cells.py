@@ -75,14 +75,14 @@ def test_opinion_cells_by_scenario():
     rows = [
         nr("net_score", "pm", 12.0, scenario="pm", unit="pp"),
         nr("net_score", "pm", 8.0, obs="o0", scenario="pm", unit="pp"),
-        nr("positive_share", "pm", 55.4, scenario="pm"),
+        nr("positive_share", "pm", 55.6, scenario="pm"),
         nr("negative_share", "pm", 43.4, scenario="pm"),
         nr("delta_net_score", "pm", 4.0, scenario="pm", unit="pp"),
         nr("net_score", "cm", -3.0, scenario="cm", unit="pp"),
     ]
     c = build_opinion_cells(rows, round_ids=["o0", "o1"], anchor="o1", compare="o0")
-    assert c["pm"] == Cell(12.0, 4.0, (8.0, 12.0), "55 sat · 43 dis", frozenset())
-    assert c["cm"].trend == (None, -3.0) and "not_asked" in c["cm"].flags
+    assert c["pm"] == Cell(12.0, 4.0, (8.0, 12.0), "56 sat · 43 dis", frozenset())
+    assert c["cm"].trend == (None, -3.0) and {"not_asked", "no_delta"} <= c["cm"].flags
     assert c["cm"].secondary is None and c["cm"].delta is None
 
 
@@ -100,3 +100,44 @@ def test_grid_cells_by_zone():
     assert set(g) == {("West", "BJP"), ("East", "SP")}
     assert g[("West", "BJP")] == Cell(50.0, 2.0, (48.0, 50.0), None, frozenset())
     assert g[("East", "SP")].trend == (None, 20.0)
+
+
+def test_keep_party_without_support_rows_does_not_fall_back_to_bench():
+    rows = [nr("support_share", "BJP", 41.5), nr("vote_share_bench", "SP", 29.0),
+            nr("seats_ac", "SP", 100, unit="seats")]
+    sp = board(rows)["SP"].vote
+    assert sp.value is None and sp.trend == (None, None)
+    assert "not_asked" in sp.flags and "vote_from_seat_view" not in sp.flags
+
+
+def test_non_keep_seat_winner_bench_vote_is_flagged():
+    rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "JDL", 2, unit="seats"),
+            nr("vote_share_bench", "JDL", 3.2)]
+    assert "vote_from_seat_view" in board(rows)["JDL"].vote.flags
+
+
+def test_conflicting_duplicate_rows_raise():
+    import pytest
+    rows = [nr("support_share", "BJP", 41.5), nr("support_share", "BJP", 42.0)]
+    with pytest.raises(ValueError, match="Conflicting"):
+        board(rows)
+    board([nr("support_share", "BJP", 41.5), nr("support_share", "BJP", 41.5)])
+
+
+def test_seat_winner_only_in_unselected_round_gets_no_row():
+    rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "JDL", 2, obs="o9", unit="seats")]
+    assert "JDL" not in board(rows)
+
+
+def test_seat_winner_in_non_anchor_selected_round_gets_row():
+    rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "JDL", 2, obs="o0", unit="seats"),
+            nr("vote_share_bench", "JDL", 3.2, obs="o0")]
+    jdl = board(rows)["JDL"]
+    assert jdl.seats_ac.trend == (2, None) and jdl.seats_ac.value is None
+    assert "not_asked" in jdl.seats_ac.flags
+
+
+def test_missing_delta_row_flags_no_delta():
+    c = board([nr("support_share", "BJP", 41.5)])["BJP"].vote
+    assert c.delta is None and "no_delta" in c.flags
+    assert "no_delta" not in board([nr("support_share", "BJP", 41.5)], compare=None)["BJP"].vote.flags
