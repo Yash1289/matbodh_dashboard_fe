@@ -12,7 +12,25 @@ from typing import Any, Literal
 ErrorKind = Literal["config", "too_heavy", "infrastructure"]
 
 _TOO_HEAVY_MARKERS = ("TOO_BIG_AST", "TIMEOUT_EXCEEDED", "TOO_MANY_ROWS")
-_INFRASTRUCTURE_TYPES = (ConnectionError, TimeoutError, OSError)
+
+
+def _infrastructure_types() -> tuple[type[BaseException], ...]:
+    """Builtin network errors plus driver errors that are not OSError subclasses."""
+    types: list[type[BaseException]] = [ConnectionError, TimeoutError, OSError]
+    try:
+        from clickhouse_connect.driver.exceptions import OperationalError as ChOperational
+
+        types.append(ChOperational)
+    except ImportError:
+        pass
+    try:
+        from mysql.connector.errors import InterfaceError, OperationalError
+
+        types.extend([InterfaceError, OperationalError])
+    except ImportError:
+        pass
+    return tuple(types)
+
 
 MAX_EXECUTION_TIME = 120
 MAX_RESULT_ROWS = 100000
@@ -29,7 +47,7 @@ def classify(exc: BaseException) -> EngineError:
     message = str(exc) or type(exc).__name__
     if any(marker in message for marker in _TOO_HEAVY_MARKERS):
         return EngineError("too_heavy", message)
-    if isinstance(exc, _INFRASTRUCTURE_TYPES):
+    if isinstance(exc, _infrastructure_types()):
         return EngineError("infrastructure", message)
     return EngineError("config", message)
 
@@ -39,9 +57,10 @@ class EngineRunner:
         self._runtime = runtime
 
     def run(self, config: dict) -> dict:
-        fd, name = tempfile.mkstemp(suffix=".json")
-        path = Path(name)
+        path: Path | None = None
         try:
+            fd, name = tempfile.mkstemp(suffix=".json")
+            path = Path(name)
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 json.dump(config, handle)
             result = self._runtime.run(path)
@@ -51,7 +70,8 @@ class EngineRunner:
         except Exception as exc:
             raise classify(exc) from exc
         finally:
-            path.unlink(missing_ok=True)
+            if path is not None:
+                path.unlink(missing_ok=True)
 
 
 def build_runtime(env_file: Path) -> Any:
@@ -72,7 +92,11 @@ def build_runtime(env_file: Path) -> Any:
     from matbodh_views.named_runtime import NamedSurveyRuntime
 
     mysql = create_mysql_connection(env_file)
-    client = create_clickhouse_client(env_file)
+    try:
+        client = create_clickhouse_client(env_file)
+    except BaseException:
+        mysql.close()
+        raise
     query = ClickHouseConnectAdapter(
         client,
         max_execution_time=MAX_EXECUTION_TIME,

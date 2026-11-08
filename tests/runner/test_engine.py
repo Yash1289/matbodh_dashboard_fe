@@ -64,3 +64,46 @@ def test_classify(exc, kind):
 
 def test_too_heavy_wins_over_infrastructure():
     assert classify(ConnectionError("TIMEOUT_EXCEEDED")).kind == "too_heavy"
+
+
+def test_classify_real_driver_network_errors():
+    from clickhouse_connect.driver.exceptions import DatabaseError as ChDatabaseError
+    from clickhouse_connect.driver.exceptions import OperationalError as ChOperational
+    from mysql.connector.errors import InterfaceError, OperationalError
+
+    for exc in (ChOperational("down"), InterfaceError("lost"), OperationalError("gone")):
+        assert classify(exc).kind == "infrastructure"
+    assert classify(ChDatabaseError("Code: 168. TOO_BIG_AST")).kind == "too_heavy"
+    assert classify(ChOperational("TIMEOUT_EXCEEDED")).kind == "too_heavy"
+
+
+def test_mkstemp_failure_is_classified(monkeypatch):
+    def boom(**kw):
+        raise OSError("no temp")
+
+    monkeypatch.setattr("tempfile.mkstemp", boom)
+    with pytest.raises(EngineError) as ei:
+        EngineRunner(RecordingRuntime()).run({})
+    assert ei.value.kind == "infrastructure"
+
+
+def test_build_runtime_closes_mysql_if_clickhouse_fails(monkeypatch):
+    import matbodh_views.connections as conns
+
+    closed = []
+
+    class Conn:
+        def close(self):
+            closed.append(True)
+
+    monkeypatch.setattr(conns, "create_mysql_connection", lambda f: Conn())
+
+    def fail(f):
+        raise ConnectionError("ch down")
+
+    monkeypatch.setattr(conns, "create_clickhouse_client", fail)
+    from matbodh_dashboard.runner.engine import build_runtime
+
+    with pytest.raises(ConnectionError):
+        build_runtime(Path("x.env"))
+    assert closed == [True]
