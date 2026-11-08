@@ -16,9 +16,14 @@ NOT_ASKED = "not_asked"
 NOT_CONTENDER = "not_contender"
 NO_DELTA = "no_delta"
 VOTE_FROM_SEAT_VIEW = "vote_from_seat_view"
+WITHIN_OTHER = "within_other"  # an "of which" row: its vote is already inside Other
+PARTY_SHARE = "party_share"  # support_share from the ungrouped parties job
 
 _DELTA_OF = {
     "support_share": "delta_support",
+    # The parties job carries no comparisons, so this never matches: the
+    # cell's delta stays None and is flagged no_delta, never derived.
+    PARTY_SHARE: "delta_party_share",
     "vote_share_bench": "delta_support",
     "net_score": "delta_net_score",
     "positive_share": "delta_positive_share",
@@ -44,6 +49,7 @@ class ScoreboardRow:
     seats_ac: Cell | None
     seats_pc: Cell | None
     gender_gap: Cell | None
+    flags: frozenset[str] = frozenset()
 
 
 Key = tuple[str, str, str | None]  # (measure, series, obs_id)
@@ -104,7 +110,10 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
                      compare: str | None, keep: Sequence[str], other_label: str,
                      non_parties: Sequence[str] = ("Undecided", "NOTA")) -> list[ScoreboardRow]:
     idx = _index(rows, _statewide, lambda r: (r.series,), round_ids)
-    present = {r.series for r in rows if _statewide(r) and r.obs_id in round_ids}
+    # Rows come from the grouped vote job only; ungrouped parties-job shares
+    # (party_share) stay inside Other unless the party wins a seat.
+    present = {r.series for r in rows if _statewide(r) and r.obs_id in round_ids
+               and r.measure == "support_share"}
     seat_winners = sorted(
         {r.series for r in rows
          if _statewide(r) and r.obs_id in round_ids and r.measure in ("seats_ac", "seats_pc")
@@ -122,12 +131,20 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
     out: list[ScoreboardRow] = []
     for party in order:
         ident = (party,)
-        # vote_share_bench is a seat-view share: only for seat winners outside keep.
-        from_seat_view = (party in seat_winners and not _has(idx, "support_share", ident)
-                          and _has(idx, "vote_share_bench", ident))
-        vote = cell("vote_share_bench" if from_seat_view else "support_share", party)
-        if from_seat_view:
-            vote = replace(vote, flags=vote.flags | {VOTE_FROM_SEAT_VIEW})
+        row_flags: frozenset[str] = frozenset()
+        if party in seat_winners and not _has(idx, "support_share", ident):
+            # Outside the keep list: the survey share from the ungrouped parties
+            # job; the seat-view share only as a last resort. Either way the
+            # party's vote is already counted inside Other.
+            row_flags = frozenset({WITHIN_OTHER})
+            if _has(idx, PARTY_SHARE, ident) or not _has(idx, "vote_share_bench", ident):
+                vote = cell(PARTY_SHARE, party)
+                vote = replace(vote, flags=vote.flags | row_flags)
+            else:
+                vote = cell("vote_share_bench", party)
+                vote = replace(vote, flags=vote.flags | row_flags | {VOTE_FROM_SEAT_VIEW})
+        else:
+            vote = cell("support_share", party)
 
         seats: dict[str, Cell | None] = {}
         for m in ("seats_ac", "seats_pc"):
@@ -146,7 +163,8 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
             if f is not None and m_ is not None and f.value is not None and m_.value is not None:
                 sec = f"F {f.value:.1f} · M {m_.value:.1f}"
             gender = cell("gender_gap", party, secondary=sec)
-        out.append(ScoreboardRow(party, vote, seats["seats_ac"], seats["seats_pc"], gender))
+        out.append(ScoreboardRow(party, vote, seats["seats_ac"], seats["seats_pc"], gender,
+                                 row_flags))
     return out
 
 

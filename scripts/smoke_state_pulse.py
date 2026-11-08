@@ -87,7 +87,8 @@ def report(service: CardRunService, run_id: str, status: CardRunStatus,
         lines.append("scoreboard (series: vote | seats_ac | seats_pc | gender_gap):")
         for row in status.result["scoreboard"]:
             cells = " | ".join(_fmt(row[k]) for k in ("vote", "seats_ac", "seats_pc", "gender_gap"))
-            lines.append(f"  {row['series']}: {cells}")
+            flags = f" [{', '.join(row['flags'])}]" if row.get("flags") else ""
+            lines.append(f"  {row['series']}{flags}: {cells}")
         if status.result["unavailable"]:
             lines.append(f"unavailable: {status.result['unavailable']}")
     for part, error in sorted(status.errors.items()):

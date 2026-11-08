@@ -17,15 +17,17 @@ import threading
 import uuid
 from collections import OrderedDict
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Literal
 
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.fingerprint import fingerprint
-from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, bind_contenders, plan_card
+from matbodh_dashboard.compiler.plan import (
+    PARTIES_JOB, EngineJob, RunPlan, bind_contenders, plan_card,
+)
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.normalise.cells import (
-    Cell, build_grid, build_opinion_cells, build_scoreboard,
+    PARTY_SHARE, Cell, build_grid, build_opinion_cells, build_scoreboard,
 )
 from matbodh_dashboard.normalise.rows import NormalRow, from_analysis, from_benchmark
 from matbodh_dashboard.presets import MethodPreset
@@ -233,7 +235,13 @@ class CardRunService:
         if job.job.kind == "benchmark":
             level = job.job.config["benchmark"]["seat_level"]
             return from_benchmark(job.result, run.plan.state, level)
-        return from_analysis(job.result, run.plan.state)
+        rows = from_analysis(job.result, run.plan.state)
+        if job.job.part == PARTIES_JOB:
+            # Ungrouped shares must not collide with the grouped vote job's
+            # support_share rows: same series, different party grouping.
+            rows = [replace(r, measure=PARTY_SHARE) if r.measure == "support_share" else r
+                    for r in rows]
+        return rows
 
     def _log(self, run: _Run, job: _Job) -> None:
         """One structured line per job; aggregate counts only, no respondent data."""
@@ -322,6 +330,7 @@ class CardRunService:
             result["hidden_count"] = self.rules.hidden_count(_PARTY, by_party, states=states)
             result["scoreboard"] = [
                 {**self._series(_PARTY, p, plan.state),
+                 "flags": sorted(by_party[p].flags),
                  "vote": _cell(by_party[p].vote),
                  "seats_ac": _cell(by_party[p].seats_ac),
                  "seats_pc": _cell(by_party[p].seats_pc),

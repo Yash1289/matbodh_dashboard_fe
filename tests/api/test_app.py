@@ -124,7 +124,7 @@ def test_plan_reports_rounds_and_coverage_mode(client):
     assert [r["obs_id"] for r in data["rounds"]] == ["o1", "o2"]
     assert data["rounds"][1]["version"] == "extrapolated"
     assert data["rounds"][0]["fallback"] is True
-    assert set(data["coverage_mode"]) == {"vote", "seats_ac", "seats_pc"}
+    assert set(data["coverage_mode"]) == {"vote", "parties", "seats_ac", "seats_pc"}
     assert data["unavailable"] == []
 
 
@@ -148,7 +148,7 @@ def test_run_then_status_done(client):
     status = client.get(f"/runs/{run_id}")
     assert status.status_code == 200
     data = status.json()
-    assert (data["state"], data["done"], data["total"]) == ("done", 3, 3)
+    assert (data["state"], data["done"], data["total"]) == ("done", 4, 4)
     assert data["errors"] == {}
     nda = next(r for r in data["result"]["scoreboard"] if r["series"] == "NDA")
     assert nda["vote"]["value"] == 38.0 and nda["vote"]["delta"] == -1.5

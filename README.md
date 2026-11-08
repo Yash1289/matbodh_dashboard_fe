@@ -67,9 +67,12 @@ Prerequisites:
   `config/`, at AC level.
 - The first `--rounds` entry is the compare round, the last is the anchor.
 - Timings are for information, not acceptance thresholds.
-- Expected (Appendix A of the spec): rows BSP, NDA, Other, SP+ (plus JDL in the
-  seat columns) and no errors; seat counts AC NDA 243 to 154, SP+ 158 to 249;
-  PC NDA 49 to 26, SP+ 31 to 54.
+- Expected (Appendix A of the spec): four jobs (`vote`, `parties`, `seats_ac`,
+  `seats_pc`) and no errors; rows NDA, SP+, BSP, Other, plus JDL as an
+  "of which" row flagged `within_other` (it led 2 AC seats in R1). JDL's vote
+  cell is its survey share from the ungrouped `parties` job, already counted
+  inside Other, so the vote column is not additive across such rows. Seat
+  counts AC NDA 243 to 154, SP+ 158 to 249; PC NDA 49 to 26, SP+ 31 to 54.
 - Exit code 0 only when the run state is `done`.
 
 ## Docs

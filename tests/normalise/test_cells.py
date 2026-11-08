@@ -22,15 +22,24 @@ def test_seat_winner_outside_keep_list_gets_own_row():
     rows = [
         nr("support_share", "BJP", 41.5), nr("support_share", "SP", 30.0),
         nr("support_share", "Other", 5.0),
+        # Ungrouped parties-job shares; JDL (3.0) is folded into Other above.
+        nr("party_share", "BJP", 41.5), nr("party_share", "JDL", 3.0),
+        nr("party_share", "INC", 2.0), nr("party_share", "Undecided", 1.5),
         nr("seats_ac", "JDL", 2, unit="seats"), nr("vote_share_bench", "JDL", 3.2),
         nr("seats_ac", "BJP", 200, unit="seats"),
     ]
     b = board(rows)
+    # INC and Undecided only appear ungrouped: they stay inside Other.
     assert list(b) == ["BJP", "SP", "Other", "JDL"]
-    assert b["JDL"].vote.value == 3.2
-    assert b["JDL"].seats_ac.value == 2
-    assert b["JDL"].seats_pc is None
-    assert b["BJP"].vote.value == 41.5
+    jdl = b["JDL"]
+    assert jdl.vote.value == 3.0  # the survey share, not the seat-view share
+    assert jdl.vote.trend == (None, 3.0)
+    assert "within_other" in jdl.vote.flags and "vote_from_seat_view" not in jdl.vote.flags
+    assert jdl.flags == frozenset({"within_other"})
+    assert jdl.vote.delta is None and "no_delta" in jdl.vote.flags  # no engine Δ for it
+    assert jdl.seats_ac.value == 2
+    assert jdl.seats_pc is None
+    assert b["BJP"].vote.value == 41.5 and b["BJP"].flags == frozenset()
 
 
 def test_not_asked_round_is_flagged_not_zero():
@@ -110,10 +119,13 @@ def test_keep_party_without_support_rows_does_not_fall_back_to_bench():
     assert "not_asked" in sp.flags and "vote_from_seat_view" not in sp.flags
 
 
-def test_non_keep_seat_winner_bench_vote_is_flagged():
+def test_non_keep_seat_winner_bench_vote_is_last_resort_and_flagged():
     rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "JDL", 2, unit="seats"),
             nr("vote_share_bench", "JDL", 3.2)]
-    assert "vote_from_seat_view" in board(rows)["JDL"].vote.flags
+    jdl = board(rows)["JDL"]
+    assert jdl.vote.value == 3.2
+    assert {"vote_from_seat_view", "within_other"} <= jdl.vote.flags
+    assert "within_other" in jdl.flags
 
 
 def test_conflicting_duplicate_rows_raise():

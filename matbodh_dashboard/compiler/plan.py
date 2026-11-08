@@ -17,13 +17,18 @@ from matbodh_dashboard.templates import CardTemplate
 
 VOTE_SCENARIO = "vs_voting_intention"
 SEATS_UNAVAILABLE = "Seat views need an AC or PC level survey"
+# The ungrouped twin of the vote job. The vote job applies other_grouping, so
+# the engine folds every party outside the keep list into Other; benchmark
+# summaries cover only listed contenders. Contenders, and the vote share of a
+# seat winner outside the keep list, therefore come from this job.
+PARTIES_JOB = "parties"
 
 
 @dataclass(frozen=True)
 class EngineJob:
     key: str
     kind: Literal["analysis", "benchmark"]
-    part: str  # vote | seats_ac | seats_pc | opinion | zone
+    part: str  # vote | parties | seats_ac | seats_pc | opinion | zone
     config: dict
     contenders_from: str | None = None
 
@@ -90,7 +95,7 @@ def _benchmark_job(
         kind="benchmark",
         part=part,
         config=view_config(request, preset, benchmark=benchmark),
-        contenders_from="vote",
+        contenders_from=PARTIES_JOB,
     )
 
 
@@ -123,6 +128,14 @@ def plan_card(
         )
         jobs.append(EngineJob("vote", "analysis", "vote", view_config(request, preset)))
         allowed = capabilities(ctx.level).seat_levels
+        if allowed:
+            ungrouped = build_request(
+                state=ctx.state, rounds=rounds, scenarios=scenarios,
+                grouping_sets=[[]], preset=preset, coverage_mode=coverage,
+                other_grouping=False,
+            )
+            jobs.append(EngineJob(PARTIES_JOB, "analysis", PARTIES_JOB,
+                                  view_config(ungrouped, preset)))
         others = [r for r in rounds if r is not anchor and r is not compare]
         for level in ("ac", "pc"):
             part = f"seats_{level}"
@@ -168,7 +181,8 @@ def plan_card(
 def bind_contenders(
     job: EngineJob, parties: Sequence[str], preset: MethodPreset
 ) -> EngineJob:
-    """Fill a benchmark job's contenders from the vote job's party list."""
+    """Fill a benchmark job's contenders from the ungrouped parties job's list,
+    minus competition-excluded identities and the Other label."""
     if job.kind != "benchmark":
         raise ValueError("only benchmark jobs take contenders")
     excluded = set(preset.competition_excluded) | {preset.other_label}

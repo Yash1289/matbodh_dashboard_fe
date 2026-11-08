@@ -44,17 +44,32 @@ rules:
     hidden: [NOTA]
 """
 
-# Vote shares per round; NOTA present so contenders exclusion is exercised.
+# Ungrouped survey shares per round (the "parties" job). JDL, INC, Undecided
+# and NOTA are outside the keep list.
+PARTY_SHARES = {
+    "o1": {"NDA": 40.0, "SP+": 30.0, "BSP": 12.0, "JDL": 3.0, "INC": 2.0,
+           "Undecided": 2.0, "NOTA": 1.0},
+    "o2": {"NDA": 38.0, "SP+": 34.0, "BSP": 11.0, "JDL": 3.5, "INC": 2.5,
+           "Undecided": 2.0, "NOTA": 1.0},
+}
+# The grouped vote job, as the engine returns it under other_grouping: every
+# party outside keep [NDA, SP+, BSP] is folded into Other (party_grouping.py),
+# so it emits no JDL, INC, Undecided or NOTA rows.
 SHARES = {
-    "o1": {"NDA": 40.0, "SP+": 30.0, "BSP": 12.0, "Other": 8.0, "NOTA": 1.0},
-    "o2": {"NDA": 38.0, "SP+": 34.0, "BSP": 11.0, "Other": 9.0, "NOTA": 1.0},
+    "o1": {"NDA": 40.0, "SP+": 30.0, "BSP": 12.0, "Other": 8.0},
+    "o2": {"NDA": 38.0, "SP+": 34.0, "BSP": 11.0, "Other": 9.0},
 }
 # Engine deltas deliberately differ from o2 - o1 (-2.0, 4.0).
 VOTE_DELTAS = {"NDA": -1.5, "SP+": 3.5}
+# Seats won per contender; a contender with no entry wins 0 seats.
 SEATS = {
     "ac": {"o1": {"NDA": 243, "SP+": 158}, "o2": {"NDA": 154, "SP+": 249}},
     "pc": {"o1": {"NDA": 49, "SP+": 31}, "o2": {"NDA": 26, "SP+": 54}},
 }
+# Eligible (included) seats per endpoint; a paired benchmark only includes
+# seats eligible in both endpoints.
+ELIGIBLE = {"ac": {"o1": 380, "o2": 403, "paired": 380},
+            "pc": {"o1": 76, "o2": 80, "paired": 76}}
 # Paired benchmark deltas deliberately differ from the per-round gaps.
 SEAT_DELTAS = {"ac": {"NDA": -88, "SP+": 90}, "pc": {"NDA": -22, "SP+": 22}}
 BENCH_COVERAGE = "common_positive_eligible_seats_full_constituents"
@@ -62,22 +77,32 @@ BENCH_COVERAGE = "common_positive_eligible_seats_full_constituents"
 BENCH_SHARE_OFFSET = {"ac": 0.0, "pc": 0.0}
 
 
+# A minimal grouped vote config for worker tests.
+VOTE_CONFIG = {"request": {
+    "scenarios": [VOTE_SCENARIO], "grouping_sets": [[]], "observations": [{"id": "o1"}],
+    "comparisons": [], "parties": {"other_grouping": {"keep": ["NDA"], "label": "Other"}}}}
+
+
 def part_of(config: dict) -> str:
     if "benchmark" in config:
         return f"seats_{config['benchmark']['seat_level']}"
-    scenarios = config["request"]["scenarios"]
-    if config["request"]["grouping_sets"] != [[]]:
+    request = config["request"]
+    if request["grouping_sets"] != [[]]:
         return "zone"
-    return "vote" if scenarios == [VOTE_SCENARIO] else "opinion"
+    if request["scenarios"] != [VOTE_SCENARIO]:
+        return "opinion"
+    return "parties" if request["parties"]["other_grouping"] is None else "vote"
 
 
 def vote_result(config: dict) -> dict:
-    obs = [o["id"] for o in config["request"]["observations"]]
+    request = config["request"]
+    obs = [o["id"] for o in request["observations"]]
+    shares = PARTY_SHARES if request["parties"]["other_grouping"] is None else SHARES
     rows = [
         {"observation_id": o, "scenario_id": VOTE_SCENARIO, "party_id": p,
          "support_share": v, "weighted_denominator": 1000.0, "grouping_set_id": "g0",
          "dimensions": {}}
-        for o in obs for p, v in SHARES[o].items()
+        for o in obs for p, v in shares[o].items()
     ]
     comparisons = [
         {"comparison_id": f"c-{p}", "party_id": p, "measure": "support_share",
@@ -85,7 +110,7 @@ def vote_result(config: dict) -> dict:
          "reference": ["o1", VOTE_SCENARIO], "coverage_status": "aligned",
          "dimensions": {}}
         for p, d in VOTE_DELTAS.items()
-    ] if config["request"]["comparisons"] else []
+    ] if request["comparisons"] else []
     return {
         "rows": rows, "comparisons": comparisons, "scores": [], "populations": [],
         "gender_differentials": [],
@@ -95,25 +120,30 @@ def vote_result(config: dict) -> dict:
 
 
 def bench_result(config: dict) -> dict:
+    """Like the engine (benchmarking.py ARRAY JOIN bm_contenders): one summary
+    per listed contender and endpoint, and nothing for unlisted parties."""
     b = config["benchmark"]
     level = b["seat_level"]
     target = b["target"]["id"]
     endpoints = [target] + ([b["reference"]["id"]] if b["reference"] else [])
+    eligible = ELIGIBLE[level]["paired"] if b["reference"] else ELIGIBLE[level][target]
     summaries = [
-        {"endpoint": e, "party_id": p, "seat_count": n, "vote_share": SHARES[e][p] + BENCH_SHARE_OFFSET[level],
-         "eligible_seat_count": 403, "support_base": 9000.0, "grouping_set_id": "g0",
+        {"endpoint": e, "party_id": p, "seat_count": SEATS[level][e].get(p, 0),
+         "vote_share": PARTY_SHARES[e][p] + BENCH_SHARE_OFFSET[level],
+         "eligible_seat_count": eligible, "support_base": 9000.0, "grouping_set_id": "g0",
          "dimensions": {}}
-        for e in endpoints for p, n in SEATS[level][e].items()
+        for e in endpoints for p in b["contenders"]
     ]
     comparisons = [
-        {"party_id": p, "seat_count_delta": d, "eligible_seat_count": 380,
-         "grouping_set_id": "g0", "dimensions": {}}
-        for p, d in SEAT_DELTAS[level].items()
+        {"party_id": p, "seat_count_delta": SEAT_DELTAS[level].get(p, 0),
+         "eligible_seat_count": eligible, "grouping_set_id": "g0", "dimensions": {}}
+        for p in b["contenders"]
     ] if b["reference"] else []
     return {
         "seat_results": [], "margin_buckets": [], "flips": [], "coverage": [],
         "summaries": summaries, "comparisons": comparisons,
         "contract": {"id": b["id"], "seat_level": level, "target": target,
+                     "reference": b["reference"]["id"] if b["reference"] else None,
                      "coverage": BENCH_COVERAGE},
     }
 
@@ -169,7 +199,8 @@ class FakeRunner:
             raise pending.pop(0)
         if part.startswith("seats_"):
             return bench_result(config)
-        return {"vote": vote_result, "opinion": opinion_result, "zone": zone_result}[part](config)
+        return {"vote": vote_result, "parties": vote_result, "opinion": opinion_result,
+                "zone": zone_result}[part](config)
 
 
 class ManualQueue:
@@ -237,7 +268,7 @@ def test_cache_hit_skips_runner(rules, cache):
     service, runner = make_service(rules, cache)
     first = service.status(service.start(SCOREBOARD, ctx()))
     calls = len(runner.calls)
-    assert first.state == "done" and calls == 3
+    assert first.state == "done" and calls == 4
     again = service.status(service.start(SCOREBOARD, ctx()))
     assert len(runner.calls) == calls
     assert again.state == "done"
@@ -249,7 +280,7 @@ def test_job_timings_exposes_parts_and_timings(rules, cache):
     run_id = service.start(SCOREBOARD, ctx())
     service.status(run_id)
     timings = service.job_timings(run_id)
-    assert [t["part"] for t in timings] == ["vote", "seats_ac", "seats_pc"]
+    assert [t["part"] for t in timings] == ["vote", "parties", "seats_ac", "seats_pc"]
     for t in timings:
         assert t["fingerprint"] and t["state"] == "done" and t["cache_hit"] is False
         assert t["engine_s"] is not None and t["engine_s"] >= 0
@@ -266,34 +297,36 @@ def test_identical_jobs_deduplicated(rules, cache):
     service, _ = make_service(rules, cache, runner=runner, queue=queue, templates=templates)
     a = service.start(SCOREBOARD, ctx())
     b = service.start(twin.id, ctx())
-    assert len(queue.submitted) == 1  # one shared vote job, still in flight
+    assert len(queue.submitted) == 2  # shared vote and parties jobs, still in flight
     queue.drain()
     service.status(a), service.status(b)  # both runs bind and submit benchmarks
     queue.drain()
     assert runner.parts().count("vote") == 1
-    assert sorted(runner.parts()) == ["seats_ac", "seats_pc", "vote"]
+    assert sorted(runner.parts()) == ["parties", "seats_ac", "seats_pc", "vote"]
     assert service.status(a).state == service.status(b).state == "done"
 
 
 def test_epoch_bump_invalidates(rules, cache):
     service, runner = make_service(rules, cache)
     service.status(service.start(SCOREBOARD, ctx()))
-    assert len(runner.calls) == 3
+    assert len(runner.calls) == 4
     assert service.refresh_metadata(catalogue()) == 1
     assert cache.alliance_epoch() == 1
     assert service.status(service.start(SCOREBOARD, ctx())).state == "done"
-    assert len(runner.calls) == 6
+    assert len(runner.calls) == 8
 
 
-def test_contenders_bound_from_vote_job(rules, cache):
+def test_contenders_bound_from_ungrouped_parties_job(rules, cache):
     service, runner = make_service(rules, cache)
     service.status(service.start(SCOREBOARD, ctx()))
-    assert runner.parts()[0] == "vote"
+    assert runner.parts()[:2] == ["vote", "parties"]
     benches = [c for c in runner.calls if "benchmark" in c]
     assert len(benches) == 2
     for config in benches:
-        # NOTA (competition_excluded) and Other (other_label) are not contenders.
-        assert config["benchmark"]["contenders"] == ["BSP", "NDA", "SP+"]
+        # Every party the ungrouped job returns, including those the grouped
+        # vote job folds into Other; NOTA (competition_excluded) is not one.
+        assert config["benchmark"]["contenders"] == [
+            "BSP", "INC", "JDL", "NDA", "SP+", "Undecided"]
 
 
 def test_failed_job_marks_only_its_parts(rules, cache):
@@ -312,7 +345,7 @@ def test_failed_job_marks_only_its_parts(rules, cache):
     # Cached successes stay usable: a new run re-uses vote and AC.
     rerun = service.status(service.start(SCOREBOARD, ctx()))
     assert rerun.state == "partial"
-    assert len(runner.calls) == 3  # the config error is cached too
+    assert len(runner.calls) == 4  # the config error is cached too
 
 
 def test_infrastructure_error_retried_then_succeeds(rules, cache):
@@ -326,18 +359,27 @@ def test_infrastructure_error_retried_then_succeeds(rules, cache):
 
 
 def test_infrastructure_error_gives_up_after_three_retries(rules, cache):
-    runner = FakeRunner({"vote": [ConnectionError("down")] * 4})
+    runner = FakeRunner({"parties": [ConnectionError("down")] * 4})
     sleeps: list[float] = []
     service, _ = make_service(rules, cache, runner=runner, sleeps=sleeps)
     status = service.status(service.start(SCOREBOARD, ctx()))
-    assert runner.parts() == ["vote"] * 4
+    assert runner.parts() == ["vote"] + ["parties"] * 4
     assert sleeps == [5, 15, 30]
-    assert status.state == "failed" and status.result is None
-    assert status.errors["vote"]["kind"] == "infrastructure"
-    # Dependent seat jobs fail with the vote job's kind, without running.
+    assert status.state == "partial"
+    assert status.errors["parties"]["kind"] == "infrastructure"
+    # Dependent seat jobs fail with the parties job's kind, without running.
     assert status.errors["seats_ac"]["kind"] == "infrastructure"
+    assert status.errors["seats_pc"]["kind"] == "infrastructure"
     # An infrastructure error is not a cached verdict: the next run retries.
     assert service.status(service.start(SCOREBOARD, ctx())).state == "done"
+
+
+def test_whole_card_fails_when_every_job_fails(rules, cache):
+    runner = FakeRunner({"vote": [ValueError("bad")], "parties": [ValueError("bad")]})
+    service, _ = make_service(rules, cache, runner=runner)
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert status.state == "failed" and status.result is None
+    assert set(status.errors) == {"vote", "parties", "seats_ac", "seats_pc"}
 
 
 def test_config_error_not_retried(rules, cache):
@@ -345,9 +387,9 @@ def test_config_error_not_retried(rules, cache):
     sleeps: list[float] = []
     service, _ = make_service(rules, cache, runner=runner, sleeps=sleeps)
     status = service.status(service.start(SCOREBOARD, ctx()))
-    assert runner.parts() == ["vote"]
+    assert runner.parts().count("vote") == 1
     assert sleeps == []
-    assert status.state == "failed"
+    assert status.state == "partial" and set(status.errors) == {"vote"}
     assert status.errors["vote"]["kind"] == "config"
 
 
@@ -355,7 +397,7 @@ def test_too_heavy_error_not_retried(rules, cache):
     runner = FakeRunner({"vote": [EngineError("too_heavy", "TOO_BIG_AST")]})
     service, _ = make_service(rules, cache, runner=runner)
     status = service.status(service.start(SCOREBOARD, ctx()))
-    assert runner.parts() == ["vote"]
+    assert runner.parts().count("vote") == 1
     assert status.errors["vote"]["kind"] == "too_heavy"
 
 
@@ -363,8 +405,10 @@ def test_series_carry_label_and_colour(rules, cache):
     service, _ = make_service(rules, cache)
     status = service.status(service.start(SCOREBOARD, ctx()))
     rows = status.result["scoreboard"]
+    # NOTA, INC, Undecided and JDL are inside Other (grouped vote job); none wins a seat.
     assert [r["series"] for r in rows] == ["NDA", "SP+", "BSP", "Other"]
-    assert status.result["hidden_count"] == 1  # NOTA hidden by rule, counted
+    assert status.result["hidden_count"] == 0
+    assert all(r["flags"] == [] for r in rows)
     nda, sp = rows[0], rows[1]
     assert (nda["label"], nda["colour"]) == ("NDA (BJP+)", "#FF9933")
     assert (sp["label"], sp["colour"]) == ("SP+", "#E41A1C")
@@ -387,8 +431,8 @@ def test_result_rounds_and_coverage(rules, cache):
     assert rounds["groups"] == [{"cycle": "2027 VS", "series": r1["series"],
                                  "obs_ids": ["o1", "o2"]}]
     coverage = {c["part"]: c["coverage"] for c in result["coverage"]}
-    assert coverage == {"vote": {"mode": "independent"}, "seats_ac": BENCH_COVERAGE,
-                        "seats_pc": BENCH_COVERAGE}
+    assert coverage == {"vote": {"mode": "independent"}, "parties": {"mode": "independent"},
+                        "seats_ac": BENCH_COVERAGE, "seats_pc": BENCH_COVERAGE}
 
 
 def test_status_progress_counts(rules, cache):
@@ -397,15 +441,15 @@ def test_status_progress_counts(rules, cache):
     service, _ = make_service(rules, cache, runner=runner, queue=queue)
     run_id = service.start(SCOREBOARD, ctx())
     status = service.status(run_id)
-    assert (status.state, status.done, status.total, status.result) == ("running", 0, 3, None)
+    assert (status.state, status.done, status.total, status.result) == ("running", 0, 4, None)
     assert runner.calls == []
-    queue.drain()  # vote finishes; benchmarks are bound and submitted on poll
+    queue.drain()  # vote and parties finish; benchmarks are bound and submitted on poll
     status = service.status(run_id)
-    assert (status.state, status.done, status.total) == ("running", 1, 3)
+    assert (status.state, status.done, status.total) == ("running", 2, 4)
     assert len(queue.pending) == 2
     queue.drain()
     status = service.status(run_id)
-    assert (status.state, status.done, status.total) == ("done", 3, 3)
+    assert (status.state, status.done, status.total) == ("done", 4, 4)
     assert status.result is not None
 
 
@@ -449,14 +493,14 @@ def test_job_log_lines_have_required_fields(rules, cache, caplog):
         service.status(service.start(SCOREBOARD, ctx()))
     lines = [json.loads(r.getMessage()) for r in caplog.records
              if r.name == "matbodh_dashboard.runner.service"]
-    assert len(lines) == 6  # one per job per run
+    assert len(lines) == 8  # one per job per run
     fields = {"fingerprint", "card_id", "part", "state", "queue_wait_s", "engine_s",
               "rows", "cache_hit", "error_kind", "engine_version", "metadata_revision"}
     assert all(set(line) == fields for line in lines)
-    assert [line["cache_hit"] for line in lines] == [False] * 3 + [True] * 3
+    assert [line["cache_hit"] for line in lines] == [False] * 4 + [True] * 4
     first = lines[0]
     assert first["part"] == "vote" and first["state"] == "done"
-    assert first["rows"] == 12 and first["engine_s"] is not None
+    assert first["rows"] == 10 and first["engine_s"] is not None
     assert first["error_kind"] is None and first["engine_version"] == "0.8.0"
 
 
@@ -498,8 +542,7 @@ def test_worker_stores_result_or_classified_error(cache, monkeypatch):
     runner = FakeRunner({"vote": [ValueError("bad"), ConnectionError("down"),
                                   ConnectionError("down")]})
     monkeypatch.setattr(worker, "_resources", lambda: (runner, cache))
-    config = {"request": {"scenarios": [VOTE_SCENARIO], "grouping_sets": [[]],
-                          "observations": [{"id": "o1"}], "comparisons": []}}
+    config = dict(VOTE_CONFIG)
     worker.execute("cfg", config)  # config error: stored, not raised (no RQ retry)
     assert cache.error("cfg") == {"kind": "config", "message": "bad"}
 
@@ -520,41 +563,36 @@ def seat_share_mismatch(monkeypatch):
     monkeypatch.setitem(BENCH_SHARE_OFFSET, "pc", 1e-14)
 
 
-def seat_winner_runner(failures=None) -> FakeRunner:
-    """JDL wins seats outside the keep list, so its vote comes from the seat view."""
-    runner = FakeRunner(failures)
-    original = runner.run
-
-    def run(config):
-        result = original(config)
-        if "benchmark" in config:
-            level = config["benchmark"]["seat_level"]
-            for e in {s["endpoint"] for s in result["summaries"]}:
-                result["summaries"].append(
-                    {"endpoint": e, "party_id": "JDL", "seat_count": 2,
-                     "vote_share": (3.25 if level == "ac" else 3.5),
-                     "eligible_seat_count": 403, "support_base": 9000.0,
-                     "grouping_set_id": "g0", "dimensions": {}})
-        return result
-
-    runner.run = run
-    return runner
+@pytest.fixture
+def jdl_wins_seats(monkeypatch):
+    """JDL, outside the keep list, wins seats in both rounds at both levels."""
+    for level, won in (("ac", {"o1": 2, "o2": 3}), ("pc", {"o1": 1, "o2": 2})):
+        for obs, n in won.items():
+            monkeypatch.setitem(SEATS[level][obs], "JDL", n)
 
 
-def test_bench_vote_share_differing_by_level_still_assembles(rules, cache,
-                                                              seat_share_mismatch):
-    runner = seat_winner_runner()
-    service, _ = make_service(rules, cache, runner=runner)
+def test_seat_winner_outside_keep_gets_survey_share_from_parties_job(
+        rules, cache, jdl_wins_seats, seat_share_mismatch):
+    service, _ = make_service(rules, cache)
     status = service.status(service.start(SCOREBOARD, ctx()))
     assert status.state == "done", status.errors
+    # Registry order: Other is pinned last.
+    assert [r["series"] for r in status.result["scoreboard"]] == [
+        "NDA", "SP+", "BSP", "JDL", "Other"]
     jdl = board(status)["JDL"]
-    assert jdl["vote"]["value"] == 3.25  # the AC seat view supplies the share
-    assert "vote_from_seat_view" in jdl["vote"]["flags"]
-    assert jdl["seats_pc"]["value"] == 2  # seat rows of both levels are kept
+    # The ungrouped parties job's survey share, not either seat view's share.
+    assert jdl["vote"]["value"] == 3.5 and jdl["vote"]["trend"] == [3.0, 3.5]
+    assert jdl["vote"]["delta"] is None and "no_delta" in jdl["vote"]["flags"]
+    assert "within_other" in jdl["vote"]["flags"]
+    assert "vote_from_seat_view" not in jdl["vote"]["flags"]
+    assert jdl["flags"] == ["within_other"]  # an "of which" row, not additive
+    assert jdl["seats_ac"]["value"] == 3 and jdl["seats_pc"]["value"] == 2
+    assert board(status)["Other"]["vote"]["value"] == 9.0  # still includes JDL
 
 
-def test_pc_bench_supplies_vote_share_when_ac_failed(rules, cache, seat_share_mismatch):
-    runner = seat_winner_runner({"seats_ac": [ValueError("bad AC factor")]})
+def test_seat_winner_row_survives_a_failed_ac_benchmark(rules, cache, jdl_wins_seats,
+                                                         seat_share_mismatch):
+    runner = FakeRunner({"seats_ac": [ValueError("bad AC factor")]})
     service, _ = make_service(rules, cache, runner=runner)
     status = service.status(service.start(SCOREBOARD, ctx()))
     assert status.state == "partial" and set(status.errors) == {"seats_ac"}
@@ -588,8 +626,7 @@ def test_rq_timeout_is_too_heavy_and_not_retried(cache, monkeypatch):
                        ("engine", EngineRunner(TimingOutRuntime()))):
         monkeypatch.setattr(worker, "_resources", lambda r=runner: (r, cache))
         monkeypatch.setattr(worker, "_retries_left", lambda: 3)
-        config = {"request": {"scenarios": [VOTE_SCENARIO], "grouping_sets": [[]],
-                              "observations": [{"id": "o1"}], "comparisons": []}}
+        config = dict(VOTE_CONFIG)
         worker.execute(fp, config)  # stored, not raised: RQ does not retry it
         assert cache.error(fp)["kind"] == "too_heavy"
 

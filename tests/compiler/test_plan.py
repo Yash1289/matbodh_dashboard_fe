@@ -34,13 +34,15 @@ def _plan(tid, ctx):
 
 def test_scoreboard_two_rounds_ac():
     plan = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1))
-    assert [j.part for j in plan.jobs] == ["vote", "seats_ac", "seats_pc"]
-    assert len({j.key for j in plan.jobs}) == 3
+    assert [j.part for j in plan.jobs] == ["vote", "parties", "seats_ac", "seats_pc"]
+    assert len({j.key for j in plan.jobs}) == 4
     assert plan.anchor == R2 and plan.compare == R1
-    vote, ac, pc = plan.jobs
+    vote, parties, ac, pc = plan.jobs
     assert vote.kind == "analysis" and vote.config["request"]["gender_differential"]
     assert vote.config["request"]["comparisons"][0]["target"] == ["o2", "vs_voting_intention"]
-    assert ac.kind == "benchmark" and ac.contenders_from == "vote"
+    assert vote.config["request"]["parties"]["other_grouping"] == {
+        "keep": ["NDA", "SP+", "BSP"], "label": "Other"}
+    assert ac.kind == "benchmark" and ac.contenders_from == "parties"
     b = ac.config["benchmark"]
     assert b == {
         "id": ac.key, "seat_level": "ac",
@@ -58,18 +60,33 @@ def test_scoreboard_two_rounds_ac():
     assert plan.unavailable == ()
 
 
+def test_scoreboard_parties_job_is_the_vote_request_without_other_grouping():
+    """Benchmarks need every party as a contender; the grouped vote job folds
+    non-kept parties into Other (engine party_grouping), so contenders come
+    from an ungrouped job over the same rounds and scenario."""
+    plan = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1))
+    vote, parties = plan.jobs[0], plan.jobs[1]
+    assert (parties.key, parties.kind, parties.part) == ("parties", "analysis", "parties")
+    v, p = vote.config["request"], parties.config["request"]
+    assert p["parties"]["other_grouping"] is None
+    assert p["comparisons"] == [] and p["gender_differential"] is None
+    for key in ("observations", "scenarios", "grouping_sets", "coverage_mode", "weights"):
+        assert p[key] == v[key]
+    assert parties.contenders_from is None
+
+
 def test_scoreboard_three_rounds_adds_single_benchmarks():
     plan = _plan("pulse.party_scoreboard", _ctx([R1, R2, R3], compare_round=R2))
     assert plan.anchor == R3
-    assert len(plan.jobs) == 5
+    assert len(plan.jobs) == 6
     singles = [j for j in plan.jobs if j.config.get("benchmark", {}).get("reference") is None
                and j.kind == "benchmark"]
     assert {(j.part, j.config["benchmark"]["target"]["observation"]) for j in singles} == {
         ("seats_ac", "o1"), ("seats_pc", "o1")}
     for j in singles:
         assert [o["id"] for o in j.config["request"]["observations"]] == ["o1"]
-        assert j.contenders_from == "vote"
-    assert len({j.key for j in plan.jobs}) == 5
+        assert j.contenders_from == "parties"
+    assert len({j.key for j in plan.jobs}) == 6
 
 
 def test_scoreboard_without_compare_has_no_comparison_and_single_benchmarks():
@@ -81,18 +98,18 @@ def test_scoreboard_without_compare_has_no_comparison_and_single_benchmarks():
     assert len(benches) == 4  # (ac, pc) x (o1, o2)
     assert all(j.config["benchmark"]["reference"] is None for j in benches)
     assert {j.config["benchmark"]["target"]["observation"] for j in benches} == {"o1", "o2"}
-    assert len({j.key for j in plan.jobs}) == 5
+    assert len({j.key for j in plan.jobs}) == 6
 
 
 def test_scoreboard_pc_level_has_no_ac_seats():
     plan = _plan("pulse.party_scoreboard", _ctx([R1, R2], level="pc", compare_round=R1))
-    assert [j.part for j in plan.jobs] == ["vote", "seats_pc"]
+    assert [j.part for j in plan.jobs] == ["vote", "parties", "seats_pc"]
     assert plan.unavailable == ()
 
 
 def test_scoreboard_state_level_marks_seats_unavailable():
     plan = _plan("pulse.party_scoreboard", _ctx([R1, R2], level="state", compare_round=R1))
-    assert [j.part for j in plan.jobs] == ["vote"]
+    assert [j.part for j in plan.jobs] == ["vote"]  # no seat views: no contenders needed
     reason = "Seat views need an AC or PC level survey"
     assert plan.unavailable == (("seats_ac", reason), ("seats_pc", reason))
 
@@ -114,7 +131,7 @@ def test_by_zone_grouping_and_common_coverage():
 
 
 def test_bind_contenders_excludes_nota_and_other():
-    job = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1)).jobs[1]
+    job = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1)).jobs[2]
     bound = bind_contenders(job, ["NDA", "SP+", "BSP", "JDL", "NOTA", "Other"], PRESET)
     assert bound.config["benchmark"]["contenders"] == ["BSP", "JDL", "NDA", "SP+"]
     assert job.config["benchmark"]["contenders"] == []

@@ -22,8 +22,8 @@ def test_script_runs_scoreboard_end_to_end_with_fakes():
     run_id, status, seconds = smoke.run_card(service, ctx)
     assert status.state == "done" and status.errors == {}
     lines = smoke.report(service, run_id, status, seconds)
-    assert lines[0].startswith("state=done jobs=3/3")
-    assert sum(line.startswith("  job part=") for line in lines) == 3
+    assert lines[0].startswith("state=done jobs=4/4")
+    assert sum(line.startswith("  job part=") for line in lines) == 4
     nda = next(line for line in lines if line.lstrip().startswith("NDA"))
     assert "154 (-88)" in nda and "26 (-22)" in nda  # AC and PC seats, engine deltas
     assert not any(line.startswith("ERROR") for line in lines)
