@@ -310,3 +310,45 @@ def test_demographic_slice_is_not_a_geographic_restriction():
     plan = plan_card(template, _ctx([R1, R2], level="state", compare_round=R1),
                      _catalogue("state"), PRESET)
     assert [j.part for j in plan.jobs] == ["zone"] and plan.unavailable == ()
+
+
+# -- matched mode on seat views ----------------------------------------------
+
+
+def test_matched_mode_restricts_ac_benchmarks_to_common_normal_seats():
+    # R1 Normal covers ACs 1-380, R2 Normal 1-403: every benchmark uses 1-380.
+    plan = _plan("pulse.party_scoreboard",
+                 _ctx([R1, R2, R3], compare_round=R2, version_mode="matched"))
+    ac = [j for j in plan.jobs if j.part == "seats_ac"]
+    assert len(ac) == 2  # paired R3 vs R2, single R1
+    for job in ac:
+        assert job.config["benchmark"]["seat_ids"] == list(range(1, 381))
+        assert job.config["request"]["coverage_mode"] == "common"
+
+
+def test_extrapolated_mode_passes_no_seat_ids():
+    plan = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1))
+    for job in plan.jobs:
+        if job.kind == "benchmark":
+            assert job.config["benchmark"]["seat_ids"] == []
+            assert job.config["request"]["coverage_mode"] == "independent"
+
+
+def test_matched_mode_pc_survey_restricts_pc_benchmarks_to_common_pcs():
+    rows = [dataset_row(n, round_number=i, level="pc") for i, n in enumerate([R1, R2], 1)]
+    levels = [level_row(R1, range(1, 76)), level_row(R2, range(1, 81))]
+    plan = plan_card(TEMPLATES["pulse.party_scoreboard"],
+                     _ctx([R1, R2], level="pc", compare_round=R1, version_mode="matched"),
+                     load_catalogue(make_query(rows, levels)), PRESET)
+    (pc,) = [j for j in plan.jobs if j.kind == "benchmark"]
+    assert pc.config["benchmark"]["seat_ids"] == list(range(1, 76))
+
+
+def test_matched_mode_with_no_common_seat_marks_seats_unavailable():
+    rows = [dataset_row(R1, round_number=1), dataset_row(R2, round_number=2)]
+    levels = [level_row(R1, range(1, 10)), level_row(R2, range(10, 20))]
+    plan = plan_card(TEMPLATES["pulse.party_scoreboard"],
+                     _ctx([R1, R2], compare_round=R1, version_mode="matched"),
+                     load_catalogue(make_query(rows, levels)), PRESET)
+    assert "seats_ac" in dict(plan.unavailable)
+    assert not any(j.part == "seats_ac" for j in plan.jobs)

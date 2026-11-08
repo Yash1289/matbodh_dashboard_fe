@@ -33,6 +33,7 @@ from matbodh_dashboard.normalise.rows import NormalRow, from_analysis, from_benc
 from matbodh_dashboard.presets import MethodPreset
 from matbodh_dashboard.registry import RuleSet
 from matbodh_dashboard.runner.cache import ResultCache
+from matbodh_dashboard.runner.engine import client_message
 from matbodh_dashboard.runner.queue import JobQueue
 from matbodh_dashboard.templates import CardTemplate
 
@@ -175,9 +176,12 @@ class CardRunService:
                 raise ValueError(f"job {job.job.key!r} depends on unplanned job {source_key!r}")
             if source.status == "failed":
                 assert source.error is not None
-                job.error = {"kind": source.error["kind"],
+                kind = source.error["kind"]
+                job.error = {"kind": kind,
                              "message": f"needs job {source_key!r}, which failed: "
-                                        f"{source.error['message']}"}
+                                        f"{client_message(kind, source.error['message'])}",
+                             "type": source.error.get("type"),
+                             "fingerprint": source.error.get("fingerprint") or source.fp}
                 job.status = "failed"
                 return True
             if source.status != "done":
@@ -263,6 +267,7 @@ class CardRunService:
             "rows": rows,
             "cache_hit": job.cache_hit,
             "error_kind": job.error["kind"] if job.error else None,
+            "error_type": job.error.get("type") if job.error else None,
             "engine_version": self.engine_version,
             "metadata_revision": run.revision,
         }
@@ -280,7 +285,13 @@ class CardRunService:
         errors: dict[str, dict] = {}
         for j in jobs:
             if j.status == "failed" and j.error is not None:
-                entry = errors.setdefault(j.job.part, {**j.error, "jobs": []})
+                kind = j.error["kind"]
+                entry = errors.setdefault(j.job.part, {
+                    "kind": kind,
+                    "message": client_message(kind, j.error["message"]),
+                    "fingerprint": j.error.get("fingerprint") or j.fp,
+                    "jobs": [],
+                })
                 entry["jobs"].append(j.job.key)
         if len(finished) < len(jobs):
             return CardRunStatus("running", len(finished), len(jobs), None, errors)
@@ -288,8 +299,10 @@ class CardRunService:
             return CardRunStatus("failed", len(finished), len(jobs), None, errors)
         try:
             result = self._assemble(run)
-        except ValueError as exc:  # e.g. conflicting engine rows; never hidden
-            errors["assembly"] = {"kind": "config", "message": str(exc), "jobs": []}
+        except (ValueError, KeyError, TypeError) as exc:  # e.g. conflicting or malformed
+            # engine rows; never hidden, never a 500
+            errors["assembly"] = {"kind": "config", "message": f"{type(exc).__name__}: {exc}",
+                                  "fingerprint": None, "jobs": []}
             return CardRunStatus("failed", len(finished), len(jobs), None, errors)
         state: RunState = "partial" if errors else "done"
         return CardRunStatus(state, len(finished), len(jobs), result, errors)
@@ -323,9 +336,11 @@ class CardRunService:
             "alliance_epoch": run.epoch,
         }
 
+        failed = _failed_rounds(run.jobs.values())
         if template.operation == "scoreboard":
             board = build_scoreboard(rows, round_ids=round_ids, anchor=anchor, compare=compare,
-                                     keep=self.preset.keep, other_label=self.preset.other_label)
+                                     keep=self.preset.keep, other_label=self.preset.other_label,
+                                     failed=failed)
             by_party = {r.party: r for r in board}
             order = self.rules.order(_PARTY, by_party, states=states)
             result["hidden_count"] = self.rules.hidden_count(_PARTY, by_party, states=states)
@@ -339,7 +354,8 @@ class CardRunService:
                 for p in order
             ]
         elif template.operation == "opinion":
-            cells = build_opinion_cells(rows, round_ids=round_ids, anchor=anchor, compare=compare)
+            cells = build_opinion_cells(rows, round_ids=round_ids, anchor=anchor, compare=compare,
+                                        failed=failed)
             present = [q for q in template.questions if q in cells]
             present += sorted(sc for sc in cells if sc not in template.questions)
             # Template question order unless a registry rule for the field applies.
@@ -354,17 +370,19 @@ class CardRunService:
             result["not_returned"] = [q for q in template.questions
                                       if q not in cells and q not in unavailable]
         else:
-            result["grid"], result["hidden_count"] = self._grid(rows, template, plan.state,
-                                                                round_ids, anchor, compare)
+            result["grid"], result["hidden_count"] = self._grid(
+                rows, template, plan.state, round_ids, anchor, compare,
+                failed.get("zone", set()))
         return result
 
     def _grid(self, rows: Sequence[NormalRow], template: CardTemplate, state: str,
-              round_ids: list[str], anchor: str, compare: str | None) -> tuple[dict, int]:
+              round_ids: list[str], anchor: str, compare: str | None,
+              failed: set[str]) -> tuple[dict, int]:
         if len(template.slices) != 1:
             raise ValueError(f"card {template.id!r} needs exactly one slice for a grid")
         row_dim = template.slices[0]
         cells = build_grid(rows, row_dim=row_dim, round_ids=round_ids, anchor=anchor,
-                           compare=compare)
+                           compare=compare, failed=failed)
         values = list(dict.fromkeys(v for v, _ in cells))
         named = [v for v in values if v is not None]
         series = list(dict.fromkeys(s for _, s in cells))
@@ -410,6 +428,28 @@ def _one_bench_vote_level(per_job: list[tuple[_Job, list[NormalRow]]]) -> list[N
     return out
 
 
+def _failed_rounds(jobs) -> dict[str, set[str]]:
+    """Rounds whose job failed, keyed by the cell column or scenario they feed:
+    vote (and gender_gap), parties, seats_ac, seats_pc, zone, or an opinion
+    scenario. Their cells say ``failed`` rather than ``not_asked``."""
+    out: dict[str, set[str]] = {}
+    for j in jobs:
+        if j.status != "failed":
+            continue
+        request = j.job.config["request"]
+        rounds = {o["id"] for o in request["observations"]}
+        part = j.job.part
+        if part == "opinion":
+            keys = list(request["scenarios"])
+        elif part == "vote":
+            keys = ["vote", "gender_gap"]
+        else:
+            keys = [part]
+        for key in keys:
+            out.setdefault(key, set()).update(rounds)
+    return out
+
+
 def _span(timing: dict[str, float], start: str, end: str) -> float | None:
     if start in timing and end in timing:
         return round(max(timing[end] - timing[start], 0.0), 3)
@@ -440,8 +480,11 @@ def _rounds(plan: RunPlan, anchor: str, compare: str | None) -> dict:
             "dataset_id": ds.dataset_id,
             "version": ds.variant,
             "fallback": r.fallback,
+            # Metadata coverage (surveyed seats); a seat cell's base is the
+            # engine's eligible seat count for that benchmark instead.
             "seats": len(ds.seat_ids),
             "borrowed": len(ds.borrowed_seat_ids),
+            "seats_source": "metadata",
         })
         key = (r.identity.cycle, r.identity.series)
         if groups and (groups[-1]["cycle"], groups[-1]["series"]) == key:

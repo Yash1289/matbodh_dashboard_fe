@@ -18,6 +18,7 @@ import time
 from collections.abc import Sequence
 
 from matbodh_dashboard import engine_version
+from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import load_preset
@@ -40,8 +41,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--state", required=True, help='State name, e.g. "Uttar Pradesh"')
     parser.add_argument("--rounds", nargs="+", required=True, metavar="ROUND",
-                        help="Round base names, oldest first; the first is the compare round")
+                        help="Round base names, oldest first; with two or more, the "
+                             "first is the compare round")
     return parser.parse_args(argv)
+
+
+def build_context(state: str, rounds: Sequence[str]) -> StateContext:
+    """AC-level context; the first round is the compare round when there are two or more."""
+    return StateContext(state=state, level="ac", rounds=list(rounds),
+                        compare_round=rounds[0] if len(rounds) > 1 else None)
 
 
 def build_service(settings: Settings, catalogue: Catalogue, runner: Runner) -> CardRunService:
@@ -119,10 +127,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         catalogue = load_catalogue(clickhouse_query(client))
     finally:
         client.close()
+    ctx = build_context(args.state, args.rounds)
+    errors = validate_context(ctx, catalogue)
+    if errors:  # before any engine connection is opened
+        for error in errors:
+            print(f"INVALID: {error}")
+        return 2
     runner = EngineRunner(build_runtime(settings.engine_env_file))
     service = build_service(settings, catalogue, runner)
-    ctx = StateContext(state=args.state, level="ac", rounds=list(args.rounds),
-                       compare_round=args.rounds[0])
     run_id, status, seconds = run_card(service, ctx)
     print("\n".join(report(service, run_id, status, seconds)))
     return 0 if status.state == "done" else 1

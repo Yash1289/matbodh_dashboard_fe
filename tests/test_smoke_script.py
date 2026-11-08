@@ -54,3 +54,26 @@ def test_main_end_to_end_with_stubbed_database_pieces(monkeypatch, capsys):
     assert code == 0 and closed == [True]
     nda = next(line for line in out.splitlines() if line.lstrip().startswith("NDA"))
     assert "154 (-88)" in nda and "26 (-22)" in nda
+
+
+def test_main_rejects_invalid_rounds_before_running(monkeypatch, capsys):
+    import matbodh_dashboard.catalogue.store as store
+    import matbodh_views.connections as connections
+
+    class FakeClient:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(smoke, "load_settings",
+                        lambda: Settings(Path("unused.env"), "redis://unused", 3600, ROOT / "config"))
+    monkeypatch.setattr(connections, "create_clickhouse_client", lambda env_file: FakeClient())
+    monkeypatch.setattr(store, "clickhouse_query", lambda client: None)
+    monkeypatch.setattr(store, "load_catalogue", lambda query: catalogue())
+    code = smoke.main(["--state", STATE, "--rounds", R1, R1])
+    assert code == 2 and "INVALID: duplicate rounds" in capsys.readouterr().out
+
+
+def test_single_round_has_no_compare_round():
+    assert smoke.build_context(STATE, [R2]).compare_round is None
+    ctx = smoke.build_context(STATE, [R1, R2])
+    assert ctx.compare_round == R1 and ctx.rounds == [R1, R2]

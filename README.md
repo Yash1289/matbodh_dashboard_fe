@@ -74,7 +74,9 @@ Prerequisites:
   only. It lives outside `tests/`, so pytest never collects it.
 - It uses the Uttar Pradesh standard-v1 preset and the pulse templates from
   `config/`, at AC level.
-- The first `--rounds` entry is the compare round, the last is the anchor.
+- With two or more `--rounds`, the first entry is the compare round and the
+  latest is the anchor; a single round runs without a compare round (no Δ).
+  An invalid selection prints `INVALID:` lines and exits with code 2.
 - Timings are for information, not acceptance thresholds.
 - Expected (Appendix A of the spec): four jobs (`vote`, `parties`, `seats_ac`,
   `seats_pc`) and no errors; rows NDA, SP+, BSP, Other, plus JDL as an

@@ -69,7 +69,10 @@ def create_app(
         errors = validate_context(body.context, service.catalogue)
         if errors:
             return _invalid(errors)
-        run_plan = service.plan(body.card_id, body.context)
+        try:
+            run_plan = service.plan(body.card_id, body.context)
+        except KeyError:
+            raise _catalogue_changed() from None
         coverage_mode: dict[str, str | None] = {}
         for job in run_plan.jobs:
             coverage_mode.setdefault(
@@ -85,7 +88,7 @@ def create_app(
                  "base_name": r.identity.base_name, "round": r.identity.round,
                  "dataset_id": r.dataset.dataset_id, "version": r.dataset.variant,
                  "fallback": r.fallback, "seats": len(r.dataset.seat_ids),
-                 "borrowed": len(r.dataset.borrowed_seat_ids)}
+                 "borrowed": len(r.dataset.borrowed_seat_ids), "seats_source": "metadata"}
                 for r in run_plan.rounds
             ],
             "coverage_mode": coverage_mode,
@@ -97,7 +100,10 @@ def create_app(
         errors = validate_context(body.context, service.catalogue)
         if errors:
             return _invalid(errors)
-        return RunStarted(run_id=service.start(body.card_id, body.context))
+        try:
+            return RunStarted(run_id=service.start(body.card_id, body.context))
+        except KeyError:
+            raise _catalogue_changed() from None
 
     @app.get("/runs/{run_id}")
     def run_status(run_id: str) -> dict:
@@ -130,6 +136,12 @@ def create_app(
 def _require_card(service: CardRunService, card_id: str) -> None:
     if card_id not in service.templates:
         raise HTTPException(404, f"unknown card {card_id!r}")
+
+
+def _catalogue_changed() -> HTTPException:
+    """A refresh swapped the catalogue between validation and planning."""
+    return HTTPException(409, "the survey catalogue changed while the request was being "
+                              "processed; reload the catalogue and retry")
 
 
 def _invalid(errors: list[str]) -> JSONResponse:

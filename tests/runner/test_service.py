@@ -356,7 +356,11 @@ def test_failed_job_marks_only_its_parts(rules, cache):
     nda = board(status)["NDA"]
     assert nda["vote"]["value"] == 38.0 and nda["vote"]["delta"] == -1.5
     assert nda["seats_ac"]["value"] == 154 and nda["seats_ac"]["delta"] == -88
-    assert nda["seats_pc"] is None
+    # The failed part is "failed" in every round, never "not_asked".
+    assert nda["seats_pc"]["value"] is None and nda["seats_pc"]["trend"] == [None, None]
+    assert "failed" in nda["seats_pc"]["flags"]
+    assert "not_asked" not in nda["seats_pc"]["flags"]
+    assert board(status)["Other"]["seats_pc"] is None  # never a contender
     assert runner.parts().count("seats_pc") == 1  # config errors never retry
     # Cached successes stay usable: a new run re-uses vote and AC.
     rerun = service.status(service.start(SCOREBOARD, ctx()))
@@ -430,7 +434,7 @@ def test_series_carry_label_and_colour(rules, cache):
     assert (sp["label"], sp["colour"]) == ("SP+", "#E41A1C")
     assert rows[2]["colour"] is None
     assert sp["vote"] == {"value": 34.0, "delta": 3.5, "trend": [30.0, 34.0],
-                          "secondary": None, "flags": []}
+                          "secondary": None, "flags": [], "base": None}
     assert status.result["rules_version"] == rules.version
 
 
@@ -443,6 +447,7 @@ def test_result_rounds_and_coverage(rules, cache):
     assert (r1["version"], r1["fallback"], r1["seats"]) == ("normal", True, 380)
     assert (r2["version"], r2["fallback"], r2["seats"], r2["borrowed"]) == (
         "extrapolated", False, 403, 23)
+    assert r1["seats_source"] == r2["seats_source"] == "metadata"
     assert rounds["anchor"] == "o2" and rounds["compare"] == "o1"
     assert rounds["groups"] == [{"cycle": "2027 VS", "series": r1["series"],
                                  "obs_ids": ["o1", "o2"]}]
@@ -516,7 +521,8 @@ def test_job_log_lines_have_required_fields(rules, cache, caplog):
              if r.name == "matbodh_dashboard.runner.service"]
     assert len(lines) == 8  # one per job per run
     fields = {"fingerprint", "card_id", "part", "state", "queue_wait_s", "engine_s",
-              "rows", "cache_hit", "error_kind", "engine_version", "metadata_revision"}
+              "rows", "cache_hit", "error_kind", "error_type", "engine_version",
+              "metadata_revision"}
     assert all(set(line) == fields for line in lines)
     assert [line["cache_hit"] for line in lines] == [False] * 4 + [True] * 4
     first = lines[0]
@@ -546,8 +552,8 @@ def test_rq_queue_enqueues_each_fingerprint_once(cache):
 
 def test_cache_round_trip_and_errors(cache):
     assert cache.get("x") is None and cache.error("x") is None
-    cache.put_error("x", EngineError("config", "bad"))
-    assert cache.error("x") == {"kind": "config", "message": "bad"}
+    cache.put_error("x", EngineError("config", "bad", "ValueError"))
+    assert cache.error("x") == {"kind": "config", "message": "bad", "type": "ValueError"}
     cache.put("x", {"rows": [{"v": None}]})
     assert cache.get("x") == {"rows": [{"v": None}]}
     assert cache.error("x") is None  # a stored result supersedes an earlier error
@@ -555,6 +561,18 @@ def test_cache_round_trip_and_errors(cache):
     assert cache.bump_epoch() == 1 and cache.alliance_epoch() == 1
     with pytest.raises(ValueError):
         ResultCache(fakeredis.FakeStrictRedis(), ttl_seconds=0)
+
+
+def test_nan_result_is_not_cached_and_is_classified(cache):
+    from matbodh_dashboard.runner.queue import attempt
+
+    class NanRunner:
+        def run(self, config):
+            return {"rows": [{"support_share": float("nan")}]}
+
+    error = attempt(NanRunner(), cache, "nan", {})
+    assert error is not None and error.kind == "config"
+    assert cache.get("nan") is None
 
 
 def test_worker_stores_result_or_classified_error(cache, monkeypatch):
@@ -565,7 +583,7 @@ def test_worker_stores_result_or_classified_error(cache, monkeypatch):
     monkeypatch.setattr(worker, "_resources", lambda: (runner, cache, FakeSession()))
     config = dict(VOTE_CONFIG)
     worker.execute("cfg", config)  # config error: stored, not raised (no RQ retry)
-    assert cache.error("cfg") == {"kind": "config", "message": "bad"}
+    assert cache.error("cfg") == {"kind": "config", "message": "bad", "type": "ValueError"}
 
     monkeypatch.setattr(worker, "_retries_left", lambda: 2)
     with pytest.raises(EngineError):  # infrastructure with retries left: RQ retries
@@ -619,7 +637,8 @@ def test_seat_winner_row_survives_a_failed_ac_benchmark(rules, cache, jdl_wins_s
     assert status.state == "partial" and set(status.errors) == {"seats_ac"}
     jdl = board(status)["JDL"]
     assert jdl["vote"]["value"] == 3.5
-    assert jdl["seats_ac"] is None and jdl["seats_pc"]["value"] == 2
+    assert jdl["seats_ac"]["value"] is None and "failed" in jdl["seats_ac"]["flags"]
+    assert jdl["seats_pc"]["value"] == 2
 
 
 def test_opinion_order_overridden_by_scenario_rule(tmp_path, cache):
@@ -749,3 +768,130 @@ def test_worker_resources_expose_the_runtime_metadata_session(monkeypatch):
     monkeypatch.setattr(worker, "build_runtime", lambda env_file: Runtime())
     _, _, got = worker._resources()
     assert got is session
+
+
+def test_failed_single_round_benchmark_marks_only_that_round_failed(rules, cache):
+    from tests.fixtures.catalogue_rows import DATASET_ROWS, LEVEL_ROWS, dataset_row, level_row
+
+    r3 = "2027 VS CAPI R3"
+    rows = [*DATASET_ROWS, dataset_row(r3, round_number=3)]
+    levels = [*LEVEL_ROWS, level_row(r3, range(1, 404))]
+    for level in ("ac", "pc"):
+        SEATS[level]["o3"] = {"NDA": 1, "SP+": 2}
+        ELIGIBLE[level]["o3"] = 9
+    PARTY_SHARES["o3"], SHARES["o3"] = PARTY_SHARES["o2"], SHARES["o2"]
+    try:
+        runner = FakeRunner()
+        original = runner.run
+
+        def run(config):  # the single-endpoint AC benchmark for R1 (o1) fails
+            b = config.get("benchmark")
+            if b and b["seat_level"] == "ac" and b["reference"] is None \
+                    and b["target"]["id"] == "o1":
+                raise ValueError("Missing population factor")
+            return original(config)
+
+        runner.run = run
+        service, _ = make_service(rules, cache, runner=runner)
+        service.catalogue = load_catalogue(make_query(rows, levels))
+        status = service.status(service.start(SCOREBOARD, ctx(rounds=[R1, R2, r3],
+                                                              compare_round=R2)))
+        assert status.state == "partial" and set(status.errors) == {"seats_ac"}
+        nda_ac = board(status)["NDA"]["seats_ac"]
+        assert nda_ac["trend"] == [None, 154, 1]
+        assert "failed" in nda_ac["flags"] and "not_asked" not in nda_ac["flags"]
+    finally:
+        for level in ("ac", "pc"):
+            SEATS[level].pop("o3")
+            ELIGIBLE[level].pop("o3")
+        PARTY_SHARES.pop("o3"), SHARES.pop("o3")
+
+
+def test_paired_seat_cells_carry_base_and_common_seat_note(rules, cache):
+    service, _ = make_service(rules, cache)
+    nda = board(service.status(service.start(SCOREBOARD, ctx())))["NDA"]
+    assert nda["seats_ac"]["base"] == 380 and nda["seats_ac"]["secondary"] == "on 380 seats"
+    assert nda["seats_pc"]["base"] == 76 and nda["seats_pc"]["secondary"] == "on 76 seats"
+    assert "common_seats" in nda["seats_ac"]["flags"]
+    single = make_service(rules, ResultCache(fakeredis.FakeStrictRedis(), 60))[0]
+    nda = board(single.status(single.start(SCOREBOARD, ctx(compare_round=None))))["NDA"]
+    assert nda["seats_ac"]["base"] == 403 and nda["seats_ac"]["secondary"] is None
+
+
+def test_failed_opinion_job_gives_failed_cells_not_not_returned(rules, cache):
+    runner = FakeRunner({"opinion": [ValueError("Unsupported outcome")]})
+    service, _ = make_service(rules, cache, runner=runner)
+    status = service.status(service.start("pulse.leaders", ctx()))
+    assert status.state == "partial" and set(status.errors) == {"opinion"}
+    cells = {c["series"]: c["cell"] for c in status.result["opinion"]}
+    # The first job (pm, state and central government over R1 and R2) failed.
+    for sc in ("pm_satisfaction", "state_govt_satisfaction", "central_govt_satisfaction"):
+        assert cells[sc]["value"] is None and cells[sc]["trend"] == [None, None]
+        assert "failed" in cells[sc]["flags"] and "not_asked" not in cells[sc]["flags"]
+    assert cells["cm_satisfaction"]["value"] == 5.0
+    assert status.result["not_returned"] == []
+
+
+def test_api_errors_never_carry_driver_text(rules, cache, caplog):
+    secret = "clickhouse://reader:hunter2@db.internal:9000"
+    runner = FakeRunner({"parties": [ConnectionError(secret)] * 4,
+                         "vote": [RuntimeError(secret)]})
+    service, _ = make_service(rules, cache, runner=runner)
+    with caplog.at_level(logging.DEBUG):
+        status = service.status(service.start(SCOREBOARD, ctx()))
+    assert set(status.errors) == {"vote", "parties", "seats_ac", "seats_pc"}
+    for part, error in status.errors.items():
+        assert "hunter2" not in error["message"] and "db.internal" not in error["message"]
+        assert set(error) >= {"kind", "message", "fingerprint"}
+        assert error["fingerprint"]
+    assert status.errors["parties"]["kind"] == "infrastructure"
+    assert status.errors["vote"]["kind"] == "config"
+    # Dependants name the job that actually failed.
+    assert status.errors["seats_ac"]["fingerprint"] == status.errors["parties"]["fingerprint"]
+    assert "hunter2" not in caplog.text
+    lines = [json.loads(r.getMessage()) for r in caplog.records
+             if r.name == "matbodh_dashboard.runner.service"]
+    assert {line["error_type"] for line in lines if line["part"] == "parties"} == {
+        "ConnectionError"}
+
+
+def test_config_error_text_reaches_the_client(rules, cache):
+    runner = FakeRunner({"seats_pc": [ValueError("Missing population factor")]})
+    service, _ = make_service(rules, cache, runner=runner)
+    error = service.status(service.start(SCOREBOARD, ctx())).errors["seats_pc"]
+    assert (error["kind"], error["message"]) == ("config", "Missing population factor")
+
+
+def test_worker_logs_type_and_fingerprint_only(cache, monkeypatch, caplog):
+    from matbodh_dashboard.runner import worker
+
+    secret = "mysql://reader:hunter2@db.internal"
+    runner = FakeRunner({"vote": [ConnectionError(secret), ConnectionError(secret)]})
+    monkeypatch.setattr(worker, "_resources", lambda: (runner, cache, FakeSession()))
+    monkeypatch.setattr(worker, "_retries_left", lambda: 1)
+    with caplog.at_level(logging.DEBUG, logger="matbodh_dashboard.runner.worker"):
+        with pytest.raises(EngineError) as raised:
+            worker.execute("fp-infra", dict(VOTE_CONFIG))
+    # RQ logs the raised exception: no driver text and no chained cause.
+    assert "hunter2" not in str(raised.value)
+    assert raised.value.__cause__ is None and raised.value.__suppress_context__
+    monkeypatch.setattr(worker, "_retries_left", lambda: 0)
+    with caplog.at_level(logging.DEBUG, logger="matbodh_dashboard.runner.worker"):
+        worker.execute("fp-infra", dict(VOTE_CONFIG))
+    assert "hunter2" not in caplog.text
+    assert "fp-infra" in caplog.text and "ConnectionError" in caplog.text
+    assert "hunter2" not in json.dumps(cache.error("fp-infra"))
+
+
+@pytest.mark.parametrize("exc", [KeyError("contract"), TypeError("NoneType is not iterable")])
+def test_assembly_key_and_type_errors_are_classified_not_raised(rules, cache, monkeypatch, exc):
+    service, _ = make_service(rules, cache)
+
+    def broken(run):
+        raise exc
+
+    monkeypatch.setattr(service, "_assemble", broken)
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert status.state == "failed" and status.result is None
+    assert status.errors["assembly"]["kind"] == "config"
+    assert type(exc).__name__ in status.errors["assembly"]["message"]

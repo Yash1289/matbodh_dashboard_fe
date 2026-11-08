@@ -101,5 +101,6 @@ def benchmark_result() -> dict:
              "target_seat_count": 60, "reference_seat_count": 63,
              "eligible_seat_count": 120, "grouping_set_id": "g1", "dimensions": caste},
         ],
-        "contract": {"id": "bm1", "seat_level": "ac", "state": "Uttar Pradesh", "target": "tgt"},
+        "contract": {"id": "bm1", "seat_level": "ac", "state": "Uttar Pradesh", "target": "tgt",
+                     "reference": "ref"},
     }

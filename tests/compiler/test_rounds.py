@@ -24,3 +24,16 @@ def test_missing_extrapolated_falls_back_to_normal():
 def test_matched_uses_normal():
     rounds = resolve_rounds(_ctx(version_mode="matched"), load_catalogue(make_query()))
     assert all(r.dataset.variant == "normal" and r.fallback is False for r in rounds)
+
+
+def test_ambiguous_short_labels_fall_back_to_base_names():
+    from tests.fixtures.catalogue_rows import dataset_row, level_row
+
+    # Same cycle, series and round number once the round token is removed:
+    # both would be labelled "R1", so the full base names are used (as /surveys does).
+    names = ["2027 VS CAPI R1", "2027 VS R1 CAPI"]
+    rows = [dataset_row(n, round_number=1) for n in names]
+    levels = [level_row(n, range(1, 10)) for n in names]
+    cat = load_catalogue(make_query(rows, levels))
+    rounds = resolve_rounds(_ctx(rounds=names), cat)
+    assert sorted(r.label for r in rounds) == sorted(names)

@@ -62,6 +62,11 @@ def validate_context(ctx: StateContext, catalogue: Catalogue) -> list[str]:
     errors: list[str] = []
     if not ctx.rounds:
         errors.append("at least one round must be selected")
+    duplicates = sorted({name for name in ctx.rounds if ctx.rounds.count(name) > 1})
+    if duplicates:
+        errors.append(f"duplicate rounds selected: {', '.join(map(repr, duplicates))}")
+    if ctx.geo_scope != "state":
+        errors.append(f"geo_scope {ctx.geo_scope!r} is not supported yet; use 'state'")
 
     found = []
     for name in ctx.rounds:
@@ -89,11 +94,24 @@ def validate_context(ctx: StateContext, catalogue: Catalogue) -> list[str]:
         if value is not None and value not in ctx.rounds:
             errors.append(f"{field} {value!r} must be one of the selected rounds")
 
+    if len(found) == len(ctx.rounds) and ctx.compare_round in ctx.rounds:
+        anchor = ctx.anchor_round
+        if anchor is None:
+            anchor = max(found, key=lambda f: f[1].identity.sort_key)[0]
+        if ctx.compare_round == anchor:
+            errors.append(f"compare_round {ctx.compare_round!r} is the anchor round; "
+                          f"choose a different round to compare with")
+
     if ctx.version_mode not in capabilities(ctx.level).version_modes:
         errors.append(
             f"version mode {ctx.version_mode!r} is not available at level "
             f"{ctx.level!r}"
         )
+    elif ctx.version_mode == "matched":
+        for name, round_ in found:
+            if round_.normal is None:
+                errors.append(f"matched mode needs a Normal dataset; round {name!r} "
+                              f"has only an Extrapolated one")
     return errors
 
 

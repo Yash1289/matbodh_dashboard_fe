@@ -11,7 +11,14 @@ from typing import Any, Literal
 
 ErrorKind = Literal["config", "too_heavy", "infrastructure"]
 
-_TOO_HEAVY_MARKERS = ("TOO_BIG_AST", "TIMEOUT_EXCEEDED", "TOO_MANY_ROWS")
+_TOO_HEAVY_MARKERS = ("TOO_BIG_AST", "TIMEOUT_EXCEEDED", "TOO_MANY_ROWS",
+                      "MEMORY_LIMIT_EXCEEDED")
+# Only an engine ValueError (a configuration verdict) keeps its text. Other
+# exception text can carry hosts, users or SQL, so it never leaves the worker.
+GENERIC_MESSAGES = {
+    "infrastructure": "engine infrastructure error; the job can be retried later",
+    "too_heavy": "the cut is too heavy for the engine; narrow the selection",
+}
 
 
 def _infrastructure_types() -> tuple[type[BaseException], ...]:
@@ -37,19 +44,31 @@ MAX_RESULT_ROWS = 100000
 
 
 class EngineError(Exception):
-    def __init__(self, kind: ErrorKind, message: str) -> None:
+    """A classified job failure; ``message`` is safe to show to API clients."""
+
+    def __init__(self, kind: ErrorKind, message: str, error_type: str | None = None) -> None:
         super().__init__(message)
         self.kind = kind
         self.message = message
+        self.error_type = error_type  # the original exception's type name, for logs
 
 
 def classify(exc: BaseException) -> EngineError:
-    message = str(exc) or type(exc).__name__
-    if any(marker in message for marker in _TOO_HEAVY_MARKERS):
-        return EngineError("too_heavy", message)
+    raw = str(exc) or type(exc).__name__
+    error_type = type(exc).__name__
+    if any(marker in raw for marker in _TOO_HEAVY_MARKERS):
+        return EngineError("too_heavy", GENERIC_MESSAGES["too_heavy"], error_type)
     if isinstance(exc, _infrastructure_types()):
-        return EngineError("infrastructure", message)
-    return EngineError("config", message)
+        return EngineError("infrastructure", GENERIC_MESSAGES["infrastructure"], error_type)
+    if isinstance(exc, ValueError):  # the engine's validation verdicts
+        return EngineError("config", raw, error_type)
+    return EngineError("config", f"the engine rejected the configuration ({error_type})",
+                       error_type)
+
+
+def client_message(kind: str, message: str) -> str:
+    """The message an API client may see for a classified error."""
+    return message if kind == "config" else GENERIC_MESSAGES.get(kind, "engine job failed")
 
 
 class EngineRunner:

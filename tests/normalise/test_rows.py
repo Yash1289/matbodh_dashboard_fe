@@ -107,3 +107,15 @@ def test_benchmark_grouping_sets_do_not_collide():
     assert {(r.grouping_set_id, r.value, r.obs_id, r.dims) for r in deltas} == {
         ("g0", 7, "tgt", ()), ("g1", -3, "tgt", (("caste", "OBC", False),))}
     assert len({(r.measure, r.series, r.obs_id, r.grouping_set_id) for r in rows}) == len(rows)
+
+
+def test_paired_benchmark_summaries_are_flagged_common_seats():
+    from tests.fixtures.engine_results import benchmark_result
+
+    paired = from_benchmark(benchmark_result(), "UP", "ac")
+    summaries = [r for r in paired if r.measure == "seats_ac"]
+    assert summaries and all("common_seats" in r.flags for r in summaries)
+    single = benchmark_result()
+    single["contract"]["reference"] = None
+    single["comparisons"] = []
+    assert all("common_seats" not in r.flags for r in from_benchmark(single, "UP", "ac"))

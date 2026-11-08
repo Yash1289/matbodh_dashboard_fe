@@ -124,6 +124,7 @@ def test_plan_reports_rounds_and_coverage_mode(client):
     assert [r["obs_id"] for r in data["rounds"]] == ["o1", "o2"]
     assert data["rounds"][1]["version"] == "extrapolated"
     assert data["rounds"][0]["fallback"] is True
+    assert data["rounds"][0]["seats_source"] == "metadata"
     assert set(data["coverage_mode"]) == {"vote", "parties", "seats_ac", "seats_pc"}
     assert data["unavailable"] == []
 
@@ -229,3 +230,22 @@ def test_plan_shows_template_level_requirement(client):
     data = response.json()
     assert [u["part"] for u in data["unavailable"]] == ["zone"]
     assert "AC-level" in data["unavailable"][0]["reason"]
+
+
+def test_catalogue_change_between_validation_and_start_is_409(service, monkeypatch):
+    def vanished(card_id, ctx):
+        raise KeyError("no round '2027 VS CAPI R1' for state 'Uttar Pradesh'")
+
+    monkeypatch.setattr(service, "plan", vanished)
+    monkeypatch.setattr(service, "start", vanished)
+    client = TestClient(create_app(service))
+    for path in ("/cards/plan", "/cards/run"):
+        response = client.post(path, json=body())
+        assert response.status_code == 409
+        assert "catalogue changed" in response.json()["detail"]
+
+
+def test_compare_equal_to_anchor_is_422(client):
+    response = client.post("/cards/plan", json=body(compare_round=R2))
+    assert response.status_code == 422
+    assert any("anchor" in e for e in response.json()["errors"])

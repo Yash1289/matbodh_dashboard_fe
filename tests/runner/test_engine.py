@@ -107,3 +107,22 @@ def test_build_runtime_closes_mysql_if_clickhouse_fails(monkeypatch):
     with pytest.raises(ConnectionError):
         build_runtime(Path("x.env"))
     assert closed == [True]
+
+
+def test_only_config_value_errors_keep_their_text():
+    secret = "host=db.internal user=reader password=hunter2"
+    assert classify(ValueError("Unverified scenario availability in o1")).message == (
+        "Unverified scenario availability in o1")
+    for exc in (ConnectionError(secret), OSError(secret), RuntimeError(secret),
+                RuntimeError(f"TOO_BIG_AST {secret}"), KeyError(secret)):
+        err = classify(exc)
+        assert "hunter2" not in err.message and "db.internal" not in err.message
+        assert err.error_type == type(exc).__name__
+    assert classify(RuntimeError(secret)).kind == "config"
+
+
+def test_memory_limit_is_too_heavy():
+    from clickhouse_connect.driver.exceptions import DatabaseError as ChDatabaseError
+
+    err = classify(ChDatabaseError("Code: 241. DB::Exception: MEMORY_LIMIT_EXCEEDED"))
+    assert err.kind == "too_heavy"

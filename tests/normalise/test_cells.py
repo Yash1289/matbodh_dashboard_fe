@@ -6,8 +6,9 @@ from matbodh_dashboard.normalise.rows import NormalRow
 SUB = (("party_zone", None, True),)
 
 
-def nr(measure, series, value, obs="o1", dims=(), unit="pct", scenario=None, flags=()):
-    return NormalRow("UP", obs, measure, series, dims, value, unit, None,
+def nr(measure, series, value, obs="o1", dims=(), unit="pct", scenario=None, flags=(),
+       base=None):
+    return NormalRow("UP", obs, measure, series, dims, value, unit, base,
                      frozenset(flags), scenario)
 
 
@@ -153,3 +154,61 @@ def test_missing_delta_row_flags_no_delta():
     c = board([nr("support_share", "BJP", 41.5)])["BJP"].vote
     assert c.delta is None and "no_delta" in c.flags
     assert "no_delta" not in board([nr("support_share", "BJP", 41.5)], compare=None)["BJP"].vote.flags
+
+
+def test_failed_round_is_flagged_failed_not_not_asked():
+    rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "BJP", 200, unit="seats")]
+    b = board(rows, failed={"seats_ac": {"o0"}})
+    seats = b["BJP"].seats_ac
+    assert seats.trend == (None, 200)
+    assert "failed" in seats.flags and "not_asked" not in seats.flags
+    vote = b["BJP"].vote  # o0 had no vote row and no failure: not asked
+    assert "not_asked" in vote.flags and "failed" not in vote.flags
+
+
+def test_wholly_failed_seat_part_gives_failed_cells_to_contenders_only():
+    rows = [nr("support_share", "BJP", 41.5), nr("support_share", "Other", 5.0),
+            nr("support_share", "Undecided", 3.0)]
+    b = board(rows, failed={"seats_pc": {"o0", "o1"}})
+    assert b["BJP"].seats_pc.value is None and b["BJP"].seats_pc.trend == (None, None)
+    assert "failed" in b["BJP"].seats_pc.flags and "not_asked" not in b["BJP"].seats_pc.flags
+    assert b["SP"].seats_pc is not None and "failed" in b["SP"].seats_pc.flags
+    assert b["Other"].seats_pc is None  # never a contender
+    assert "not_contender" in b["Undecided"].seats_pc.flags
+    assert b["BJP"].seats_ac is None  # not failed, not returned
+
+
+def test_delta_row_flags_propagate_and_null_delta_is_no_delta():
+    rows = [nr("support_share", "BJP", 41.5), nr("support_share", "BJP", 41.0, obs="o0"),
+            nr("delta_support", "BJP", None, unit="pp", flags=("not_covered", "null_value"))]
+    cell = board(rows)["BJP"].vote
+    assert cell.delta is None
+    assert {"not_covered", "no_delta"} <= cell.flags
+    assert "null_value" not in cell.flags  # the value itself is present
+
+
+def test_opinion_failed_scenario_gets_failed_cell():
+    rows = [nr("net_score", "pm", 12.0, scenario="pm", unit="pp")]
+    c = build_opinion_cells(rows, round_ids=["o0", "o1"], anchor="o1", compare=None,
+                            failed={"cm": {"o0", "o1"}, "pm": {"o0"}})
+    assert c["cm"].value is None and c["cm"].flags == frozenset({"failed"})
+    assert c["pm"].trend == (None, 12.0) and "failed" in c["pm"].flags
+
+
+def test_seat_cell_carries_eligible_seat_base_and_common_seat_note():
+    rows = [nr("support_share", "BJP", 41.5),
+            # Paired benchmark rows (engine contract has a reference): common seats.
+            nr("seats_ac", "BJP", 200, unit="seats", base=380, flags=("common_seats",)),
+            nr("seats_ac", "BJP", 210, obs="o0", unit="seats", base=380,
+               flags=("common_seats",)),
+            nr("delta_seats_ac", "BJP", -7, unit="seats", base=380)]
+    seats = board(rows)["BJP"].seats_ac
+    assert (seats.value, seats.delta, seats.base) == (200, -7, 380)
+    assert seats.secondary == "on 380 seats" and "common_seats" in seats.flags
+    assert board(rows)["BJP"].vote.base is None
+
+
+def test_single_benchmark_seat_cell_has_base_but_no_common_note():
+    rows = [nr("support_share", "BJP", 41.5), nr("seats_ac", "BJP", 200, unit="seats", base=403)]
+    seats = board(rows, compare=None)["BJP"].seats_ac
+    assert seats.base == 403 and seats.secondary is None

@@ -14,6 +14,8 @@ from typing import Literal
 Dims = tuple[tuple[str, str | None, bool], ...]
 
 _NO_ELIGIBLE = "no_eligible_result"
+# Summaries of a paired benchmark: counted on seats eligible in both endpoints.
+COMMON_SEATS = "common_seats"
 _DELTA_MEASURES = {
     "support_share": "delta_support",
     "net_score": "delta_net_score",
@@ -141,11 +143,13 @@ def from_benchmark(result: dict, state: str, level: Literal["ac", "pc"]) -> list
     benchmark's target endpoint id read from ``result["contract"]["target"]``.
     Grouping identity is kept in ``grouping_set_id`` and ``dims``."""
     out: list[NormalRow] = []
+    paired = bool((result.get("contract") or {}).get("reference"))
+    seat_flags = (COMMON_SEATS,) if paired else ()
     for s in result.get("summaries") or ():
         gid, dimensions = s.get("grouping_set_id"), s.get("dimensions")
         out.append(_row(state, s["endpoint"], f"seats_{level}", s["party_id"], dimensions,
                         s.get("seat_count"), "seats", s.get("eligible_seat_count"),
-                        grouping_set_id=gid))
+                        seat_flags, grouping_set_id=gid))
         out.append(_row(state, s["endpoint"], "vote_share_bench", s["party_id"], dimensions,
                         s.get("vote_share"), "pct", s.get("support_base"),
                         grouping_set_id=gid))

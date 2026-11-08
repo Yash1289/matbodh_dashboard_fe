@@ -108,6 +108,7 @@ def _benchmark_job(
     reference: ResolvedRound | None,
     ctx: StateContext,
     preset: MethodPreset,
+    seat_ids: Sequence[int] = (),
 ) -> EngineJob:
     used = [target] if reference is None else [reference, target]
     used.sort(key=lambda r: r.obs_id)
@@ -119,6 +120,8 @@ def _benchmark_job(
         grouping_sets=[[]],
         preset=preset,
         other_grouping=False,
+        coverage_mode=choose_coverage(used, uses_seat_ids=bool(seat_ids), geographic=False,
+                                      version_mode=ctx.version_mode),
     )
     benchmark = {
         "id": key,
@@ -129,7 +132,7 @@ def _benchmark_job(
         "focal_party": None,
         "grouping_sets": [[]],
         "filters": [],
-        "seat_ids": [],
+        "seat_ids": list(seat_ids),
     }
     return EngineJob(
         key=key,
@@ -166,6 +169,19 @@ class _Planner:
 
     def _missing_field(self, asked: Sequence[ResolvedRound], field: str) -> list[ResolvedRound]:
         return [r for r in asked if not field_available(r.dataset, field)]
+
+    def _matched_seat_ids(self, level: str) -> list[int] | None:
+        """Matched mode: seats every selected round's Normal dataset surveyed.
+
+        Dataset seat ids are native to the collection level, so they restrict
+        benchmarks at that level only. Returns [] when no restriction applies
+        and None when the rounds share no seat (the part is then unavailable;
+        an empty engine seat_ids list would mean every seat).
+        """
+        if self.ctx.version_mode != "matched" or level != self.ctx.level:
+            return []
+        common = frozenset.intersection(*(r.dataset.seat_ids for r in self.rounds))
+        return sorted(common) or None
 
     def card_parts(self) -> list[str]:
         if self.template.operation == "scoreboard":
@@ -228,15 +244,21 @@ class _Planner:
             if level not in allowed:
                 continue
             part = f"seats_{level}"
+            seat_ids = self._matched_seat_ids(level)
+            if seat_ids is None:
+                self.unavailable.append((part, (
+                    "Matched seats: the selected rounds share no surveyed seat")))
+                continue
             singles = list(asked)
             if paired:
                 self.jobs.append(_benchmark_job(part, level, self.anchor, self.compare,
-                                                ctx, preset))
+                                                ctx, preset, seat_ids))
                 singles = [r for r in asked if r is not self.anchor and r is not self.compare]
             elif self.anchor in asked:  # anchor first, as with a paired benchmark
                 singles = [self.anchor] + [r for r in asked if r is not self.anchor]
             for other in singles:
-                self.jobs.append(_benchmark_job(part, level, other, None, ctx, preset))
+                self.jobs.append(_benchmark_job(part, level, other, None, ctx, preset,
+                                                seat_ids))
 
     def by_question(self, part: str, measure: str, *, per_question_part: bool,
                     geographic: bool, grouping_sets: list[list[str]]) -> None:

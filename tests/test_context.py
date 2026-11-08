@@ -82,3 +82,37 @@ def test_extra_fields_forbidden():
 def test_context_wrapper():
     c = Context(states=[ctx()], focus_party="BJP")
     assert c.focus_party == "BJP"
+
+
+def test_compare_round_equal_to_anchor_rejected(catalogue):
+    explicit = validate_context(ctx(rounds=[R1, R2], compare_round=R1, anchor_round=R1),
+                                catalogue)
+    assert any("compare_round" in e and "anchor" in e for e in explicit)
+    latest = validate_context(ctx(rounds=[R1, R2], compare_round=R2), catalogue)
+    assert any("compare_round" in e and "anchor" in e for e in latest)
+    single = validate_context(ctx(rounds=[R1], compare_round=R1), catalogue)
+    assert any("compare_round" in e for e in single)
+
+
+def test_duplicate_rounds_rejected(catalogue):
+    errors = validate_context(ctx(rounds=[R1, R1]), catalogue)
+    assert any("duplicate" in e.lower() and R1 in e for e in errors)
+
+
+def test_matched_needs_a_normal_dataset_for_every_round():
+    from tests.fixtures.catalogue_rows import DATASET_ROWS, LEVEL_ROWS, dataset_row, level_row
+
+    extrap_only = "2027 VS CAPI R3"
+    rows = DATASET_ROWS + [dataset_row(f"{extrap_only} (Extrapolated)", variant="extrapolated",
+                                       round_number=3)]
+    levels = LEVEL_ROWS + [level_row(f"{extrap_only} (Extrapolated)", range(1, 404))]
+    cat = load_catalogue(make_query(rows, levels))
+    errors = validate_context(ctx(rounds=[R1, extrap_only], version_mode="matched"), cat)
+    assert any("Normal" in e and extrap_only in e for e in errors)
+    assert validate_context(ctx(rounds=[R1, extrap_only]), cat) == []
+
+
+def test_geo_scope_other_than_state_not_supported_yet(catalogue):
+    errors = validate_context(ctx(geo_scope="zone"), catalogue)
+    assert any("geo_scope" in e for e in errors)
+    assert validate_context(ctx(geo_scope="state"), catalogue) == []

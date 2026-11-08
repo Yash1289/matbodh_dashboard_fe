@@ -26,7 +26,10 @@ def resolve_rounds(ctx: StateContext, catalogue: Catalogue) -> list[ResolvedRoun
     """
     found = [catalogue.find(ctx.state, name) for name in ctx.rounds]
     found.sort(key=lambda r: r.identity.sort_key)
-    labels = short_labels([r.identity for r in found])
+    try:
+        labels = short_labels([r.identity for r in found])
+    except ValueError:  # ambiguous short labels: the full base name is unambiguous
+        labels = {r.identity: r.identity.base_name for r in found}
     resolved = []
     for index, cat_round in enumerate(found, start=1):
         dataset, fallback = cat_round.version(ctx.version_mode)

@@ -1,18 +1,20 @@
 """Composite table cells (value, delta, trend, secondary text, flags).
 
 Assembly only: every number is copied from an engine row. Deltas come from
-``delta_*`` rows, never from subtracting shares. A round with no value is
-None + ``not_asked``; None is never turned into zero.
+``delta_*`` rows, never from subtracting shares. A round with no row is None +
+``not_asked``, or None + ``failed`` when the job for that round failed; None is
+never turned into zero.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, replace
 
-from matbodh_dashboard.normalise.rows import NormalRow
+from matbodh_dashboard.normalise.rows import COMMON_SEATS, NormalRow
 
 NOT_ASKED = "not_asked"
+FAILED = "failed"
 NOT_CONTENDER = "not_contender"
 NO_DELTA = "no_delta"
 VOTE_FROM_SEAT_VIEW = "vote_from_seat_view"
@@ -40,6 +42,7 @@ class Cell:
     trend: tuple[float | None, ...]
     secondary: str | None
     flags: frozenset[str]
+    base: float | None = None  # seat cells: the engine's eligible_seat_count
 
 
 @dataclass(frozen=True)
@@ -79,14 +82,16 @@ def _index(rows: Sequence[NormalRow], keep: Callable[[NormalRow], bool],
 
 def _cell(idx: dict[tuple, NormalRow], measure: str, ident: tuple,
           round_ids: Sequence[str], anchor: str, compare: str | None,
-          secondary: str | None = None) -> Cell:
+          secondary: str | None = None, failed: Collection[str] = ()) -> Cell:
     trend: list[float | None] = []
     flags: set[str] = set()
     for rid in round_ids:
         r = idx.get((measure, *ident, rid))
         value = r.value if r is not None else None
         trend.append(value)
-        if value is None:
+        if r is None:
+            flags.add(FAILED if rid in failed else NOT_ASKED)
+        elif value is None:
             flags.add(NOT_ASKED)
         if r is not None and rid == anchor:
             flags |= r.flags
@@ -95,11 +100,25 @@ def _cell(idx: dict[tuple, NormalRow], measure: str, ident: tuple,
     delta_measure = _DELTA_OF.get(measure)
     if compare is not None and delta_measure is not None:
         d = idx.get((delta_measure, *ident, anchor))
-        delta = d.value if d is not None else None
-        if d is None:
+        if d is not None:
+            delta = d.value
+            # e.g. not_covered; null_value would describe the value, not the delta
+            flags |= d.flags - {"null_value"}
+        if delta is None:
             flags.add(NO_DELTA)
     return Cell(anchor_row.value if anchor_row is not None else None, delta,
                 tuple(trend), secondary, frozenset(flags))
+
+
+def _seat_cell(cell: Cell, anchor_row: NormalRow | None) -> Cell:
+    """Seat cells carry the engine's eligible seat count; a paired benchmark's
+    counts are on the seats eligible in both rounds, which the cell notes."""
+    if anchor_row is None:
+        return cell
+    secondary = cell.secondary
+    if COMMON_SEATS in anchor_row.flags and anchor_row.base is not None:
+        secondary = f"on {anchor_row.base:g} seats"
+    return replace(cell, base=anchor_row.base, secondary=secondary)
 
 
 def _has(idx: dict[tuple, NormalRow], measure: str, ident: tuple) -> bool:
@@ -108,7 +127,12 @@ def _has(idx: dict[tuple, NormalRow], measure: str, ident: tuple) -> bool:
 
 def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anchor: str,
                      compare: str | None, keep: Sequence[str], other_label: str,
-                     non_parties: Sequence[str] = ("Undecided", "NOTA")) -> list[ScoreboardRow]:
+                     non_parties: Sequence[str] = ("Undecided", "NOTA"),
+                     failed: Mapping[str, Collection[str]] | None = None,
+                     ) -> list[ScoreboardRow]:
+    """``failed`` maps a column (vote, parties, gender_gap, seats_ac, seats_pc)
+    to the rounds whose job for it failed; their cells say ``failed``."""
+    failed = failed or {}
     idx = _index(rows, _statewide, lambda r: (r.series,), round_ids)
     # Rows come from the grouped vote job only; ungrouped parties-job shares
     # (party_share) stay inside Other unless the party wins a seat.
@@ -125,8 +149,9 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
         if extra not in order:
             order.append(extra)
 
-    def cell(measure: str, party: str, **kw) -> Cell:
-        return _cell(idx, measure, (party,), round_ids, anchor, compare, **kw)
+    def cell(measure: str, party: str, column: str, **kw) -> Cell:
+        return _cell(idx, measure, (party,), round_ids, anchor, compare,
+                     failed=failed.get(column, ()), **kw)
 
     out: list[ScoreboardRow] = []
     for party in order:
@@ -138,38 +163,44 @@ def build_scoreboard(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anc
             # party's vote is already counted inside Other.
             row_flags = frozenset({WITHIN_OTHER})
             if _has(idx, PARTY_SHARE, ident) or not _has(idx, "vote_share_bench", ident):
-                vote = cell(PARTY_SHARE, party)
+                vote = cell(PARTY_SHARE, party, "parties")
                 vote = replace(vote, flags=vote.flags | row_flags)
             else:
-                vote = cell("vote_share_bench", party)
+                vote = cell("vote_share_bench", party, "parties")
                 vote = replace(vote, flags=vote.flags | row_flags | {VOTE_FROM_SEAT_VIEW})
         else:
-            vote = cell("support_share", party)
+            vote = cell("support_share", party, "vote")
 
+        contender = party != other_label  # Other is never a benchmark contender
         seats: dict[str, Cell | None] = {}
         for m in ("seats_ac", "seats_pc"):
             if party in non_parties:
                 seats[m] = Cell(None, None, (), None, frozenset({NOT_CONTENDER}))
-            elif _has(idx, m, ident):
-                seats[m] = cell(m, party)
+            elif _has(idx, m, ident) or (contender and failed.get(m)):
+                seats[m] = _seat_cell(cell(m, party, m), idx.get((m, party, anchor)))
             else:
                 seats[m] = None
 
         gender = None
-        if _has(idx, "gender_gap", ident):
+        if _has(idx, "gender_gap", ident) or (
+                failed.get("gender_gap") and not row_flags and party not in non_parties):
             f = idx.get(("female_share", party, anchor))
             m_ = idx.get(("male_share", party, anchor))
             sec = None
             if f is not None and m_ is not None and f.value is not None and m_.value is not None:
                 sec = f"F {f.value:.1f} · M {m_.value:.1f}"
-            gender = cell("gender_gap", party, secondary=sec)
+            gender = cell("gender_gap", party, "gender_gap", secondary=sec)
         out.append(ScoreboardRow(party, vote, seats["seats_ac"], seats["seats_pc"], gender,
                                  row_flags))
     return out
 
 
 def build_opinion_cells(rows: Sequence[NormalRow], *, round_ids: Sequence[str], anchor: str,
-                        compare: str | None) -> dict[str, Cell]:
+                        compare: str | None,
+                        failed: Mapping[str, Collection[str]] | None = None,
+                        ) -> dict[str, Cell]:
+    """``failed`` maps a scenario to the rounds whose job for it failed."""
+    failed = failed or {}
     idx = _index(rows, _statewide, lambda r: (r.scenario, r.series), round_ids)
     out: dict[str, Cell] = {}
     for key in sorted({k[1:-1] for k in idx if k[0] == "net_score" and k[1] is not None}):
@@ -182,13 +213,18 @@ def build_opinion_cells(rows: Sequence[NormalRow], *, round_ids: Sequence[str], 
         if pos is not None and neg is not None and pos.value is not None \
                 and neg.value is not None:
             sec = f"{pos.value:.0f} sat · {neg.value:.0f} dis"
-        out[sc] = _cell(idx, "net_score", key, round_ids, anchor, compare, secondary=sec)
+        out[sc] = _cell(idx, "net_score", key, round_ids, anchor, compare, secondary=sec,
+                        failed=failed.get(sc, ()))
+    for sc, rounds in failed.items():  # a failed job returned nothing for these
+        if sc not in out:
+            out[sc] = _cell(idx, "net_score", (sc, sc), round_ids, anchor, compare,
+                            failed=rounds)
     return out
 
 
 def build_grid(rows: Sequence[NormalRow], *, row_dim: str, round_ids: Sequence[str],
-               anchor: str, compare: str | None,
-               measure: str = "support_share") -> dict[tuple[str, str], Cell]:
+               anchor: str, compare: str | None, measure: str = "support_share",
+               failed: Collection[str] = ()) -> dict[tuple[str, str], Cell]:
     def on_row_dim(r: NormalRow) -> bool:
         named = [d for d in r.dims if d[0] == row_dim]
         return (len(named) == 1 and not named[0][2]
@@ -199,5 +235,5 @@ def build_grid(rows: Sequence[NormalRow], *, row_dim: str, round_ids: Sequence[s
 
     idx = _index(rows, on_row_dim, ident, round_ids)
     keys = {k[1:-1] for k in idx if k[0] == measure}
-    return {(v, s): _cell(idx, measure, (v, s), round_ids, anchor, compare)
+    return {(v, s): _cell(idx, measure, (v, s), round_ids, anchor, compare, failed=failed)
             for v, s in sorted(keys, key=lambda k: (str(k[0]), k[1]))}

@@ -33,12 +33,14 @@ class ResultCache:
     def put(self, fp: str, result: dict) -> None:
         """Store a result; it supersedes any error stored for the same fingerprint."""
         pipe = self._redis.pipeline()
-        pipe.set(_RESULT + fp, json.dumps(result, default=_encode), ex=self._ttl)
+        # allow_nan=False: NaN/Infinity is not JSON; the worker classifies the error.
+        pipe.set(_RESULT + fp, json.dumps(result, default=_encode, allow_nan=False),
+                 ex=self._ttl)
         pipe.delete(_ERROR + fp)
         pipe.execute()
 
     def put_error(self, fp: str, error: EngineError) -> None:
-        payload = {"kind": error.kind, "message": error.message}
+        payload = {"kind": error.kind, "message": error.message, "type": error.error_type}
         self._redis.set(_ERROR + fp, json.dumps(payload), ex=self._ttl)
 
     def error(self, fp: str) -> dict | None:

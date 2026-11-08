@@ -9,11 +9,14 @@ differs from the one it last saw.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from matbodh_dashboard.runner.cache import ResultCache
 from matbodh_dashboard.runner.engine import EngineError, EngineRunner, build_runtime
 from matbodh_dashboard.runner.queue import JOB_TIMEOUT_SECONDS, Runner, attempt
+
+log = logging.getLogger(__name__)
 
 _runner: EngineRunner | None = None
 _cache: ResultCache | None = None
@@ -72,7 +75,8 @@ class _TimeoutAsTooHeavy:
 
 
 def _too_heavy() -> EngineError:
-    return EngineError("too_heavy", f"engine job exceeded {JOB_TIMEOUT_SECONDS} s")
+    return EngineError("too_heavy", f"engine job exceeded {JOB_TIMEOUT_SECONDS} s",
+                       "JobTimeoutException")
 
 
 def execute(fp: str, config: dict) -> None:
@@ -87,6 +91,10 @@ def execute(fp: str, config: dict) -> None:
     error = attempt(_TimeoutAsTooHeavy(runner), cache, fp, config)
     if error is None:
         return
+    # Type and fingerprint only: driver messages can carry connection details.
+    log.warning("engine job failed: fingerprint=%s kind=%s type=%s",
+                fp, error.kind, error.error_type)
     if error.kind == "infrastructure" and _retries_left() > 0:
-        raise error
+        # A fresh exception without the driver error chained: RQ logs it.
+        raise EngineError(error.kind, error.message, error.error_type) from None
     cache.put_error(fp, error)
