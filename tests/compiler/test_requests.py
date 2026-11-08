@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from matbodh_dashboard.catalogue.store import load_catalogue
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
 from matbodh_dashboard.compiler.rounds import resolve_rounds
@@ -53,7 +55,7 @@ def test_scoreboard_request_snapshot():
             "measure": "support_share", "kind": "difference"}],
         "reference_observation": None,
         "coverage_mode": "independent",
-        "opinion_weights": None,
+        "opinion_weights": {"source": "base"},
         "caste_clubbing": None,
         "gender_differential": {"field": "gender", "female_values": ["Female"],
                                 "male_values": ["Male"]},
@@ -84,3 +86,22 @@ def test_request_accepted_by_engine():
     request = _request(coverage_mode="common")
     contract = resolve_with_engine(request, _rounds())
     assert contract["coverage_acs"] == tuple(range(1, 381))
+
+
+def test_independent_request_accepted_by_engine():
+    contract = resolve_with_engine(_request(), _rounds())
+    assert contract["coverage_acs"] == ()
+
+
+def test_request_without_other_grouping_accepted_by_engine():
+    request = _request(other_grouping=False)
+    assert request["parties"]["other_grouping"] is None
+    resolve_with_engine(request, _rounds())
+
+
+def test_engine_rejects_scenario_missing_from_dataset():
+    request = _request()
+    request["scenarios"] = ["cm_preference"]
+    request["comparisons"] = []
+    with pytest.raises(ValueError):
+        resolve_with_engine(request, _rounds())

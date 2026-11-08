@@ -21,15 +21,15 @@ def explicit_request(request: dict, rounds: list[ResolvedRound]) -> dict:
                 "id": obs["id"],
                 "survey_id": ds.dataset_id,
                 "collection_level": ds.level,
-                "available_fields": sorted(ds.fields | {"ac_num", "pc_num"}),
-                "available_scenarios": sorted(ds.scenarios | set(data["scenarios"])),
+                "available_fields": sorted(ds.fields),
+                "available_scenarios": sorted(ds.scenarios),
                 "completed_acs": sorted(ds.seat_ids),
                 "dataset_id": ds.dataset_id,
                 "survey_name": ds.survey_name,
             }
         )
     data["observations"] = observations
-    # The alliance runtime normally supplies the resolved identity mapping.
+    # Party identity namespace/version/mapping are normally supplied by the alliance runtime.
     data["parties"].update(namespace="MatBodh", version="test", mapping={})
     return data
 

@@ -25,9 +25,9 @@ def dataset_row(
         "round_number": round_number,
         "survey_start_date": date(2027, 1, 1),
         "survey_end_date": date(2027, 1, 31),
-        "available_fields": ["age", "gender"],
+        "available_fields": ["age", "gender", "ac_num", "pc_num"],
         "available_fields_miscellaneous": ["religion"],
-        "available_scenarios": ["s1"],
+        "available_scenarios": ["s1", "vs_voting_intention"],
         "update_revision": revision,
     }
     row.update(overrides)

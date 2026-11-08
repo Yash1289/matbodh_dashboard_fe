@@ -30,6 +30,16 @@ def comparison(
     }
 
 
+def _opinion_weights(preset: MethodPreset) -> dict:
+    spec = preset.opinion_weights
+    out: dict = {"source": spec.source}
+    if spec.scenario is not None:
+        out["scenario"] = spec.scenario
+    if spec.mode is not None:
+        out["mode"] = spec.mode
+    return out
+
+
 def build_request(
     *,
     state: str,
@@ -78,7 +88,7 @@ def build_request(
         "comparisons": [dict(c) for c in comparisons],
         "reference_observation": latest.obs_id if coverage_mode == "common" else None,
         "coverage_mode": coverage_mode,
-        "opinion_weights": None,
+        "opinion_weights": _opinion_weights(preset),
         "caste_clubbing": None,
         "gender_differential": (
             {

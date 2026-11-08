@@ -41,8 +41,8 @@ def test_borrowed_seats_loaded(catalogue):
     assert len(r2.extrapolated.borrowed_seat_ids) == 23
     assert len(r2.extrapolated.seat_ids) == 403
     assert r2.normal.borrowed_seat_ids == frozenset()
-    assert r2.normal.fields == frozenset({"age", "gender", "religion"})
-    assert r2.normal.scenarios == frozenset({"s1"})
+    assert r2.normal.fields == frozenset({"age", "gender", "ac_num", "pc_num", "religion"})
+    assert r2.normal.scenarios == frozenset({"s1", "vs_voting_intention"})
 
 
 def test_revision_is_max_update_revision(catalogue):
