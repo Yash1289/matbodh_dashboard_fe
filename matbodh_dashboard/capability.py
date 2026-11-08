@@ -30,6 +30,26 @@ _CAPABILITIES = {
 }
 
 
+# Coarse to fine; a template's requires.min_level is met by its level or finer.
+LEVEL_RANK = {"state": 0, "zone": 1, "pc": 2, "ac": 3}
+# Every geographic slice some level supports; other slices are demographic.
+GEO_SLICES = frozenset().union(*(c.geo_slices for c in _CAPABILITIES.values()))
+
+
+def template_blockers(min_level: str, slices: list[str], level: str) -> list[str]:
+    """Reasons a template cannot run at a survey level; empty when it can."""
+    reasons = []
+    if LEVEL_RANK[level] < LEVEL_RANK[min_level]:
+        reasons.append(f"Needs a {min_level.upper()}-level survey; this survey is "
+                       f"{level.upper()} level")
+    allowed = capabilities(level).geo_slices
+    for slice_ in slices:
+        if slice_ in GEO_SLICES and slice_ not in allowed:
+            reasons.append(f"Slice {slice_!r} is not available for {level.upper()}-level "
+                           f"surveys")
+    return reasons
+
+
 def capabilities(level: str) -> Capabilities:
     try:
         return _CAPABILITIES[level]

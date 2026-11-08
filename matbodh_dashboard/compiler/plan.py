@@ -15,7 +15,7 @@ from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import Literal
 
-from matbodh_dashboard.capability import capabilities, resolve_anchor
+from matbodh_dashboard.capability import capabilities, resolve_anchor, template_blockers
 from matbodh_dashboard.catalogue.store import Catalogue, DatasetVersion
 from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
@@ -167,6 +167,22 @@ class _Planner:
     def _missing_field(self, asked: Sequence[ResolvedRound], field: str) -> list[ResolvedRound]:
         return [r for r in asked if not field_available(r.dataset, field)]
 
+    def card_parts(self) -> list[str]:
+        if self.template.operation == "scoreboard":
+            return ["vote", GENDER_PART, *[f"seats_{level}" for level in SEAT_LEVELS]]
+        if self.template.operation == "opinion":
+            return list(self.template.questions)
+        return ["zone"]
+
+    def blocked(self) -> bool:
+        """Template requirements (min_level, geographic slices) against the level."""
+        reasons = template_blockers(self.template.requires.min_level,
+                                    self.template.slices, self.ctx.level)
+        if reasons:
+            reason = "; ".join(reasons)
+            self.unavailable += [(part, reason) for part in self.card_parts()]
+        return bool(reasons)
+
     # -- operations --------------------------------------------------------
 
     def scoreboard(self) -> None:
@@ -276,7 +292,9 @@ def plan_card(
     compare = _by_base_name(rounds, ctx.compare_round) if ctx.compare_round else None
     planner = _Planner(template, ctx, rounds, anchor, compare, preset)
 
-    if template.operation == "scoreboard":
+    if planner.blocked():
+        pass  # every part is unavailable with the template's reason
+    elif template.operation == "scoreboard":
         planner.scoreboard()
     elif template.operation == "opinion":
         planner.by_question("opinion", "net_score", per_question_part=True,

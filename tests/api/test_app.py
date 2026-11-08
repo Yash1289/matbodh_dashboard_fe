@@ -220,3 +220,12 @@ def test_plan_reports_not_asked_rounds(client):
     data = client.post("/cards/plan", json=body(card="pulse.leaders")).json()
     assert data["not_asked"] == [{"part": "cm_satisfaction", "rounds": [R1]}]
     assert data["unavailable"] == []
+
+
+def test_plan_shows_template_level_requirement(client):
+    response = client.post("/cards/plan", json=body(
+        card="pulse.by_zone", level="zone", rounds=[ZONE_R1], compare_round=None))
+    assert response.status_code == 200
+    data = response.json()
+    assert [u["part"] for u in data["unavailable"]] == ["zone"]
+    assert "AC-level" in data["unavailable"][0]["reason"]

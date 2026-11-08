@@ -209,6 +209,16 @@ class FakeRunner:
                 "zone": zone_result}[part](config)
 
 
+class FakeSession:
+    """Stands in for the engine MetadataSession: records clear() calls."""
+
+    def __init__(self):
+        self.clears = 0
+
+    def clear(self):
+        self.clears += 1
+
+
 class ManualQueue:
     """Asynchronous stand-in: jobs run only when drained."""
 
@@ -552,7 +562,7 @@ def test_worker_stores_result_or_classified_error(cache, monkeypatch):
 
     runner = FakeRunner({"vote": [ValueError("bad"), ConnectionError("down"),
                                   ConnectionError("down")]})
-    monkeypatch.setattr(worker, "_resources", lambda: (runner, cache))
+    monkeypatch.setattr(worker, "_resources", lambda: (runner, cache, FakeSession()))
     config = dict(VOTE_CONFIG)
     worker.execute("cfg", config)  # config error: stored, not raised (no RQ retry)
     assert cache.error("cfg") == {"kind": "config", "message": "bad"}
@@ -635,7 +645,7 @@ def test_rq_timeout_is_too_heavy_and_not_retried(cache, monkeypatch):
 
     for fp, runner in (("direct", FakeRunner({"vote": [JobTimeoutException("t")]})),
                        ("engine", EngineRunner(TimingOutRuntime()))):
-        monkeypatch.setattr(worker, "_resources", lambda r=runner: (r, cache))
+        monkeypatch.setattr(worker, "_resources", lambda r=runner: (r, cache, FakeSession()))
         monkeypatch.setattr(worker, "_retries_left", lambda: 3)
         config = dict(VOTE_CONFIG)
         worker.execute(fp, config)  # stored, not raised: RQ does not retry it
@@ -698,3 +708,44 @@ def test_round_without_vote_question_is_not_asked_not_a_failed_card(rules, cache
     assert nda["seats_ac"]["trend"] == [None, 154] and nda["seats_ac"]["delta"] is None
     assert {n["part"] for n in status.result["not_asked"]} == {
         "vote", "gender_gap", "seats_ac", "seats_pc"}
+
+
+def test_worker_clears_metadata_session_when_alliance_epoch_moves(cache, monkeypatch):
+    from matbodh_dashboard.runner import worker
+
+    session = FakeSession()
+    monkeypatch.setattr(worker, "_resources", lambda: (FakeRunner(), cache, session))
+    monkeypatch.setattr(worker, "_seen_epoch", None)
+    worker.execute("a", dict(VOTE_CONFIG))
+    worker.execute("b", dict(VOTE_CONFIG))
+    assert session.clears == 0  # epoch unchanged since the session was built
+    cache.bump_epoch()  # POST /admin/metadata/refreshed
+    worker.execute("c", dict(VOTE_CONFIG))
+    assert session.clears == 1
+    worker.execute("d", dict(VOTE_CONFIG))
+    assert session.clears == 1  # cleared once per epoch change
+
+
+def test_worker_resources_expose_the_runtime_metadata_session(monkeypatch):
+    import fakeredis
+    import redis
+
+    from matbodh_dashboard.runner import worker
+    from matbodh_dashboard.settings import Settings
+
+    session = FakeSession()
+
+    class Runtime:
+        def __init__(self):
+            self.session = session
+
+    monkeypatch.setattr(worker, "_runner", None)
+    monkeypatch.setattr(worker, "_cache", None)
+    monkeypatch.setattr(worker, "_session", None)
+    monkeypatch.setattr("matbodh_dashboard.settings.load_settings",
+                        lambda: Settings(Path("x.env"), "redis://unused", 60, ROOT / "config"))
+    monkeypatch.setattr(redis.Redis, "from_url",
+                        classmethod(lambda cls, url: fakeredis.FakeStrictRedis()))
+    monkeypatch.setattr(worker, "build_runtime", lambda env_file: Runtime())
+    _, _, got = worker._resources()
+    assert got is session

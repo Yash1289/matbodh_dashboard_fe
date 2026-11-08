@@ -273,3 +273,40 @@ def test_by_zone_respondent_slice_field_missing_marks_part_unavailable():
     assert plan.jobs == ()
     (part, reason), = plan.unavailable
     assert part == "zone" and "age" in reason and R2 in reason
+
+
+# -- template requirements and level capabilities ----------------------------
+
+
+def test_by_zone_on_pc_level_is_unavailable_with_reason():
+    plan = _plan("pulse.by_zone", _ctx([R1, R2], level="pc", compare_round=R1))
+    assert plan.jobs == ()
+    reasons = dict(plan.unavailable)
+    assert set(reasons) == {"zone"}
+    assert "AC-level" in reasons["zone"] and "party_zone" in reasons["zone"]
+
+
+def test_by_zone_on_state_level_is_unavailable_with_reason():
+    plan = _plan("pulse.by_zone", _ctx([R1, R2], level="state", compare_round=R1))
+    assert plan.jobs == ()
+    (part, reason), = plan.unavailable
+    assert part == "zone" and "AC-level" in reason
+
+
+def test_geo_slice_outside_level_capabilities_is_unavailable():
+    # min_level is met (state), but the slice is not a PC-level geographic slice.
+    template = TEMPLATES["pulse.by_zone"].model_copy(
+        update={"requires": TEMPLATES["pulse.leaders"].requires, "slices": ["district"]})
+    plan = plan_card(template, _ctx([R1, R2], level="pc", compare_round=R1),
+                     _catalogue("pc"), PRESET)
+    assert plan.jobs == ()
+    (part, reason), = plan.unavailable
+    assert part == "zone" and "district" in reason and "PC" in reason
+
+
+def test_demographic_slice_is_not_a_geographic_restriction():
+    template = TEMPLATES["pulse.by_zone"].model_copy(
+        update={"requires": TEMPLATES["pulse.leaders"].requires, "slices": ["age"]})
+    plan = plan_card(template, _ctx([R1, R2], level="state", compare_round=R1),
+                     _catalogue("state"), PRESET)
+    assert [j.part for j in plan.jobs] == ["zone"] and plan.unavailable == ()

@@ -26,16 +26,25 @@ Card runs queue engine jobs in Redis (`DASHBOARD_REDIS_URL`); workers execute
 them with read-only connections from `ENGINE_ENV_FILE`:
 
 ```bash
-rq worker engine --url "$DASHBOARD_REDIS_URL"
+rq worker engine --with-scheduler --url "$DASHBOARD_REDIS_URL"
 ```
 
+- `--with-scheduler` is required: retries with backoff are scheduled jobs, and
+  without a scheduler a retried job is never re-run.
 - The concurrency cap on engine queries is the number of `rq worker engine`
   processes. Start with 4.
 - RQ's default worker forks, which Windows does not support; on Windows add
   `--worker-class rq.worker.SimpleWorker` (one job at a time per process).
+  Caveat: without `SIGALRM`, RQ enforces `job_timeout` on Windows with a timer
+  thread that raises inside the job only when control returns to Python, so a
+  job blocked in a database call can overrun the 300 s timeout; the engine's
+  120 s ClickHouse `max_execution_time` is then the effective bound.
 - Infrastructure errors retry up to 3 times (backoff 5 s, 15 s, 30 s);
   configuration and too-heavy errors never retry. An RQ job timeout (300 s,
   above the engine's 120 s query limit) counts as too heavy.
+- Each worker keeps one engine `MetadataSession`; before a job it clears that
+  session when the alliance epoch in Redis (bumped by
+  `POST /admin/metadata/refreshed`) differs from the epoch it last saw.
 - Results are cached for `DASHBOARD_CACHE_TTL_SECONDS` under a fingerprint of
   the engine config, metadata revision, engine version and alliance epoch;
   `CardRunService.refresh_metadata` bumps the epoch and so invalidates them.
