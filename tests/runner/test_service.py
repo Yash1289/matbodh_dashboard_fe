@@ -58,6 +58,8 @@ SEATS = {
 # Paired benchmark deltas deliberately differ from the per-round gaps.
 SEAT_DELTAS = {"ac": {"NDA": -88, "SP+": 90}, "pc": {"NDA": -22, "SP+": 22}}
 BENCH_COVERAGE = "common_positive_eligible_seats_full_constituents"
+# Seat-view vote share offset per level (real AC and PC shares differ at ~1e-14).
+BENCH_SHARE_OFFSET = {"ac": 0.0, "pc": 0.0}
 
 
 def part_of(config: dict) -> str:
@@ -98,7 +100,7 @@ def bench_result(config: dict) -> dict:
     target = b["target"]["id"]
     endpoints = [target] + ([b["reference"]["id"]] if b["reference"] else [])
     summaries = [
-        {"endpoint": e, "party_id": p, "seat_count": n, "vote_share": SHARES[e][p],
+        {"endpoint": e, "party_id": p, "seat_count": n, "vote_share": SHARES[e][p] + BENCH_SHARE_OFFSET[level],
          "eligible_seat_count": 403, "support_base": 9000.0, "grouping_set_id": "g0",
          "dimensions": {}}
         for e in endpoints for p, n in SEATS[level][e].items()
@@ -398,7 +400,7 @@ def test_opinion_card_cells(rules, cache):
     status = service.status(service.start("pulse.leaders", ctx()))
     assert status.state == "done"
     cells = {c["series"]: c for c in status.result["opinion"]}
-    assert list(cells) == ["cm_satisfaction", "pm_satisfaction"]  # append_alpha default
+    assert list(cells) == ["pm_satisfaction", "cm_satisfaction"]  # template order
     assert cells["pm_satisfaction"]["cell"]["value"] == 25.0
     assert cells["pm_satisfaction"]["cell"]["delta"] == 4.0  # engine, not 25 - 20
     assert cells["pm_satisfaction"]["label"] == "pm_satisfaction"
@@ -454,6 +456,7 @@ def test_rq_queue_enqueues_each_fingerprint_once(cache):
     rq_queue = Queue("engine", connection=redis)
     assert rq_queue.job_ids == ["fp1"]
     job = rq_queue.fetch_job("fp1")
+    assert job.timeout == 300  # comfortably above the engine's 120 s query limit
     assert job.func_name == "matbodh_dashboard.runner.worker.execute"
     assert job.args == ("fp1", {"a": 1})
     assert job.retries_left == 3 and job.retry_intervals == [5, 15, 30]
@@ -496,3 +499,103 @@ def test_worker_stores_result_or_classified_error(cache, monkeypatch):
 
     worker.execute("ok", config)
     assert cache.get("ok")["rows"][0]["support_share"] == 40.0
+
+
+@pytest.fixture
+def seat_share_mismatch(monkeypatch):
+    monkeypatch.setitem(BENCH_SHARE_OFFSET, "pc", 1e-14)
+
+
+def seat_winner_runner(failures=None) -> FakeRunner:
+    """JDL wins seats outside the keep list, so its vote comes from the seat view."""
+    runner = FakeRunner(failures)
+    original = runner.run
+
+    def run(config):
+        result = original(config)
+        if "benchmark" in config:
+            level = config["benchmark"]["seat_level"]
+            for e in {s["endpoint"] for s in result["summaries"]}:
+                result["summaries"].append(
+                    {"endpoint": e, "party_id": "JDL", "seat_count": 2,
+                     "vote_share": (3.25 if level == "ac" else 3.5),
+                     "eligible_seat_count": 403, "support_base": 9000.0,
+                     "grouping_set_id": "g0", "dimensions": {}})
+        return result
+
+    runner.run = run
+    return runner
+
+
+def test_bench_vote_share_differing_by_level_still_assembles(rules, cache,
+                                                              seat_share_mismatch):
+    runner = seat_winner_runner()
+    service, _ = make_service(rules, cache, runner=runner)
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert status.state == "done", status.errors
+    jdl = board(status)["JDL"]
+    assert jdl["vote"]["value"] == 3.25  # the AC seat view supplies the share
+    assert "vote_from_seat_view" in jdl["vote"]["flags"]
+    assert jdl["seats_pc"]["value"] == 2  # seat rows of both levels are kept
+
+
+def test_pc_bench_supplies_vote_share_when_ac_failed(rules, cache, seat_share_mismatch):
+    runner = seat_winner_runner({"seats_ac": [ValueError("bad AC factor")]})
+    service, _ = make_service(rules, cache, runner=runner)
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert status.state == "partial" and set(status.errors) == {"seats_ac"}
+    jdl = board(status)["JDL"]
+    assert jdl["vote"]["value"] == 3.5
+    assert jdl["seats_ac"] is None and jdl["seats_pc"]["value"] == 2
+
+
+def test_opinion_order_overridden_by_scenario_rule(tmp_path, cache):
+    (tmp_path / "global.yaml").write_text(
+        "rules:\n  - field: scenario\n    order: [cm_satisfaction, pm_satisfaction]\n"
+        "    labels: {pm_satisfaction: PM satisfaction}\n", encoding="utf-8")
+    service, _ = make_service(load_rules(tmp_path), cache)
+    status = service.status(service.start("pulse.leaders", ctx()))
+    cells = status.result["opinion"]
+    assert [c["series"] for c in cells] == ["cm_satisfaction", "pm_satisfaction"]
+    assert cells[1]["label"] == "PM satisfaction"
+
+
+def test_rq_timeout_is_too_heavy_and_not_retried(cache, monkeypatch):
+    from rq.timeouts import JobTimeoutException
+
+    from matbodh_dashboard.runner import worker
+    from matbodh_dashboard.runner.engine import EngineRunner
+
+    class TimingOutRuntime:
+        def run(self, path):
+            raise JobTimeoutException("Task exceeded maximum timeout value (300 seconds)")
+
+    for fp, runner in (("direct", FakeRunner({"vote": [JobTimeoutException("t")]})),
+                       ("engine", EngineRunner(TimingOutRuntime()))):
+        monkeypatch.setattr(worker, "_resources", lambda r=runner: (r, cache))
+        monkeypatch.setattr(worker, "_retries_left", lambda: 3)
+        config = {"request": {"scenarios": [VOTE_SCENARIO], "grouping_sets": [[]],
+                              "observations": [{"id": "o1"}], "comparisons": []}}
+        worker.execute(fp, config)  # stored, not raised: RQ does not retry it
+        assert cache.error(fp)["kind"] == "too_heavy"
+
+
+def test_log_line_reports_normalisation_error(rules, cache, caplog):
+    runner = FakeRunner()
+    original = runner.run
+
+    def run(config):
+        result = original(config)
+        result["rows"].append({"observation_id": "o1", "scenario_id": "pm_satisfaction",
+                               "support_share": 1.0, "dimensions": {}})
+        return result
+
+    runner.run = run
+    service, _ = make_service(rules, cache, runner=runner)
+    with caplog.at_level(logging.INFO, logger="matbodh_dashboard.runner"):
+        status = service.status(service.start("pulse.leaders", ctx()))
+    line = json.loads([r for r in caplog.records
+                       if r.name == "matbodh_dashboard.runner.service"][0].getMessage())
+    assert line["rows"] is None
+    assert line["rows_error"] == "ValueError: Engine row has neither party_id nor option_id"
+    assert status.state == "failed" and status.errors["assembly"]["kind"] == "config"

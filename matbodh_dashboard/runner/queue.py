@@ -18,7 +18,7 @@ JobState = Literal["queued", "running", "done", "failed"]
 
 RETRY_INTERVALS: tuple[int, ...] = (5, 15, 30)
 WORKER_FUNCTION = "matbodh_dashboard.runner.worker.execute"
-JOB_TIMEOUT_SECONDS = 600  # engine queries stop at 120 s; this bounds the whole job
+JOB_TIMEOUT_SECONDS = 300  # engine queries stop at 120 s; an RQ timeout is too_heavy
 
 
 class Runner(Protocol):

@@ -100,12 +100,15 @@ class CardRunService:
 
     def start(self, card_id: str, ctx: StateContext) -> str:
         template = self._template(card_id)
-        plan = plan_card(template, ctx, self.catalogue, self.preset)
-        run = _Run(card_id, template, plan, self.catalogue.revision,
-                   self.cache.alliance_epoch())
-        run.jobs = {j.key: _Job(j) for j in plan.jobs}
         run_id = uuid.uuid4().hex
         with self._lock:
+            # One snapshot: a concurrent refresh_metadata cannot mix an old plan
+            # with a new revision or epoch.
+            catalogue = self.catalogue
+            plan = plan_card(template, ctx, catalogue, self.preset)
+            run = _Run(card_id, template, plan, catalogue.revision,
+                       self.cache.alliance_epoch())
+            run.jobs = {j.key: _Job(j) for j in plan.jobs}
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
                 self._runs.popitem(last=False)
@@ -219,11 +222,12 @@ class CardRunService:
         """One structured line per job; aggregate counts only, no respondent data."""
         timing = {} if job.cache_hit or job.fp is None else self.cache.timing(job.fp)
         rows = None
+        rows_error = None
         if job.result is not None:
             try:
                 rows = len(self._rows(run, job))
-            except (ValueError, KeyError, TypeError):
-                rows = None
+            except (ValueError, KeyError, TypeError) as exc:
+                rows_error = f"{type(exc).__name__}: {exc}"
         line = {
             "fingerprint": job.fp,
             "card_id": run.card_id,
@@ -237,6 +241,10 @@ class CardRunService:
             "engine_version": self.engine_version,
             "metadata_revision": run.revision,
         }
+        if rows_error is not None:  # assembly reports it too; the log keeps the job
+            line["rows_error"] = rows_error
+            log.warning(json.dumps(line, sort_keys=True))
+            return
         log.info(json.dumps(line, sort_keys=True))
 
     # -- status and assembly ----------------------------------------------
@@ -264,7 +272,8 @@ class CardRunService:
     def _assemble(self, run: _Run) -> dict:
         plan, template = run.plan, run.template
         done = [j for j in run.jobs.values() if j.status == "done"]
-        rows = [r for j in done for r in self._rows(run, j)]
+        rows = _one_bench_vote_level(
+            [(j, self._rows(run, j)) for j in done])
         by_name = {r.identity.base_name: r.obs_id for r in plan.rounds}
         round_ids = [r.obs_id for r in plan.rounds]
         anchor = by_name[plan.anchor]
@@ -304,7 +313,11 @@ class CardRunService:
             ]
         elif template.operation == "opinion":
             cells = build_opinion_cells(rows, round_ids=round_ids, anchor=anchor, compare=compare)
-            order = self.rules.order(_SCENARIO, cells, states=states)
+            present = [q for q in template.questions if q in cells]
+            present += sorted(sc for sc in cells if sc not in template.questions)
+            # Template question order unless a registry rule for the field applies.
+            order = (self.rules.order(_SCENARIO, present, states=states)
+                     if self._has_rule(_SCENARIO, plan.state) else present)
             result["hidden_count"] = self.rules.hidden_count(_SCENARIO, cells, states=states)
             result["opinion"] = [
                 {**self._series(_SCENARIO, sc, plan.state), "cell": _cell(cells[sc])}
@@ -343,9 +356,29 @@ class CardRunService:
             })
         return {"row_dim": row_dim, "rows": grid_rows}, hidden
 
+    def _has_rule(self, field_name: str, state: str) -> bool:
+        return any(r.field == field_name and r.state in (None, state)
+                   for r in self.rules.rules)
+
     def _series(self, field_name: str, value: str, state: str) -> dict:
         return {"series": value, "label": self.rules.label(field_name, value, state),
                 "colour": self.rules.colour(field_name, value)}
+
+
+def _one_bench_vote_level(per_job: list[tuple[_Job, list[NormalRow]]]) -> list[NormalRow]:
+    """Keep seat-view vote shares from one seat level only: AC when an AC
+    benchmark is done, else PC. AC and PC shares can differ in the last digits,
+    and mixing them would be a conflicting duplicate. Seat rows are untouched."""
+    levels = {j.job.config["benchmark"]["seat_level"]
+              for j, _ in per_job if j.job.kind == "benchmark"}
+    chosen = "ac" if "ac" in levels else "pc"
+    out: list[NormalRow] = []
+    for job, rows in per_job:
+        level = job.job.config["benchmark"]["seat_level"] if job.job.kind == "benchmark" else None
+        out += [r for r in rows
+                if not (level is not None and level != chosen
+                        and r.measure == "vote_share_bench")]
+    return out
 
 
 def _span(timing: dict[str, float], start: str, end: str) -> float | None:

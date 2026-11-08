@@ -34,7 +34,8 @@ rq worker engine --url "$DASHBOARD_REDIS_URL"
 - RQ's default worker forks, which Windows does not support; on Windows add
   `--worker-class rq.worker.SimpleWorker` (one job at a time per process).
 - Infrastructure errors retry up to 3 times (backoff 5 s, 15 s, 30 s);
-  configuration and too-heavy errors never retry.
+  configuration and too-heavy errors never retry. An RQ job timeout (300 s,
+  above the engine's 120 s query limit) counts as too heavy.
 - Results are cached for `DASHBOARD_CACHE_TTL_SECONDS` under a fingerprint of
   the engine config, metadata revision, engine version and alliance epoch;
   `CardRunService.refresh_metadata` bumps the epoch and so invalidates them.
