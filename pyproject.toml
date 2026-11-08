@@ -25,3 +25,4 @@ include = ["matbodh_dashboard*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
