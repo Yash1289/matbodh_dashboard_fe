@@ -20,6 +20,25 @@ Optional: `DASHBOARD_REDIS_URL`, `DASHBOARD_CACHE_TTL_SECONDS`, `DASHBOARD_CONFI
 .venv/Scripts/python.exe -m pytest
 ```
 
+## API
+
+```bash
+uvicorn matbodh_dashboard.bootstrap:create_production_app --factory
+```
+
+`matbodh_dashboard.bootstrap` is the composition root: settings, Redis
+(`DASHBOARD_REDIS_URL`), the result cache, the RQ queue, the survey catalogue
+(loaded over a short-lived read-only ClickHouse connection from
+`ENGINE_ENV_FILE`), the card run service and the FastAPI app. The API never
+runs engine queries itself; workers do.
+
+## Read-only database users
+
+The MySQL and ClickHouse users in the engine env file must be read-only at the
+database. The dashboard sets ClickHouse `readonly=1` only on its own catalogue
+query; engine jobs run through the engine's adapters, which this repository does
+not restrict, so the database grants are the safeguard.
+
 ## Engine workers
 
 Card runs queue engine jobs in Redis (`DASHBOARD_REDIS_URL`); workers execute

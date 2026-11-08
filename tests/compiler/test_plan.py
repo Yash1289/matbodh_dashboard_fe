@@ -51,7 +51,7 @@ def test_scoreboard_two_rounds_ac():
         "reference": {"source": "survey", "id": "o1", "observation": "o1",
                       "scenario": "vs_voting_intention"},
         "contenders": [], "focal_party": None, "grouping_sets": [[]],
-        "filters": [], "seat_ids": []}
+        "filters": [], "seat_ids": [], "competition_excluded": ["NOTA"]}
     assert pc.config["benchmark"]["seat_level"] == "pc"
     req = ac.config["request"]
     assert [o["id"] for o in req["observations"]] == ["o1", "o2"]

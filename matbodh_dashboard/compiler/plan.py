@@ -133,6 +133,7 @@ def _benchmark_job(
         "grouping_sets": [[]],
         "filters": [],
         "seat_ids": list(seat_ids),
+        "competition_excluded": list(preset.competition_excluded),
     }
     return EngineJob(
         key=key,

@@ -18,20 +18,16 @@ import time
 from collections.abc import Sequence
 
 from matbodh_dashboard import engine_version
+from matbodh_dashboard.bootstrap import load_card_config
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.context import StateContext
-from matbodh_dashboard.presets import load_preset
-from matbodh_dashboard.registry import load_rules
 from matbodh_dashboard.runner.cache import ResultCache
 from matbodh_dashboard.runner.queue import InlineQueue, Runner
 from matbodh_dashboard.runner.service import CardRunService, CardRunStatus
 from matbodh_dashboard.settings import Settings, load_settings
-from matbodh_dashboard.templates import load_templates
 
 CARD_ID = "pulse.party_scoreboard"
-PRESET_FILE = "uttar-pradesh.standard-v1.yaml"
-TEMPLATES_FILE = "pulse.yaml"
 POLL_LIMIT = 100
 
 
@@ -58,16 +54,8 @@ def build_service(settings: Settings, catalogue: Catalogue, runner: Runner) -> C
 
     cache = ResultCache(fakeredis.FakeStrictRedis(), settings.cache_ttl_seconds)
     queue = InlineQueue(runner, cache)
-    config = settings.config_dir
-    return CardRunService(
-        catalogue,
-        load_preset(config / "presets" / PRESET_FILE),
-        load_templates(config / "templates" / TEMPLATES_FILE),
-        load_rules(config / "presentation"),
-        cache,
-        queue,
-        engine_version(),
-    )
+    preset, templates, rules = load_card_config(settings.config_dir)
+    return CardRunService(catalogue, preset, templates, rules, cache, queue, engine_version())
 
 
 def run_card(service: CardRunService, ctx: StateContext) -> tuple[str, CardRunStatus, float]:
