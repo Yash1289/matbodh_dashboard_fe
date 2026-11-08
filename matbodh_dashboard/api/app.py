@@ -78,6 +78,8 @@ def create_app(
             "valid": True,
             "errors": [],
             "unavailable": [{"part": p, "reason": r} for p, r in run_plan.unavailable],
+            "not_asked": [{"part": p, "rounds": list(names)}
+                          for p, names in run_plan.not_asked],
             "rounds": [
                 {"obs_id": r.obs_id, "label": r.label,
                  "base_name": r.identity.base_name, "round": r.identity.round,

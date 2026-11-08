@@ -116,10 +116,16 @@ def test_scoreboard_state_level_marks_seats_unavailable():
 
 def test_opinion_uses_net_score():
     plan = _plan("pulse.leaders", _ctx([R1, R2], compare_round=R1))
-    assert [j.part for j in plan.jobs] == ["opinion"]
-    request = plan.jobs[0].config["request"]
-    assert request["comparisons"][0]["measure"] == "net_score"
-    assert request["scenarios"] == TEMPLATES["pulse.leaders"].questions
+    # R1 did not ask cm_satisfaction: one job per distinct round set.
+    assert [j.part for j in plan.jobs] == ["opinion", "opinion"]
+    assert [j.key for j in plan.jobs] == ["opinion_1", "opinion_2"]
+    both, r2_only = (j.config["request"] for j in plan.jobs)
+    assert both["comparisons"][0]["measure"] == "net_score"
+    assert both["scenarios"] == ["pm_satisfaction", "state_govt_satisfaction",
+                                 "central_govt_satisfaction"]
+    assert r2_only["scenarios"] == ["cm_satisfaction"]
+    assert r2_only["comparisons"] == []  # compare round R1 did not ask it
+    assert plan.not_asked == (("cm_satisfaction", (R1,)),)
 
 
 def test_by_zone_grouping_and_common_coverage():
@@ -136,3 +142,134 @@ def test_bind_contenders_excludes_nota_and_other():
     assert bound.config["benchmark"]["contenders"] == ["BSP", "JDL", "NDA", "SP+"]
     assert job.config["benchmark"]["contenders"] == []
     assert bound.key == job.key
+
+
+# -- per-round availability (a round that did not ask a question) ----------
+
+R4 = "2027 VS CAPI R4"
+OPINION = ["pm_satisfaction", "cm_satisfaction", "state_govt_satisfaction",
+           "central_govt_satisfaction"]
+
+
+def _availability_catalogue(**overrides):
+    """R1..R3 at AC level. Per round: (scenarios, fields) overrides."""
+    base_scenarios = ["vs_voting_intention", *OPINION, "state_govt_change"]
+    base_fields = ["age", "gender", "ac_num", "pc_num"]
+    rows, levels = [], []
+    for i, name in enumerate([R1, R2, R3], 1):
+        scenarios, fields = overrides.get(name, (base_scenarios, base_fields))
+        rows.append(dataset_row(name, round_number=i, available_scenarios=scenarios,
+                                available_fields=fields))
+        levels.append(level_row(name, range(1, 404)))
+    return load_catalogue(make_query(rows, levels))
+
+
+def _plan_with(tid, ctx, catalogue):
+    return plan_card(TEMPLATES[tid], ctx, catalogue, PRESET)
+
+
+def _ids(request):
+    return [o["id"] for o in request["observations"]]
+
+
+def test_opinion_question_missing_in_one_round_is_split_not_failed():
+    no_cm = [s for s in ["vs_voting_intention", *OPINION] if s != "cm_satisfaction"]
+    cat = _availability_catalogue(**{R1: (no_cm, ["gender"])})
+    plan = _plan_with("pulse.leaders", _ctx([R1, R2, R3], compare_round=R2), cat)
+    by_scenarios = {tuple(j.config["request"]["scenarios"]): j for j in plan.jobs}
+    assert set(by_scenarios) == {
+        ("pm_satisfaction", "state_govt_satisfaction", "central_govt_satisfaction"),
+        ("cm_satisfaction",)}
+    full = by_scenarios[("pm_satisfaction", "state_govt_satisfaction",
+                         "central_govt_satisfaction")]
+    cm = by_scenarios[("cm_satisfaction",)]
+    # Global obs ids are kept so cells line up across jobs.
+    assert _ids(full.config["request"]) == ["o1", "o2", "o3"]
+    assert _ids(cm.config["request"]) == ["o2", "o3"]
+    assert {j.part for j in plan.jobs} == {"opinion"}
+    assert len({j.key for j in plan.jobs}) == 2
+    assert plan.not_asked == (("cm_satisfaction", (R1,)),)
+    assert plan.unavailable == ()
+    # Anchor R3 vs compare R2 both asked cm_satisfaction: comparison kept.
+    assert [c["target"] for c in cm.config["request"]["comparisons"]] == [
+        ["o3", "cm_satisfaction"]]
+
+
+def test_comparison_only_when_anchor_and_compare_both_asked():
+    no_cm = ["vs_voting_intention", "pm_satisfaction"]
+    cat = _availability_catalogue(**{R1: (no_cm, ["gender"])})
+    plan = _plan_with("pulse.leaders", _ctx([R1, R2, R3], compare_round=R1), cat)
+    by_first = {j.config["request"]["scenarios"][0]: j for j in plan.jobs}
+    pm = by_first["pm_satisfaction"].config["request"]
+    assert [c["target"] for c in pm["comparisons"]] == [["o3", "pm_satisfaction"]]
+    cm = by_first["cm_satisfaction"].config["request"]
+    assert cm["comparisons"] == []  # R1 (compare) did not ask cm_satisfaction
+    assert _ids(cm) == ["o2", "o3"]
+
+
+def test_question_asked_by_no_selected_round_is_unavailable():
+    no_central = [s for s in ["vs_voting_intention", *OPINION]
+                  if s != "central_govt_satisfaction"]
+    cat = _availability_catalogue(**{R1: (no_central, ["gender"]),
+                                     R2: (no_central, ["gender"])})
+    plan = _plan_with("pulse.leaders", _ctx([R1, R2], compare_round=R1), cat)
+    assert all("central_govt_satisfaction" not in j.config["request"]["scenarios"]
+               for j in plan.jobs)
+    (part, reason), = plan.unavailable
+    assert part == "central_govt_satisfaction"
+    assert R1 in reason and R2 in reason
+    assert plan.not_asked == ()
+
+
+def test_scoreboard_round_without_vote_question_is_not_asked():
+    cat = _availability_catalogue(**{R1: (OPINION, ["gender"])})
+    plan = _plan_with("pulse.party_scoreboard", _ctx([R1, R2, R3], compare_round=R1), cat)
+    vote = plan.jobs[0].config["request"]
+    assert _ids(vote) == ["o2", "o3"]
+    assert vote["comparisons"] == []  # compare round R1 did not ask the question
+    assert _ids(plan.jobs[1].config["request"]) == ["o2", "o3"]
+    benches = [j for j in plan.jobs if j.kind == "benchmark"]
+    targets = {(j.part, j.config["benchmark"]["target"]["id"],
+                (j.config["benchmark"]["reference"] or {}).get("id")) for j in benches}
+    assert targets == {("seats_ac", "o2", None), ("seats_ac", "o3", None),
+                       ("seats_pc", "o2", None), ("seats_pc", "o3", None)}
+    for j in benches:
+        assert _ids(j.config["request"]) == [j.config["benchmark"]["target"]["id"]]
+    assert set(plan.not_asked) == {(p, (R1,)) for p in
+                                   ("vote", "gender_gap", "seats_ac", "seats_pc")}
+
+
+def test_gender_gap_only_when_every_included_round_has_gender():
+    cat = _availability_catalogue(**{R1: (["vs_voting_intention"], ["age"])})
+    plan = _plan_with("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1), cat)
+    assert plan.jobs[0].config["request"]["gender_differential"] is None
+    (part, reason), = plan.unavailable
+    assert part == "gender_gap" and R1 in reason and R2 not in reason
+    assert "gender" in reason
+
+
+def test_scoreboard_with_no_round_asking_the_vote_question():
+    cat = _availability_catalogue(**{R1: (OPINION, ["gender"]), R2: (OPINION, ["gender"])})
+    plan = _plan_with("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1), cat)
+    assert plan.jobs == ()
+    assert {p for p, _ in plan.unavailable} == {"vote", "gender_gap", "seats_ac", "seats_pc"}
+
+
+def test_by_zone_split_by_round_and_master_slice_field_available():
+    # party_zone is an engine master attribute (catalog.default_fields): the
+    # metadata session adds it to every observation, so it is never "missing".
+    cat = _availability_catalogue(**{R1: (OPINION, ["gender"])})
+    plan = _plan_with("pulse.by_zone", _ctx([R1, R2, R3], compare_round=R2), cat)
+    (zone,) = plan.jobs
+    assert _ids(zone.config["request"]) == ["o2", "o3"]
+    assert plan.not_asked == (("zone", (R1,)),)
+    assert plan.unavailable == ()
+
+
+def test_by_zone_respondent_slice_field_missing_marks_part_unavailable():
+    template = TEMPLATES["pulse.by_zone"].model_copy(update={"slices": ["age"]})
+    cat = _availability_catalogue(**{R2: (["vs_voting_intention"], ["gender"])})
+    plan = plan_card(template, _ctx([R1, R2], compare_round=R1), cat, PRESET)
+    assert plan.jobs == ()
+    (part, reason), = plan.unavailable
+    assert part == "zone" and "age" in reason and R2 in reason

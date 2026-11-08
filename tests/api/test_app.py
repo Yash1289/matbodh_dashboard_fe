@@ -214,3 +214,9 @@ def test_principal_header_copied_to_request_state(service):
     assert client.get("/_whoami", headers={"X-Dashboard-User": "asha"}).json() == {
         "principal": "asha"}
     assert client.get("/_whoami").json() == {"principal": None}
+
+
+def test_plan_reports_not_asked_rounds(client):
+    data = client.post("/cards/plan", json=body(card="pulse.leaders")).json()
+    assert data["not_asked"] == [{"part": "cm_satisfaction", "rounds": [R1]}]
+    assert data["unavailable"] == []

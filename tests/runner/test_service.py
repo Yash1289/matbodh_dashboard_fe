@@ -105,12 +105,11 @@ def vote_result(config: dict) -> dict:
         for o in obs for p, v in shares[o].items()
     ]
     comparisons = [
-        {"comparison_id": f"c-{p}", "party_id": p, "measure": "support_share",
-         "percentage_point_difference": d, "target": ["o2", VOTE_SCENARIO],
-         "reference": ["o1", VOTE_SCENARIO], "coverage_status": "aligned",
-         "dimensions": {}}
-        for p, d in VOTE_DELTAS.items()
-    ] if request["comparisons"] else []
+        {"comparison_id": f"{c['id']}-{p}", "party_id": p, "measure": "support_share",
+         "percentage_point_difference": d, "target": c["target"],
+         "reference": c["reference"], "coverage_status": "aligned", "dimensions": {}}
+        for c in request["comparisons"] for p, d in VOTE_DELTAS.items()
+    ]
     return {
         "rows": rows, "comparisons": comparisons, "scores": [], "populations": [],
         "gender_differentials": [],
@@ -148,21 +147,28 @@ def bench_result(config: dict) -> dict:
     }
 
 
+# Net scores the engine returns per scenario and round; scenarios absent here
+# (state/central government) return no scores at all.
+NET = {"pm_satisfaction": {"o1": 20.0, "o2": 25.0}, "cm_satisfaction": {"o2": 5.0}}
+# Engine net-score deltas deliberately differ from the gap of the displayed values.
+NET_DELTAS = {"pm_satisfaction": 4.0, "cm_satisfaction": -6.0}
+
+
 def opinion_result(config: dict) -> dict:
-    obs = [o["id"] for o in config["request"]["observations"]]
-    net = {"pm_satisfaction": {"o1": 20.0, "o2": 25.0},
-           "cm_satisfaction": {"o1": 10.0, "o2": 5.0}}
+    """Only the requested scenarios, observations and comparisons, as the engine does."""
+    request = config["request"]
+    obs = [o["id"] for o in request["observations"]]
     scores = [
         {"observation_id": o, "scenario_id": sc, "grouping_set_id": "g0",
-         "positive_share": 50.0, "negative_share": 50.0 - v[o], "net_score": v[o],
+         "positive_share": 50.0, "negative_share": 50.0 - NET[sc][o], "net_score": NET[sc][o],
          "weighted_denominator": 900.0, "coverage_status": "available", "dimensions": {}}
-        for sc, v in net.items() for o in obs
+        for sc in request["scenarios"] if sc in NET for o in obs
     ]
     comparisons = [
-        {"comparison_id": f"n-{sc}", "measure": "net_score",
-         "percentage_point_difference": d, "target": ["o2", sc],
-         "reference": ["o1", sc], "dimensions": {}}
-        for sc, d in (("pm_satisfaction", 4.0), ("cm_satisfaction", -6.0))
+        {"comparison_id": c["id"], "measure": "net_score",
+         "percentage_point_difference": NET_DELTAS[c["target"][1]], "target": c["target"],
+         "reference": c["reference"], "dimensions": {}}
+        for c in request["comparisons"] if c["target"][1] in NET_DELTAS
     ]
     return {"rows": [], "comparisons": comparisons, "scores": scores, "populations": [],
             "gender_differentials": [], "context_status": {}, "contract": {}}
@@ -462,6 +468,11 @@ def test_opinion_card_cells(rules, cache):
     assert cells["pm_satisfaction"]["cell"]["value"] == 25.0
     assert cells["pm_satisfaction"]["cell"]["delta"] == 4.0  # engine, not 25 - 20
     assert cells["pm_satisfaction"]["label"] == "pm_satisfaction"
+    # R1 did not ask cm_satisfaction: its own job over R2 only, no comparison.
+    cm = cells["cm_satisfaction"]["cell"]
+    assert cm["value"] == 5.0 and cm["trend"] == [None, 5.0]
+    assert cm["delta"] is None and {"not_asked", "no_delta"} <= set(cm["flags"])
+    assert status.result["not_asked"] == [{"part": "cm_satisfaction", "rounds": [R1]}]
     assert status.result["not_returned"] == ["state_govt_satisfaction",
                                              "central_govt_satisfaction"]
 
@@ -650,3 +661,40 @@ def test_log_line_reports_normalisation_error(rules, cache, caplog):
     assert line["rows"] is None
     assert line["rows_error"] == "ValueError: Engine row has neither party_id nor option_id"
     assert status.state == "failed" and status.errors["assembly"]["kind"] == "config"
+
+
+def test_card_with_every_part_unavailable_settles_without_jobs(rules, cache):
+    from tests.fixtures.catalogue_rows import OPINION_SCENARIOS, dataset_row, level_row
+
+    rows = [dataset_row(name, round_number=i, available_scenarios=OPINION_SCENARIOS)
+            for i, name in enumerate([R1, R2], 1)]
+    levels = [level_row(name, range(1, 404)) for name in (R1, R2)]
+    service, runner = make_service(rules, cache)
+    service.catalogue = load_catalogue(make_query(rows, levels))
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert runner.calls == []
+    assert (status.state, status.done, status.total) == ("done", 0, 0)
+    assert {u["part"] for u in status.result["unavailable"]} == {
+        "vote", "gender_gap", "seats_ac", "seats_pc"}
+
+
+def test_round_without_vote_question_is_not_asked_not_a_failed_card(rules, cache):
+    from tests.fixtures.catalogue_rows import (
+        DATASET_ROWS, OPINION_SCENARIOS, LEVEL_ROWS, dataset_row,
+    )
+
+    rows = [dataset_row(R1, round_number=1, available_scenarios=OPINION_SCENARIOS),
+            *DATASET_ROWS[1:]]
+    service, runner = make_service(rules, cache)
+    service.catalogue = load_catalogue(make_query(rows, LEVEL_ROWS))
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert status.state == "done", status.errors
+    for config in runner.calls:  # R1 (o1) is in no engine request
+        assert [o["id"] for o in config["request"]["observations"]] == ["o2"]
+    nda = board(status)["NDA"]
+    assert nda["vote"]["trend"] == [None, 38.0] and nda["vote"]["value"] == 38.0
+    assert {"not_asked", "no_delta"} <= set(nda["vote"]["flags"])
+    assert nda["vote"]["delta"] is None
+    assert nda["seats_ac"]["trend"] == [None, 154] and nda["seats_ac"]["delta"] is None
+    assert {n["part"] for n in status.result["not_asked"]} == {
+        "vote", "gender_gap", "seats_ac", "seats_pc"}

@@ -1,7 +1,7 @@
 import pytest
 
 from matbodh_dashboard.catalogue.store import load_catalogue, clickhouse_query
-from tests.fixtures.catalogue_rows import DATASET_ROWS, dataset_row, make_query
+from tests.fixtures.catalogue_rows import SCENARIOS, DATASET_ROWS, dataset_row, make_query
 
 
 @pytest.fixture
@@ -41,8 +41,11 @@ def test_borrowed_seats_loaded(catalogue):
     assert len(r2.extrapolated.borrowed_seat_ids) == 23
     assert len(r2.extrapolated.seat_ids) == 403
     assert r2.normal.borrowed_seat_ids == frozenset()
-    assert r2.normal.fields == frozenset({"age", "gender", "ac_num", "pc_num", "religion"})
-    assert r2.normal.scenarios == frozenset({"s1", "vs_voting_intention"})
+    assert r2.normal.fields == frozenset({"age", "gender", "ac_num", "pc_num", "party_zone",
+                                          "religion"})
+    assert r2.normal.scenarios == frozenset(SCENARIOS)
+    r1 = catalogue.find("Uttar Pradesh", "2027 VS CAPI R1")
+    assert "cm_satisfaction" not in r1.normal.scenarios
 
 
 def test_revision_is_max_update_revision(catalogue):

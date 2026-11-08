@@ -6,6 +6,13 @@ from collections.abc import Mapping
 from datetime import date
 
 
+OPINION_SCENARIOS = ["pm_satisfaction", "cm_satisfaction", "state_govt_satisfaction",
+                     "central_govt_satisfaction", "state_govt_change"]
+SCENARIOS = ["s1", "vs_voting_intention", *OPINION_SCENARIOS]
+# R1 did not ask cm_satisfaction: a round that did not ask a question.
+SCENARIOS_WITHOUT_CM = [s for s in SCENARIOS if s != "cm_satisfaction"]
+
+
 def dataset_row(
     dataset_id: str,
     variant: str = "normal",
@@ -25,9 +32,9 @@ def dataset_row(
         "round_number": round_number,
         "survey_start_date": date(2027, 1, 1),
         "survey_end_date": date(2027, 1, 31),
-        "available_fields": ["age", "gender", "ac_num", "pc_num"],
+        "available_fields": ["age", "gender", "ac_num", "pc_num", "party_zone"],
         "available_fields_miscellaneous": ["religion"],
-        "available_scenarios": ["s1", "vs_voting_intention"],
+        "available_scenarios": list(SCENARIOS),
         "update_revision": revision,
     }
     row.update(overrides)
@@ -43,7 +50,8 @@ def level_row(dataset_id: str, seats: range, borrowed: range | None = None) -> d
 
 
 DATASET_ROWS = [
-    dataset_row("2027 VS CAPI R1", round_number=1, revision=3),
+    dataset_row("2027 VS CAPI R1", round_number=1, revision=3,
+                available_scenarios=SCENARIOS_WITHOUT_CM),
     dataset_row("2027 VS CAPI R2", round_number=2, revision=5),
     dataset_row("2027 VS CAPI R2 (Extrapolated)", variant="extrapolated",
                 round_number=2, revision=9),

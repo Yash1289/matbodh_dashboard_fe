@@ -1,13 +1,22 @@
-"""Turn one dashboard card plus context into engine jobs."""
+"""Turn one dashboard card plus context into engine jobs.
+
+Per-round availability (spec §12 step 2): the engine rejects a whole request
+when any observation lacks a requested scenario or a required field
+(validation.py). Each job is therefore compiled only over the rounds that
+asked its question; the other rounds are reported in ``RunPlan.not_asked`` and
+become None + ``not_asked`` cells. Observation ids stay global (o1..oN over
+all selected rounds) so cells from different jobs line up.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from typing import Literal
 
 from matbodh_dashboard.capability import capabilities, resolve_anchor
-from matbodh_dashboard.catalogue.store import Catalogue
+from matbodh_dashboard.catalogue.store import Catalogue, DatasetVersion
 from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
 from matbodh_dashboard.compiler.rounds import ResolvedRound, resolve_rounds
@@ -22,6 +31,8 @@ SEATS_UNAVAILABLE = "Seat views need an AC or PC level survey"
 # summaries cover only listed contenders. Contenders, and the vote share of a
 # seat winner outside the keep list, therefore come from this job.
 PARTIES_JOB = "parties"
+GENDER_PART = "gender_gap"
+SEAT_LEVELS = ("ac", "pc")
 
 
 @dataclass(frozen=True)
@@ -42,6 +53,24 @@ class RunPlan:
     compare: str | None
     jobs: tuple[EngineJob, ...]
     unavailable: tuple[tuple[str, str], ...]
+    # (part, base names of selected rounds that did not ask its question)
+    not_asked: tuple[tuple[str, tuple[str, ...]], ...] = ()
+
+
+@lru_cache(maxsize=1)
+def _engine_master_fields() -> frozenset[str]:
+    """Seat attributes the engine resolves from masters, not from responses.
+
+    The engine's MetadataSession adds these to every observation's available
+    fields (metadata_runtime.py), so metadata never lists them per dataset.
+    """
+    from matbodh_dash.catalog import default_fields
+
+    return frozenset(k for k, f in default_fields().items() if f.source == "master")
+
+
+def field_available(dataset: DatasetVersion, field: str) -> bool:
+    return field in dataset.fields or field in _engine_master_fields()
 
 
 def _by_base_name(rounds: Sequence[ResolvedRound], base_name: str) -> ResolvedRound:
@@ -49,6 +78,18 @@ def _by_base_name(rounds: Sequence[ResolvedRound], base_name: str) -> ResolvedRo
         if r.identity.base_name == base_name:
             return r
     raise ValueError(f"round {base_name!r} is not among the resolved rounds")
+
+
+def _names(rounds: Sequence[ResolvedRound]) -> tuple[str, ...]:
+    return tuple(r.identity.base_name for r in rounds)
+
+
+def _asked(rounds: Sequence[ResolvedRound], scenario: str) -> list[ResolvedRound]:
+    return [r for r in rounds if scenario in r.dataset.scenarios]
+
+
+def _not_asked_reason(scenario: str, rounds: Sequence[ResolvedRound]) -> str:
+    return f"No selected round asked {scenario!r} (checked: {', '.join(_names(rounds))})"
 
 
 def _endpoint(round_: ResolvedRound) -> dict:
@@ -99,6 +140,130 @@ def _benchmark_job(
     )
 
 
+class _Planner:
+    """Collects jobs, unavailable parts and not-asked rounds for one card."""
+
+    def __init__(self, template: CardTemplate, ctx: StateContext,
+                 rounds: list[ResolvedRound], anchor: ResolvedRound,
+                 compare: ResolvedRound | None, preset: MethodPreset) -> None:
+        self.template, self.ctx, self.rounds = template, ctx, rounds
+        self.anchor, self.compare, self.preset = anchor, compare, preset
+        self.jobs: list[EngineJob] = []
+        self.unavailable: list[tuple[str, str]] = []
+        self.not_asked: list[tuple[str, tuple[str, ...]]] = []
+
+    def _comparisons(self, asked: Sequence[ResolvedRound], scenarios: Sequence[str],
+                     measure: str) -> list[dict]:
+        """A comparison only when both anchor and compare asked the question."""
+        if self.compare is None or self.anchor not in asked or self.compare not in asked:
+            return []
+        return [comparison(self.anchor, self.compare, s, measure) for s in scenarios]
+
+    def _note_not_asked(self, part: str, asked: Sequence[ResolvedRound]) -> None:
+        missing = [r for r in self.rounds if r not in asked]
+        if missing:
+            self.not_asked.append((part, _names(missing)))
+
+    def _missing_field(self, asked: Sequence[ResolvedRound], field: str) -> list[ResolvedRound]:
+        return [r for r in asked if not field_available(r.dataset, field)]
+
+    # -- operations --------------------------------------------------------
+
+    def scoreboard(self) -> None:
+        ctx, preset = self.ctx, self.preset
+        allowed = capabilities(ctx.level).seat_levels
+        seat_parts = [f"seats_{level}" for level in SEAT_LEVELS if level in allowed]
+        if not allowed:  # zone/state surveys have no seat views at all
+            self.unavailable += [(f"seats_{level}", SEATS_UNAVAILABLE) for level in SEAT_LEVELS]
+        asked = _asked(self.rounds, VOTE_SCENARIO)
+        if not asked:
+            reason = _not_asked_reason(VOTE_SCENARIO, self.rounds)
+            self.unavailable += [(p, reason) for p in ("vote", GENDER_PART, *seat_parts)]
+            return
+
+        no_gender = self._missing_field(asked, preset.gender.field)
+        gender = not no_gender
+        if no_gender:
+            self.unavailable.append((GENDER_PART, (
+                f"Gender gap needs the {preset.gender.field!r} field in every included "
+                f"round; missing in: {', '.join(_names(no_gender))}")))
+        for part in ("vote", *([GENDER_PART] if gender else []), *seat_parts):
+            self._note_not_asked(part, asked)
+
+        coverage = choose_coverage(asked, uses_seat_ids=False, geographic=False,
+                                   version_mode=ctx.version_mode)
+        request = build_request(
+            state=ctx.state, rounds=asked, scenarios=[VOTE_SCENARIO], grouping_sets=[[]],
+            preset=preset, comparisons=self._comparisons(asked, [VOTE_SCENARIO],
+                                                         "support_share"),
+            gender=gender, coverage_mode=coverage,
+        )
+        self.jobs.append(EngineJob("vote", "analysis", "vote", view_config(request, preset)))
+        if not allowed:
+            return
+        ungrouped = build_request(
+            state=ctx.state, rounds=asked, scenarios=[VOTE_SCENARIO], grouping_sets=[[]],
+            preset=preset, coverage_mode=coverage, other_grouping=False,
+        )
+        self.jobs.append(EngineJob(PARTIES_JOB, "analysis", PARTIES_JOB,
+                                   view_config(ungrouped, preset)))
+        paired = self.compare is not None and self.anchor in asked and self.compare in asked
+        for level in SEAT_LEVELS:
+            if level not in allowed:
+                continue
+            part = f"seats_{level}"
+            singles = list(asked)
+            if paired:
+                self.jobs.append(_benchmark_job(part, level, self.anchor, self.compare,
+                                                ctx, preset))
+                singles = [r for r in asked if r is not self.anchor and r is not self.compare]
+            elif self.anchor in asked:  # anchor first, as with a paired benchmark
+                singles = [self.anchor] + [r for r in asked if r is not self.anchor]
+            for other in singles:
+                self.jobs.append(_benchmark_job(part, level, other, None, ctx, preset))
+
+    def by_question(self, part: str, measure: str, *, per_question_part: bool,
+                    geographic: bool, grouping_sets: list[list[str]]) -> None:
+        """One job per distinct set of rounds that asked the template's questions."""
+        groups: dict[tuple[str, ...], tuple[list[ResolvedRound], list[str]]] = {}
+        for question in self.template.questions:
+            label = question if per_question_part else part
+            asked = _asked(self.rounds, question)
+            if not asked:
+                self.unavailable.append((label, _not_asked_reason(question, self.rounds)))
+                continue
+            self._note_not_asked(label, asked)
+            key = tuple(r.obs_id for r in asked)
+            groups.setdefault(key, (asked, []))[1].append(question)
+
+        for index, (asked, questions) in enumerate(groups.values(), start=1):
+            key = part if len(groups) == 1 else f"{part}_{index}"
+            coverage = choose_coverage(asked, uses_seat_ids=False, geographic=geographic,
+                                       version_mode=self.ctx.version_mode)
+            request = build_request(
+                state=self.ctx.state, rounds=asked, scenarios=questions,
+                grouping_sets=grouping_sets, preset=self.preset,
+                comparisons=self._comparisons(asked, questions, measure),
+                coverage_mode=coverage,
+            )
+            self.jobs.append(EngineJob(key, "analysis", part,
+                                       view_config(request, self.preset)))
+
+    def distribution(self) -> None:
+        part = "zone"
+        for slice_ in self.template.slices:
+            missing = [r for r in self.rounds
+                       if any(q in r.dataset.scenarios for q in self.template.questions)
+                       and not field_available(r.dataset, slice_)]
+            if missing:
+                self.unavailable.append((part, (
+                    f"Slice {slice_!r} needs that field in every included round; "
+                    f"missing in: {', '.join(_names(missing))}")))
+                return
+        self.by_question(part, "support_share", per_question_part=False, geographic=True,
+                         grouping_sets=[[], *[[s] for s in self.template.slices]])
+
+
 def plan_card(
     template: CardTemplate,
     ctx: StateContext,
@@ -109,63 +274,15 @@ def plan_card(
     anchor_name = resolve_anchor(ctx, catalogue)
     anchor = _by_base_name(rounds, anchor_name)
     compare = _by_base_name(rounds, ctx.compare_round) if ctx.compare_round else None
-    scenarios = list(template.questions)
-    measure = "net_score" if template.operation == "opinion" else "support_share"
-    comparisons = (
-        [comparison(anchor, compare, s, measure) for s in scenarios] if compare else []
-    )
-    jobs: list[EngineJob] = []
-    unavailable: list[tuple[str, str]] = []
+    planner = _Planner(template, ctx, rounds, anchor, compare, preset)
 
     if template.operation == "scoreboard":
-        coverage = choose_coverage(
-            rounds, uses_seat_ids=False, geographic=False, version_mode=ctx.version_mode
-        )
-        request = build_request(
-            state=ctx.state, rounds=rounds, scenarios=scenarios,
-            grouping_sets=[[]], preset=preset, comparisons=comparisons,
-            gender=True, coverage_mode=coverage,
-        )
-        jobs.append(EngineJob("vote", "analysis", "vote", view_config(request, preset)))
-        allowed = capabilities(ctx.level).seat_levels
-        if allowed:
-            ungrouped = build_request(
-                state=ctx.state, rounds=rounds, scenarios=scenarios,
-                grouping_sets=[[]], preset=preset, coverage_mode=coverage,
-                other_grouping=False,
-            )
-            jobs.append(EngineJob(PARTIES_JOB, "analysis", PARTIES_JOB,
-                                  view_config(ungrouped, preset)))
-        others = [r for r in rounds if r is not anchor and r is not compare]
-        for level in ("ac", "pc"):
-            part = f"seats_{level}"
-            if level not in allowed:
-                if not allowed:  # zone/state surveys have no seat views at all
-                    unavailable.append((part, SEATS_UNAVAILABLE))
-                continue
-            jobs.append(_benchmark_job(part, level, anchor, compare, ctx, preset))
-            for other in others:
-                jobs.append(_benchmark_job(part, level, other, None, ctx, preset))
+        planner.scoreboard()
     elif template.operation == "opinion":
-        coverage = choose_coverage(
-            rounds, uses_seat_ids=False, geographic=False, version_mode=ctx.version_mode
-        )
-        request = build_request(
-            state=ctx.state, rounds=rounds, scenarios=scenarios,
-            grouping_sets=[[]], preset=preset, comparisons=comparisons,
-            coverage_mode=coverage,
-        )
-        jobs.append(EngineJob("opinion", "analysis", "opinion", view_config(request, preset)))
+        planner.by_question("opinion", "net_score", per_question_part=True,
+                            geographic=False, grouping_sets=[[]])
     else:  # distribution (by zone)
-        coverage = choose_coverage(
-            rounds, uses_seat_ids=False, geographic=True, version_mode=ctx.version_mode
-        )
-        request = build_request(
-            state=ctx.state, rounds=rounds, scenarios=scenarios,
-            grouping_sets=[[], ["party_zone"]], preset=preset,
-            comparisons=comparisons, coverage_mode=coverage,
-        )
-        jobs.append(EngineJob("zone", "analysis", "zone", view_config(request, preset)))
+        planner.distribution()
 
     return RunPlan(
         card_id=template.id,
@@ -173,8 +290,9 @@ def plan_card(
         rounds=tuple(rounds),
         anchor=anchor_name,
         compare=ctx.compare_round,
-        jobs=tuple(jobs),
-        unavailable=tuple(unavailable),
+        jobs=tuple(planner.jobs),
+        unavailable=tuple(planner.unavailable),
+        not_asked=tuple(planner.not_asked),
     )
 
 

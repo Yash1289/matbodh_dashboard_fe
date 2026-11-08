@@ -284,7 +284,7 @@ class CardRunService:
                 entry["jobs"].append(j.job.key)
         if len(finished) < len(jobs):
             return CardRunStatus("running", len(finished), len(jobs), None, errors)
-        if not any(j.status == "done" for j in jobs):
+        if jobs and not any(j.status == "done" for j in jobs):
             return CardRunStatus("failed", len(finished), len(jobs), None, errors)
         try:
             result = self._assemble(run)
@@ -311,6 +311,7 @@ class CardRunService:
             "state": plan.state,
             "rounds": _rounds(plan, anchor, compare),
             "unavailable": [{"part": p, "reason": r} for p, r in plan.unavailable],
+            "not_asked": [{"part": p, "rounds": list(names)} for p, names in plan.not_asked],
             "coverage": [
                 {"job": j.job.key, "part": j.job.part, "coverage": j.result["contract"]["coverage"]}
                 for j in done
@@ -349,7 +350,9 @@ class CardRunService:
                 {**self._series(_SCENARIO, sc, plan.state), "cell": _cell(cells[sc])}
                 for sc in order
             ]
-            result["not_returned"] = [q for q in template.questions if q not in cells]
+            unavailable = {p for p, _ in plan.unavailable}
+            result["not_returned"] = [q for q in template.questions
+                                      if q not in cells and q not in unavailable]
         else:
             result["grid"], result["hidden_count"] = self._grid(rows, template, plan.state,
                                                                 round_ids, anchor, compare)
