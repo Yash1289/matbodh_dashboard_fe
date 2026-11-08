@@ -1,0 +1,21 @@
+# Provisional values (spec 20.2 + Appendix A); the product owner configures final values.
+id: uttar-pradesh.standard-v1
+version: 1
+weights:
+  mode: mj_cap
+  invalid: exclude
+  zero: include
+answers_excluded: [""]
+strip_whitespace: true
+keep: ["NDA", "SP+", "BSP"]
+other_label: Other
+passthrough: true
+opinion_weights:
+  source: base
+caste_threshold_pct: 0.5
+gender:
+  field: gender
+  female: ["Female"]
+  male: ["Male"]
+competition_excluded: ["NOTA"]
+alliance_reporting_type: MatBodh
