@@ -103,5 +103,6 @@ def test_engine_rejects_scenario_missing_from_dataset():
     request = _request()
     request["scenarios"] = ["cm_preference"]
     request["comparisons"] = []
-    with pytest.raises(ValueError):
+    request["gender_differential"] = None
+    with pytest.raises(ValueError, match="Unverified scenario availability"):
         resolve_with_engine(request, _rounds())
