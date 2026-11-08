@@ -36,7 +36,7 @@ templates:
     questions: [vs_voting_intention]
     measures: [support_share]
     slices: [party_zone]
-    cell: [value]
+    cell: [value, delta, trend]
     density: detailed
     requires:
       min_level: ac

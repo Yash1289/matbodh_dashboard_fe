@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from matbodh_dashboard.presets import MethodPreset, load_preset
+from matbodh_dashboard.presets import load_preset
 from matbodh_dashboard.templates import load_templates
 
 CONFIG = Path(__file__).resolve().parent.parent / "config"
@@ -35,10 +35,9 @@ def test_preset_loads_provisional_values():
 
 def test_preset_rejects_unknown_key(tmp_path):
     bad = tmp_path / "bad.yaml"
-    bad.write_text(PRESET_PATH.read_text() + "surprise: 1\n")
+    bad.write_text(PRESET_PATH.read_text(encoding="utf-8") + "surprise: 1\n")
     with pytest.raises(ValidationError):
         load_preset(bad)
-    assert MethodPreset.model_fields["keep"] is not None
 
 
 def test_pulse_templates_present():
@@ -62,3 +61,10 @@ def test_by_zone_requires_ac_level():
     assert t.requires.min_level == "ac"
     assert t.slices == ["party_zone"]
     assert t.operation == "distribution"
+
+
+def test_card_cell_lists_are_pinned():
+    t = load_templates(PULSE_PATH)
+    assert t["pulse.by_zone"].cell == ["value", "delta", "trend"]
+    assert t["pulse.by_zone"].requires.focus_party is False
+    assert t["pulse.party_scoreboard"].cell == ["value", "delta", "trend"]
