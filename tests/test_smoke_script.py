@@ -19,9 +19,9 @@ def test_script_runs_scoreboard_end_to_end_with_fakes():
     settings = Settings(Path("unused.env"), "redis://unused", 3600, ROOT / "config")
     service = smoke.build_service(settings, catalogue(), FakeRunner())
     ctx = StateContext(state=STATE, level="ac", rounds=[R1, R2], compare_round=R1)
-    status, seconds = smoke.run_card(service, ctx)
+    run_id, status, seconds = smoke.run_card(service, ctx)
     assert status.state == "done" and status.errors == {}
-    lines = smoke.report(service, status, seconds)
+    lines = smoke.report(service, run_id, status, seconds)
     assert lines[0].startswith("state=done jobs=3/3")
     assert sum(line.startswith("  job part=") for line in lines) == 3
     nda = next(line for line in lines if line.lstrip().startswith("NDA"))

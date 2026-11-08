@@ -3,7 +3,8 @@
 Not collected by pytest (it lives outside tests/). Run it only with the product
 owner's go-ahead; it opens read-only MySQL and ClickHouse connections taken from
 ENGINE_ENV_FILE. Output is aggregates only: timings, scoreboard rows, errors.
-Results are cached in an in-process fakeredis, so no Redis server is needed.
+The preset and templates are the Uttar Pradesh standard-v1 files in config/ and
+the level is AC. Results are cached in an in-process fakeredis, so no Redis server is needed.
 
     python scripts/smoke_state_pulse.py --state "Uttar Pradesh" \
         --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
@@ -15,22 +16,17 @@ import argparse
 import sys
 import time
 from collections.abc import Sequence
-from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:  # run from a checkout without relying on the editable install
-    sys.path.insert(0, str(_REPO_ROOT))
-
-from matbodh_dashboard import engine_version  # noqa: E402
-from matbodh_dashboard.catalogue.store import Catalogue  # noqa: E402
-from matbodh_dashboard.context import StateContext  # noqa: E402
-from matbodh_dashboard.presets import load_preset  # noqa: E402
-from matbodh_dashboard.registry import load_rules  # noqa: E402
-from matbodh_dashboard.runner.cache import ResultCache  # noqa: E402
-from matbodh_dashboard.runner.queue import InlineQueue, Runner  # noqa: E402
-from matbodh_dashboard.runner.service import CardRunService, CardRunStatus  # noqa: E402
-from matbodh_dashboard.settings import Settings, load_settings  # noqa: E402
-from matbodh_dashboard.templates import load_templates  # noqa: E402
+from matbodh_dashboard import engine_version
+from matbodh_dashboard.catalogue.store import Catalogue
+from matbodh_dashboard.context import StateContext
+from matbodh_dashboard.presets import load_preset
+from matbodh_dashboard.registry import load_rules
+from matbodh_dashboard.runner.cache import ResultCache
+from matbodh_dashboard.runner.queue import InlineQueue, Runner
+from matbodh_dashboard.runner.service import CardRunService, CardRunStatus
+from matbodh_dashboard.settings import Settings, load_settings
+from matbodh_dashboard.templates import load_templates
 
 CARD_ID = "pulse.party_scoreboard"
 PRESET_FILE = "uttar-pradesh.standard-v1.yaml"
@@ -66,8 +62,8 @@ def build_service(settings: Settings, catalogue: Catalogue, runner: Runner) -> C
     )
 
 
-def run_card(service: CardRunService, ctx: StateContext) -> tuple[CardRunStatus, float]:
-    """Start the card and poll until it settles; returns the status and wall seconds."""
+def run_card(service: CardRunService, ctx: StateContext) -> tuple[str, CardRunStatus, float]:
+    """Start the card and poll until it settles; returns run id, status and wall seconds."""
     began = time.perf_counter()
     run_id = service.start(CARD_ID, ctx)
     status = service.status(run_id)
@@ -75,17 +71,18 @@ def run_card(service: CardRunService, ctx: StateContext) -> tuple[CardRunStatus,
         if status.state != "running":
             break
         status = service.status(run_id)
-    return status, time.perf_counter() - began
+    return run_id, status, time.perf_counter() - began
 
 
-def report(service: CardRunService, status: CardRunStatus, seconds: float) -> list[str]:
+def report(service: CardRunService, run_id: str, status: CardRunStatus,
+           seconds: float) -> list[str]:
     """Aggregate-only report lines: state, per-job timings, scoreboard, errors."""
     lines = [f"state={status.state} jobs={status.done}/{status.total} wall={seconds:.2f}s"]
-    for fp, part in _job_parts(service, status):
-        timing = service.cache.timing(fp)
-        engine = _span(timing, "started_at", "finished_at")
-        wait = _span(timing, "submitted_at", "started_at")
-        lines.append(f"  job part={part} engine_s={engine} queue_wait_s={wait}")
+    if status.state == "running":
+        lines.append(f"STOPPED: run still running after {POLL_LIMIT} polls; result is incomplete")
+    for job in service.job_timings(run_id):
+        lines.append(f"  job part={job['part']} state={job['state']} "
+                     f"engine_s={_secs(job['engine_s'])} queue_wait_s={_secs(job['queue_wait_s'])}")
     if status.result is not None:
         lines.append("scoreboard (series: vote | seats_ac | seats_pc | gender_gap):")
         for row in status.result["scoreboard"]:
@@ -98,17 +95,8 @@ def report(service: CardRunService, status: CardRunStatus, seconds: float) -> li
     return lines
 
 
-def _job_parts(service: CardRunService, status: CardRunStatus) -> list[tuple[str, str]]:
-    runs = list(service._runs.values())  # noqa: SLF001 - smoke script reads its own run
-    if not runs:
-        return []
-    return [(j.fp, j.job.part) for j in runs[-1].jobs.values() if j.fp is not None]
-
-
-def _span(timing: dict[str, float], start: str, end: str) -> str:
-    if start in timing and end in timing:
-        return f"{timing[end] - timing[start]:.2f}"
-    return "n/a"
+def _secs(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.2f}"
 
 
 def _fmt(cell: dict | None) -> str:

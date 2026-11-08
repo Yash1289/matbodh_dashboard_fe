@@ -63,6 +63,8 @@ Prerequisites:
 - It is read-only: the catalogue query and every engine job use read-only
   connections, and nothing is written to any database. Output is aggregates
   only. It lives outside `tests/`, so pytest never collects it.
+- It uses the Uttar Pradesh standard-v1 preset and the pulse templates from
+  `config/`, at AC level.
 - The first `--rounds` entry is the compare round, the last is the anchor.
 - Timings are for information, not acceptance thresholds.
 - Expected (Appendix A of the spec): rows BSP, NDA, Other, SP+ (plus JDL in the

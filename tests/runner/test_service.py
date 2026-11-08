@@ -244,6 +244,20 @@ def test_cache_hit_skips_runner(rules, cache):
     assert again.result["scoreboard"] == first.result["scoreboard"]
 
 
+def test_job_timings_exposes_parts_and_timings(rules, cache):
+    service, _ = make_service(rules, cache)
+    run_id = service.start(SCOREBOARD, ctx())
+    service.status(run_id)
+    timings = service.job_timings(run_id)
+    assert [t["part"] for t in timings] == ["vote", "seats_ac", "seats_pc"]
+    for t in timings:
+        assert t["fingerprint"] and t["state"] == "done" and t["cache_hit"] is False
+        assert t["engine_s"] is not None and t["engine_s"] >= 0
+        assert t["queue_wait_s"] is not None
+    with pytest.raises(KeyError):
+        service.job_timings("nope")
+
+
 def test_identical_jobs_deduplicated(rules, cache):
     twin = TEMPLATES[SCOREBOARD].model_copy(update={"id": "pulse.party_scoreboard_twin"})
     templates = {**TEMPLATES, twin.id: twin}

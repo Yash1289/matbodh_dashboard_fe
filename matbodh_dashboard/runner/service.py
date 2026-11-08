@@ -123,6 +123,23 @@ class CardRunService:
             self._advance(run)
             return self._status(run)
 
+    def job_timings(self, run_id: str) -> list[dict]:
+        """Per-job part, key, fingerprint, state and timings (seconds, None if unknown)."""
+        with self._lock:
+            run = self._runs.get(run_id)
+            if run is None:
+                raise KeyError(f"unknown run {run_id!r}")
+            out = []
+            for job in run.jobs.values():
+                timing = {} if job.cache_hit or job.fp is None else self.cache.timing(job.fp)
+                out.append({
+                    "part": job.job.part, "key": job.job.key, "fingerprint": job.fp,
+                    "state": job.status, "cache_hit": job.cache_hit,
+                    "queue_wait_s": _span(timing, "submitted_at", "started_at"),
+                    "engine_s": _span(timing, "started_at", "finished_at"),
+                })
+            return out
+
     def refresh_metadata(self, catalogue: Catalogue) -> int:
         """Replace the catalogue; bumping the epoch invalidates every cached result."""
         with self._lock:
