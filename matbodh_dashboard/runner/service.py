@@ -441,8 +441,8 @@ def _failed_rounds(jobs) -> dict[str, set[str]]:
         part = j.job.part
         if part == "opinion":
             keys = list(request["scenarios"])
-        elif part == "vote":
-            keys = ["vote", "gender_gap"]
+        elif part == "vote":  # gender gap only when that job computed it
+            keys = ["vote"] + (["gender_gap"] if request.get("gender_differential") else [])
         else:
             keys = [part]
         for key in keys:

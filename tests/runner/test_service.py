@@ -895,3 +895,25 @@ def test_assembly_key_and_type_errors_are_classified_not_raised(rules, cache, mo
     assert status.state == "failed" and status.result is None
     assert status.errors["assembly"]["kind"] == "config"
     assert type(exc).__name__ in status.errors["assembly"]["message"]
+
+
+def test_failed_vote_job_marks_vote_and_gender_cells_failed(rules, cache):
+    from tests.fixtures.catalogue_rows import DATASET_ROWS, LEVEL_ROWS
+
+    runner = FakeRunner({"vote": [ValueError("Unknown/invalid dimension: gender")]})
+    service, _ = make_service(rules, cache, runner=runner)
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    nda = board(status)["NDA"]
+    assert nda["vote"]["value"] is None and "failed" in nda["vote"]["flags"]
+    assert "failed" in nda["gender_gap"]["flags"]
+    assert nda["seats_ac"]["value"] == 154  # benchmarks depend on parties, not vote
+
+    # Without the gender field the gender gap was never requested: no cell.
+    rows = [{**r, "available_fields": ["age", "ac_num", "pc_num"]} for r in DATASET_ROWS]
+    runner = FakeRunner({"vote": [ValueError("bad")]})
+    service, _ = make_service(rules, ResultCache(fakeredis.FakeStrictRedis(), 60),
+                              runner=runner)
+    service.catalogue = load_catalogue(make_query(rows, LEVEL_ROWS))
+    status = service.status(service.start(SCOREBOARD, ctx()))
+    assert board(status)["NDA"]["gender_gap"] is None
+    assert "gender_gap" in {u["part"] for u in status.result["unavailable"]}
