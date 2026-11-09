@@ -28,7 +28,7 @@ export function Shell() {
         active={active} aria-current={active ? "page" : undefined}
         styles={{
           root: {
-            height: 36, borderRadius: tokens.radius.nav,
+            height: 36, padding: "9px 12px", borderRadius: tokens.radius.nav,
             color: active ? "var(--mb-primary)" : "var(--mb-text)",
             background: active ? "var(--mb-primary-soft)" : "transparent",
           },
@@ -47,14 +47,14 @@ export function Shell() {
     >
       <AppShell.Header
         px={24} py={12}
-        style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--mantine-color-white)", borderBottom: "1px solid var(--mb-border)" }}
+        style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--mb-surface)", borderBottom: "1px solid var(--mb-border)" }}
       >
-        <Text fz={17} fw={700}>MatBodh</Text>
+        <Text fz={tokens.font.brand} fw={700}>MatBodh</Text>
         <ContextBar />
       </AppShell.Header>
       <AppShell.Navbar
         px={16} py={20} component="nav" aria-label="Sections"
-        style={{ background: "var(--mantine-color-white)", borderRight: "1px solid var(--mb-border)" }}
+        style={{ background: "var(--mb-surface)", borderRight: "1px solid var(--mb-border)" }}
       >
         <Stack gap={4} style={{ flex: 1 }}>
           {caption("SECTIONS")}

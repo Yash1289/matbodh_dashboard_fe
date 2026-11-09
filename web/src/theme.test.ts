@@ -15,6 +15,12 @@ describe("delta tone", () => {
     expect(deltaTone(0.4, "seats")).toBe("neutral");
     expect(deltaTone(0.6, "seats")).toBe("gain");
   });
+
+  it("rounds at the display boundary", () => {
+    expect(deltaTone(1.996)).toBe("gain");
+    expect(deltaTone(2)).toBe("gain");
+    expect(deltaTone(-1.996)).toBe("loss");
+  });
 });
 
 // Raw source of every module; colours must live in theme.ts (and the two chart/format exceptions).
@@ -23,6 +29,7 @@ const ALLOWED = ["/src/theme.ts", "/src/cells/Sparkline.tsx", "/src/table/format
 
 describe("colour tokens", () => {
   it("no hex colours outside theme.ts", () => {
+    expect(Object.keys(sources).length).toBeGreaterThan(10);
     const offenders = Object.entries(sources)
       .filter(([path]) => !/\.test\.tsx?$/.test(path) && !ALLOWED.includes(path))
       .filter(([, text]) => /#[0-9a-fA-F]{3,8}\b/.test(text))

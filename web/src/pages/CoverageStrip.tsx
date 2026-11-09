@@ -16,8 +16,8 @@ export function CoverageStrip({ rounds, versionMode, level, onToggleMatched }: P
   const matched = versionMode === "matched";
   return (
     <Group
-      justify="space-between" wrap="wrap" gap={12} px={14} py={10}
-      style={{ background: "var(--mb-header-bg)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.strip }}
+      justify="space-between" wrap="wrap" gap="6px 12px" px={14} py={10}
+      style={{ background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.strip }}
     >
       <Group gap={16}>
         <Text fw={700} fz={tokens.font.subtitle}>Coverage</Text>
@@ -35,7 +35,7 @@ export function CoverageStrip({ rounds, versionMode, level, onToggleMatched }: P
           style={{
             padding: "5px 10px", borderRadius: tokens.radius.chip,
             border: `1px solid ${matched ? "var(--mb-primary)" : "var(--mb-chip-border)"}`,
-            background: matched ? "var(--mb-primary-soft)" : "var(--mantine-color-white)",
+            background: matched ? "var(--mb-primary-soft)" : "var(--mb-surface)",
             color: matched ? "var(--mb-primary)" : "var(--mb-text)",
           }}
         >

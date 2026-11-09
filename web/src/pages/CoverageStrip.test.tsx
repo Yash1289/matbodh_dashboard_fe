@@ -22,6 +22,12 @@ describe("coverage strip", () => {
     expect(onToggle).toHaveBeenCalledOnce();
   });
 
+  it("uses the white surface, not the header grey", () => {
+    const { container } = render(<MantineProvider><CoverageStrip rounds={rounds} versionMode="extrapolated" level="ac" onToggleMatched={() => {}} /></MantineProvider>);
+    const strip = container.querySelector<HTMLElement>(".mantine-Group-root");
+    expect(strip?.style.background).toBe("var(--mb-surface)");
+  });
+
   it("shows the chip pressed in matched mode", () => {
     render(<MantineProvider><CoverageStrip rounds={rounds} versionMode="matched" level="pc" onToggleMatched={() => {}} /></MantineProvider>);
     expect(screen.getByRole("button", { name: "Matched seats only" })).toHaveAttribute("aria-pressed", "true");

@@ -80,18 +80,18 @@ export function ContextBar() {
 
   return (
     <>
-      <Group justify="space-between" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+      <Group justify="space-between" wrap="nowrap" gap={14} style={{ flex: 1, minWidth: 0 }}>
         <div
           data-testid="context-pill"
           style={{
             background: "var(--mb-header-bg)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.pill,
-            padding: "6px 12px", fontSize: tokens.font.pill, minWidth: 0,
+            padding: "8px 12px", fontSize: tokens.font.pill, minWidth: 0,
           }}
         >
           {ctx && ctxSurveys.data ? pillParts(contextSummary(ctx, ctxSurveys.data)) : ctx ? "Loading context…" : "No context chosen"}
         </div>
         {ctx && (
-          <Button size="sm" fz={tokens.font.button} fw={600} onClick={() => setOpen((o) => !o)}>
+          <Button px={14} py={8} h="auto" fz={tokens.font.button} fw={600} onClick={() => setOpen((o) => !o)}>
             {open ? "Close" : "Edit context"}
           </Button>
         )}
