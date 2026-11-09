@@ -1,8 +1,10 @@
-import { Button, Group, Menu, NativeSelect, SegmentedControl } from "@mantine/core";
+import { Button, Group, Menu, NativeSelect, Popover, SegmentedControl, Stack, UnstyledButton } from "@mantine/core";
+import type { CSSProperties, ReactNode } from "react";
 import type { Density } from "../api/types";
 import type { ShowPreset } from "../cells/parts";
 import type { FormatRule } from "../table/formatRules";
 import type { Header, SortSpec } from "../table/grid";
+import { tokens } from "../theme";
 
 type Within = Extract<FormatRule, { kind: "heat" }>["within"];
 export interface View {
@@ -19,6 +21,9 @@ export const ruleOf = (v: View): FormatRule => (v.format === "none" ? { kind: "n
 interface Props {
   view: View;
   onView: (patch: Partial<View>) => void;
+  /** The card's starting view; a chip is "selected" when its value differs from this. */
+  initial: View;
+  canSort: boolean;
   columns: Header[];
   onMethod: () => void;
   onExport: () => void;
@@ -35,8 +40,33 @@ const FORMATS = [{ value: "none", label: "None" }, { value: "heat", label: "Heat
 // Default "column": a scoreboard mixes pct and seats columns, which must not share one scale.
 const SCOPES = [{ value: "column", label: "Within column" }, { value: "row", label: "Within row" }, { value: "table", label: "Within all columns" }];
 
+const chipStyle = (selected: boolean): CSSProperties => ({
+  background: selected ? "var(--mb-primary-soft)" : "var(--mb-surface)",
+  border: `1px solid ${selected ? "var(--mb-primary)" : "var(--mb-chip-border)"}`,
+  borderRadius: tokens.radius.chip,
+  padding: "5px 10px",
+  fontSize: tokens.font.chip,
+  fontWeight: selected ? 600 : 500,
+  color: selected ? "var(--mb-primary)" : "var(--mb-text)",
+  whiteSpace: "nowrap",
+});
+
+/** A chip that opens its controls in a popover. */
+function PopoverChip({ label, selected, children }: { label: string; selected: boolean; children: ReactNode }) {
+  return (
+    <Popover position="bottom-start" shadow="md" withinPortal>
+      <Popover.Target>
+        <UnstyledButton style={chipStyle(selected)}>{label}</UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown>{children}</Popover.Dropdown>
+    </Popover>
+  );
+}
+
+const labelOf = (options: { value: string; label: string }[], value: string) => options.find((o) => o.value === value)?.label ?? value;
+
 /** Display-only controls: none of them triggers a request. */
-export function CardToolbar({ view, onView, columns, onMethod, onExport, canExport, onRefresh }: Props) {
+export function CardToolbar({ view, onView, initial, canSort, columns, onMethod, onExport, canExport, onRefresh }: Props) {
   const sortValue = view.sort?.part === "delta" ? `${view.sort.dir}:${view.sort.column}` : "";
   const sortOptions = [
     { value: "", label: "No Δ sort" },
@@ -51,22 +81,34 @@ export function CardToolbar({ view, onView, columns, onMethod, onExport, canExpo
   };
 
   return (
-    <Group gap="xs" wrap="wrap">
-      <SegmentedControl size="xs" aria-label="Show" data={PRESETS} value={view.preset}
-        onChange={(v) => onView({ preset: v as ShowPreset })} />
-      <SegmentedControl size="xs" aria-label="Density" data={DENSITIES} value={view.density}
-        onChange={(v) => onView({ density: v as Density })} />
-      <Button size="xs" variant={view.transposed ? "filled" : "default"} aria-pressed={view.transposed}
-        onClick={() => onView({ transposed: !view.transposed, sort: null })}>⇄ Transpose</Button>
-      <NativeSelect size="xs" aria-label="Format" data={FORMATS} value={view.format}
-        onChange={(e) => onView({ format: e.currentTarget.value as View["format"] })} />
-      <NativeSelect size="xs" aria-label="Format scope" data={SCOPES} value={view.within}
-        onChange={(e) => onView({ within: e.currentTarget.value as Within })} />
-      <NativeSelect size="xs" aria-label="Sort by Δ" data={sortOptions} value={sortValue}
-        onChange={(e) => setSort(e.currentTarget.value)} />
+    <Group gap={8} wrap="wrap" justify="flex-end">
+      <PopoverChip label={`Cell: ${labelOf(PRESETS, view.preset)} ▾`} selected={view.preset !== initial.preset}>
+        <SegmentedControl size="xs" aria-label="Show" data={PRESETS} value={view.preset}
+          onChange={(v) => onView({ preset: v as ShowPreset })} />
+      </PopoverChip>
+      <PopoverChip label={`Density: ${labelOf(DENSITIES, view.density)} ▾`} selected={view.density !== initial.density}>
+        <SegmentedControl size="xs" aria-label="Density" data={DENSITIES} value={view.density}
+          onChange={(v) => onView({ density: v as Density })} />
+      </PopoverChip>
+      <PopoverChip label="Format ▾" selected={view.format !== initial.format || view.within !== initial.within}>
+        <Stack gap="xs">
+          <SegmentedControl size="xs" aria-label="Format" data={FORMATS} value={view.format}
+            onChange={(v) => onView({ format: v as View["format"] })} />
+          <NativeSelect size="xs" aria-label="Format scope" data={SCOPES} value={view.within}
+            onChange={(e) => onView({ within: e.currentTarget.value as Within })} />
+        </Stack>
+      </PopoverChip>
+      <UnstyledButton style={chipStyle(view.transposed)} aria-pressed={view.transposed}
+        onClick={() => onView({ transposed: !view.transposed, sort: null })}>⇄ Transpose</UnstyledButton>
+      {canSort && (
+        <PopoverChip label="Sort ▾" selected={view.sort !== null}>
+          <NativeSelect size="xs" aria-label="Sort by Δ" data={sortOptions} value={sortValue}
+            onChange={(e) => setSort(e.currentTarget.value)} />
+        </PopoverChip>
+      )}
       <Menu position="bottom-end">
         <Menu.Target>
-          <Button size="xs" variant="default">⋯</Button>
+          <Button variant="default" style={{ border: "1px solid var(--mb-chip-border)", padding: "8px 14px", fontSize: tokens.font.button, fontWeight: 500, height: "auto" }}>⋯</Button>
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item onClick={onMethod}>How this was calculated</Menu.Item>

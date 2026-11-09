@@ -19,7 +19,7 @@ export const tokens = {
   },
   font: {
     family: 'Inter, "Segoe UI", system-ui, sans-serif',
-    pageTitle: 22, cardTitle: 17, subtitle: 12, tableHeader: 12.5, headerSub: 11, rowLabel: 13,
+    pageTitle: 24, cardTitle: 17, subtitle: 12, tableHeader: 12.5, headerSub: 11, rowLabel: 13,
     composite: 16, delta: 12, subLine: 11.5, chip: 12, button: 13, nav: 13, navSection: 11, pill: 13, brand: 17,
   },
   radius: { card: 10, pill: 8, strip: 8, chip: 14, button: 6, nav: 6 },

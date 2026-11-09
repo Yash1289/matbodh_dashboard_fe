@@ -43,6 +43,18 @@ describe("State Pulse", () => {
     expect(found.map((h) => h.textContent)).toEqual(titles);
   });
 
+  it("pulse follows Frame A order with no wireframe notation", async () => {
+    stubApi();
+    renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
+    await screen.findByText("Support by zone");
+    await screen.findAllByRole("button", { name: "⇄ Transpose" });
+    const text = document.body.textContent ?? "";
+    for (const gone of ["Sample values", "Question:", "Rows:", "Columns:", "+ Add state", "Focus party", "Shakti"]) {
+      expect(text).not.toContain(gone);
+    }
+        expect(screen.getByText(/^Lead card · /)).toBeInTheDocument();
+  });
+
   it("nav keeps context in links", async () => {
     stubApi();
     renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });

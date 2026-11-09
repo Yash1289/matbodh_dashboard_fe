@@ -8,6 +8,7 @@ import planByZoneJson from "../test/fixtures/plan_by_zone_state_level.json";
 import planScoreboardJson from "../test/fixtures/plan_scoreboard.json";
 import runningJson from "../test/fixtures/run_running.json";
 import doneJson from "../test/fixtures/run_scoreboard_done.json";
+import zoneDoneJson from "../test/fixtures/run_by_zone_done.json";
 import partialJson from "../test/fixtures/run_scoreboard_partial.json";
 import templatesJson from "../test/fixtures/templates_pulse.json";
 import { renderWithProviders } from "../test/render";
@@ -125,18 +126,68 @@ describe("Card", () => {
     expect(within(table).getAllByRole("columnheader")[0]).toHaveTextContent("series");
     await user.click(screen.getByRole("button", { name: "⇄ Transpose" }));
     expect(within(screen.getByRole("table")).getAllByRole("columnheader")[0]).toHaveTextContent("measure");
-    await user.click(screen.getByRole("radio", { name: "Δ only" }));
+    await user.click(screen.getByRole("button", { name: /^Cell:/ }));
+    await user.click(await screen.findByRole("radio", { name: "Δ only" }));
     expect(screen.getByRole("radio", { name: "Δ only" })).toBeChecked();
+    expect(screen.getByRole("button", { name: "Cell: Δ only ▾" })).toBeInTheDocument();
     expect(f.mock.calls.length).toBe(calls);
   });
 
-  it("format scope defaults to column", async () => {
+  it("toolbar has the Frame A chips and no wireframe controls", async () => {
     stubApi(PLAN, { r1: DONE });
     renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
     await screen.findByRole("table");
+    for (const name of ["Cell: Both + trend ▾", "Density: Standard ▾", "Format ▾", "⇄ Transpose", "Sort ▾", "⋯"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    for (const gone of ["Question", "Rows", "Columns", "+ Add state", "Focus party", "Sample values"]) {
+      expect(document.body.textContent).not.toContain(gone);
+    }
+  });
+
+  it("format chip shows scope and defaults to column", async () => {
+    const user = userEvent.setup();
+    stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "Format ▾" }));
+    expect(await screen.findByRole("radio", { name: "None" })).toBeChecked();
     const scope = screen.getByRole("combobox", { name: "Format scope" });
     expect(scope).toHaveValue("column");
     expect(within(scope).getByRole("option", { name: "Within all columns" })).toBeInTheDocument();
+  });
+
+  it("zone card starts with diverging format", async () => {
+    // The fixture has no deltas, and a legend needs at least one.
+    const zone = structuredClone(asRun(zoneDoneJson));
+    (zone.result as unknown as { grid: { rows: { series: { cell: { delta: number | null } }[] }[] } }).grid.rows[0].series[0].cell.delta = 1.2;
+    stubApi(PLAN, { r1: zone });
+    renderWithProviders(<Card template={BY_ZONE} ctx={ctxA} />);
+    await screen.findByRole("table");
+    expect(screen.getByText(/Diverging on Δ \(scaled within each column\)/)).toBeInTheDocument();
+  });
+
+  it("subtitle names anchor, compare and trend range", async () => {
+    stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} lead />);
+    expect(await screen.findByText("Lead card · anchor round 2027 VS CAPI R2 · Δ vs 2027 VS CAPI R1 · trend R1 → R2")).toBeInTheDocument();
+  });
+
+  it("subtitle omits compare and trend for a single round", async () => {
+    const single = structuredClone(DONE);
+    single.result!.rounds.items = [single.result!.rounds.items[1]];
+    single.result!.rounds.compare = null;
+    stubApi(PLAN, { r1: single });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxB} />);
+    expect(await screen.findByText("anchor round 2027 VS CAPI R2")).toBeInTheDocument();
+  });
+
+  it("footer has the method link that opens the drawer", async () => {
+    const user = userEvent.setup();
+    stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    await user.click(await screen.findByRole("button", { name: "How this was calculated →" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 
   it("hidden values are announced", async () => {
@@ -152,7 +203,7 @@ describe("Card", () => {
       await screen.findByText("Method: rules 8df18ed3b831e1e0 · engine 0.8.0 · metadata r9 · alliances e0"),
     ).toBeInTheDocument();
     expect(screen.getByText(/2027 VS CAPI R1: 380 seats · Normal \(no Extrapolated version\)/)).toBeInTheDocument();
-    expect(screen.getByTitle(/2027 VS CAPI R2 \(Extrapolated\)/)).toHaveTextContent("2 rounds");
+    expect(screen.getByTitle(/2027 VS CAPI R2 \(Extrapolated\)/)).toHaveTextContent("trend R1 → R2");
   });
 
   it("export csv downloads card file", async () => {
@@ -261,11 +312,11 @@ describe("Card", () => {
       }
       renderWithProviders(<Harness />);
       await screen.findByRole("table");
-      expect(screen.getByText("2 rounds")).toBeInTheDocument();
+      expect(screen.getByText(/trend R1 → R2/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "switch" }));
     }
     const expectBare = () => {
-      expect(screen.queryByText(/\d+ rounds$/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/trend R1 → R2/)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "⋯" })).not.toBeInTheDocument();
     };
 

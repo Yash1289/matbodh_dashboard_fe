@@ -19,13 +19,17 @@ export function StatePulse() {
     if (templates.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
     if (templates.data.length === 0) return <Text>No cards are available for this section.</Text>;
     const [lead, ...rest] = templates.data;
+    // Frame A: lead card, then the narrow cards two across, then the sliced (zone) cards full width.
+    const wide = rest.filter((t) => t.slices.length > 0);
+    const narrow = rest.filter((t) => t.slices.length === 0);
     return (
       <>
-        {lead && <Card template={lead} ctx={ctx} />}
+        {lead && <Card template={lead} ctx={ctx} lead />}
         {/* Custom breakpoint key: 2 columns from 1200 px, 1 below. */}
         <SimpleGrid cols={{ base: 1, "1200px": 2 }} spacing={tokens.layout.gap}>
-          {rest.map((t) => <Card key={t.id} template={t} ctx={ctx} />)}
+          {narrow.map((t) => <Card key={t.id} template={t} ctx={ctx} />)}
         </SimpleGrid>
+        {wide.map((t) => <Card key={t.id} template={t} ctx={ctx} />)}
       </>
     );
   })();
