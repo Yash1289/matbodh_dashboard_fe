@@ -20,3 +20,5 @@ class ResizeObserverStub {
   disconnect(): void {}
 }
 window.ResizeObserver = ResizeObserverStub;
+// jsdom lacks scrollIntoView; Mantine Combobox calls it on open.
+Element.prototype.scrollIntoView = () => {};

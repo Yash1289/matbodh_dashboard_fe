@@ -30,15 +30,19 @@ const ctxA: StateContext = {
 };
 const ctxB: StateContext = { ...ctxA, rounds: ["o2"], compare_round: null };
 
-/** Plan answers `plan`; each POST /cards/run gets the next id; GET /runs/{id} answers `runs[id]`. */
-function stubApi(plan: PlanResponse, runs: Record<string, RunStatus>) {
+type PlanReply = PlanResponse | Promise<PlanResponse>;
+
+/** Plans answer `plan` (a list answers in order, last repeats); each POST /cards/run gets the next id; GET /runs/{id} answers `runs[id]`. */
+function stubApi(plan: PlanReply | PlanReply[], runs: Record<string, RunStatus>) {
   const ids = Object.keys(runs);
+  const plans = Array.isArray(plan) ? plan : [plan];
   let next = 0;
+  let nextPlan = 0;
   const f = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, "");
     const method = init?.method ?? "GET";
     let json: unknown = { detail: "not found" };
-    if (method === "POST" && path === "/cards/plan") json = plan;
+    if (method === "POST" && path === "/cards/plan") json = await plans[Math.min(nextPlan++, plans.length - 1)];
     else if (method === "POST" && path === "/cards/run") json = { run_id: ids[Math.min(next++, ids.length - 1)] };
     else if (path.startsWith("/runs/")) json = runs[path.slice("/runs/".length)];
     return new Response(JSON.stringify(json), { status: json === undefined ? 404 : 200 });
@@ -153,7 +157,12 @@ describe("Card", () => {
 
   it("export csv downloads card file", async () => {
     const user = userEvent.setup();
-    stubApi(PLAN, { r1: DONE });
+    // Synthetic: NDA's anchor-round vote share with several decimals (display rounds it to 38%).
+    const precise = structuredClone(DONE);
+    const nda = precise.result!.scoreboard!.find((r) => r.series === "NDA")!.vote!;
+    nda.value = 38.04321;
+    nda.trend = [40.0, 38.04321];
+    stubApi(PLAN, { r1: precise });
     const createUrl = vi.fn((_: Blob | MediaSource) => "blob:csv");
     vi.stubGlobal("URL", class extends URL {
       static createObjectURL = createUrl;
@@ -168,7 +177,10 @@ describe("Card", () => {
     await user.click(screen.getByRole("button", { name: "⋯" }));
     await user.click(await screen.findByRole("menuitem", { name: "Export CSV" }));
     expect(clicked).toEqual(["pulse.party_scoreboard.csv"]);
-    expect(await (createUrl.mock.calls[0][0] as Blob).text()).toContain("-1.5");
+    const csv = await (createUrl.mock.calls[0][0] as Blob).text();
+    expect(csv).toContain("38.04321");
+    expect(csv).toContain("-1.5");
+    expect(screen.getByText("NDA (BJP+)").closest("tr")!.textContent).toContain("38%");
   });
 
   it("previous result shown dimmed while new context runs", async () => {
@@ -191,6 +203,48 @@ describe("Card", () => {
     const dimmed = label.parentElement!.querySelector("[aria-busy='true']") as HTMLElement;
     expect(dimmed).toHaveStyle({ opacity: "0.5" });
     expect(within(dimmed).getByRole("table")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "⋯" }));
+    expect(await screen.findByRole("menuitem", { name: "Export CSV" })).toBeDisabled();
+  });
+
+  it("previous result stays visible while the new plan is pending", async () => {
+    const user = userEvent.setup();
+    let resolvePlan: (p: PlanResponse) => void = () => {};
+    const heldPlan = new Promise<PlanResponse>((resolve) => { resolvePlan = resolve; });
+    stubApi([PLAN, heldPlan], { r1: DONE, r2: PARTIAL });
+    function Harness() {
+      const [ctx, setCtx] = useState(ctxA);
+      return (
+        <>
+          <button type="button" onClick={() => setCtx(ctxB)}>switch</button>
+          <Card template={SCOREBOARD} ctx={ctx} />
+        </>
+      );
+    }
+    renderWithProviders(<Harness />);
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "switch" }));
+    expect(await screen.findByText("Checking what this card can show…")).toBeInTheDocument();
+    expect(screen.getByText("Showing previous selection")).toBeInTheDocument();
+    const dimmed = document.querySelector("[aria-busy='true']") as HTMLElement;
+    expect(dimmed).toHaveStyle({ opacity: "0.5" });
+    expect(within(dimmed).getByRole("table")).toBeInTheDocument();
+    resolvePlan(PLAN);
+    expect(await screen.findByText("Some parts failed: Seats PC")).toBeInTheDocument();
+    expect(screen.queryByText("Showing previous selection")).not.toBeInTheDocument();
+    expect(document.querySelector("[aria-busy='true']")).toBeNull();
+  });
+
+  it("partly unavailable card runs and notes the missing part", async () => {
+    const reason = "Gender gap needs the 'gender' field in every included round";
+    const unavailable = [{ part: "gender_gap", reason }];
+    const f = stubApi({ ...PLAN, unavailable }, { r1: { ...DONE, result: { ...DONE.result!, unavailable } } });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText(reason)).toBeInTheDocument();
+    expect(within(table).getByText("Gender gap")).toBeInTheDocument();
+    expect(screen.queryByText(/Some parts failed/)).not.toBeInTheDocument();
+    expect(runStarts(f)).toBe(1);
   });
 });
 

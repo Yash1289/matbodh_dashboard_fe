@@ -22,6 +22,7 @@ interface Props {
   columns: Header[];
   onMethod: () => void;
   onExport: () => void;
+  canExport: boolean;
   onRefresh: () => void;
 }
 
@@ -35,7 +36,7 @@ const FORMATS = [{ value: "none", label: "None" }, { value: "heat", label: "Heat
 const SCOPES = [{ value: "column", label: "Within column" }, { value: "row", label: "Within row" }, { value: "table", label: "Within all columns" }];
 
 /** Display-only controls: none of them triggers a request. */
-export function CardToolbar({ view, onView, columns, onMethod, onExport, onRefresh }: Props) {
+export function CardToolbar({ view, onView, columns, onMethod, onExport, canExport, onRefresh }: Props) {
   const sortValue = view.sort?.part === "delta" ? `${view.sort.dir}:${view.sort.column}` : "";
   const sortOptions = [
     { value: "", label: "No Δ sort" },
@@ -69,7 +70,7 @@ export function CardToolbar({ view, onView, columns, onMethod, onExport, onRefre
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item onClick={onMethod}>How this was calculated</Menu.Item>
-          <Menu.Item onClick={onExport}>Export CSV</Menu.Item>
+          <Menu.Item onClick={onExport} disabled={!canExport}>Export CSV</Menu.Item>
           <Menu.Item onClick={onRefresh}>Refresh</Menu.Item>
         </Menu.Dropdown>
       </Menu>

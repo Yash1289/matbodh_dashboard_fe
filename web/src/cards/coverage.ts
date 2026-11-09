@@ -1,5 +1,5 @@
 import type { CardResult, RoundsBlock, Template } from "../api/types";
-import { flagInfo } from "../cells/format";
+import { FLAG_INFO, flagInfo } from "../cells/format";
 import type { CellGrid } from "../table/grid";
 
 export const PART_LABELS: Record<string, string> = {
@@ -56,9 +56,7 @@ export function notAskedNote(result: CardResult): string | null {
   return joinOrNull(result.not_asked.map((n) => `${partLabel(n.part, result)} not asked in ${n.rounds.join(", ")}`));
 }
 
-// shortcut: duplicates the key order of format.ts FLAG_INFO (not exported); export it there to remove this.
-const FLAG_ORDER = ["not_asked", "failed", "not_contender", "no_delta", "null_value", "within_other",
-  "vote_from_seat_view", "borrowed", "low_base"];
+const FLAG_ORDER = Object.keys(FLAG_INFO);
 
 export function flagLegend(g: CellGrid): { glyph: string; reason: string }[] {
   const present = new Set<string>();

@@ -100,7 +100,9 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
     if (active !== null && current !== null) setLast({ key: active.key, result: current });
   }, [active, current]);
 
-  const previous = key !== null && current === null && last !== null && last.key !== key ? last.result : null;
+  // From the context, not `enabled`: the previous result stays visible while a new plan is pending.
+  const ctxKey = ctx !== null ? JSON.stringify([cardId, ctx]) : null;
+  const previous = ctxKey !== null && current === null && last !== null && last.key !== ctxKey ? last.result : null;
   return {
     status,
     current,

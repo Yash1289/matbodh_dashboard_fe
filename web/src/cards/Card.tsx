@@ -29,7 +29,7 @@ function downloadCsv(name: string, text: string) {
   a.href = url;
   a.download = name;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url)); // after the browser has started the download
 }
 
 const Progress = ({ children }: { children: ReactNode }) => (
@@ -52,7 +52,8 @@ export function Card({ template, ctx }: Props) {
   const onView = useCallback((patch: Partial<View>) => setView((v) => ({ ...v, ...patch })), []);
   const onSort = useCallback((sort: SortSpec | null) => onView({ sort }), [onView]);
 
-  const shown = run.current ?? run.previous;
+  // A newly unavailable selection never shows stale numbers.
+  const shown = blocked ? null : run.current ?? run.previous;
   const grid = useMemo(() => {
     if (shown === null) return null;
     const g = gridFor(shown);
@@ -68,8 +69,15 @@ export function Card({ template, ctx }: Props) {
   const status = run.status;
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
 
+  const previous = run.previous && !blocked && (
+    <div>
+      <Text size="xs" c="dimmed">Showing previous selection</Text>
+      <div aria-busy="true" style={{ opacity: 0.5 }}>{table(run.previous)}</div>
+    </div>
+  );
+
   let body: ReactNode;
-  if (plan.isPending) body = <Progress>Checking what this card can show…</Progress>;
+  if (plan.isPending) body = <Stack gap="xs"><Progress>Checking what this card can show…</Progress>{previous}</Stack>;
   else if (plan.error) body = <Text c="red" role="alert">{plan.error.message}</Text>;
   else if (blocked) {
     body = (
@@ -102,12 +110,7 @@ export function Card({ template, ctx }: Props) {
     body = (
       <Stack gap="xs">
         <Progress>{status ? `${status.done} of ${status.total} runs done` : "Starting run…"}</Progress>
-        {run.previous && (
-          <div>
-            <Text size="xs" c="dimmed">Showing previous selection</Text>
-            <div aria-busy="true" style={{ opacity: 0.5 }}>{table(run.previous)}</div>
-          </div>
-        )}
+        {previous}
       </Stack>
     );
   }
@@ -127,7 +130,7 @@ export function Card({ template, ctx }: Props) {
           </Group>
           {grid && (
             <CardToolbar view={view} onView={onView} columns={grid.columns}
-              onMethod={() => setMethodOpen(true)} onRefresh={run.refresh}
+              onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
               onExport={() => run.current && downloadCsv(`${template.id}.csv`, toCsv(gridFor(run.current), run.current.rounds))} />
           )}
         </Group>

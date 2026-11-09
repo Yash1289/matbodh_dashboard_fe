@@ -31,7 +31,7 @@ export function formatTrendPipes(trend: (number | null)[], unit: Unit): string {
   return trend.map((v) => formatValue(v, unit)).join(" | ");
 }
 
-const FLAG_INFO: Record<string, { glyph: string; reason: string }> = {
+export const FLAG_INFO: Record<string, { glyph: string; reason: string }> = {
   not_asked: { glyph: "—", reason: "Not asked in this round" },
   failed: { glyph: "—", reason: "Calculation failed for this round" },
   not_contender: { glyph: "—", reason: "Not a seat contender" },
