@@ -139,6 +139,7 @@ export function InvestigationDrawer({ opened, onClose, cohort }: InvestigationDr
       withCloseButton={false}
       aria-label="Seat Cohort Investigation"
       overlayProps={{ backgroundOpacity: 0.15, blur: 3 }}
+      transitionProps={{ duration: 0 }}
       styles={{
         content: {
           display: "flex",

@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PlanResponse, RunStatus, StateContext, Template } from "../api/types";
+import type { CardResult, PlanResponse, RunStatus, StateContext, Template } from "../api/types";
 import planByZoneJson from "../test/fixtures/plan_by_zone_state_level.json";
 import planScoreboardJson from "../test/fixtures/plan_scoreboard.json";
 import runningJson from "../test/fixtures/run_running.json";
@@ -391,6 +391,261 @@ describe("Card", () => {
     expect(within(table).getByText("Gender gap")).toBeInTheDocument();
     expect(screen.queryByText(/Some parts failed/)).not.toBeInTheDocument();
     expect(runStarts(f)).toBe(1);
+  });
+
+  describe("Universal Card dynamic adapter selection", () => {
+    it("renders RankedListBody when template specifies ranked_list adapter", async () => {
+      const rankedTemplate: Template = {
+        id: "pulse.ranked_test",
+        section: "pulse",
+        title: "Top Gaining Parties",
+        operation: "ranked_list",
+        body_adapter: "ranked_list",
+        questions: [],
+        measures: ["support_share"],
+        slices: [],
+        cell: ["value", "delta"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const rankedResult: CardResult = {
+        card_id: "pulse.ranked_test",
+        operation: "ranked_list",
+        state: "Uttar Pradesh",
+        rounds: { items: [], groups: [], anchor: "o2", compare: "o1" },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        ranked_list: {
+          measure: "support_share",
+          polarity: "highest_first",
+          partitions: [
+            {
+              partition_key: "top_gainers",
+              partition_label: "Top Gainers",
+              items: [
+                { rank: 1, label: "NDA", value: 45.2, delta: 3.1, measure: "support_share", colour: "#ff9933" },
+                { rank: 2, label: "INDIA", value: 38.5, delta: -1.2, measure: "support_share", colour: "#0066cc" },
+              ],
+            },
+          ],
+          total_ranked: 2,
+        },
+      };
+
+      stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: rankedResult, errors: {} } });
+      renderWithProviders(<Card template={rankedTemplate} ctx={ctxA} />);
+      expect(await screen.findByText("Top Gaining Parties")).toBeInTheDocument();
+      expect(await screen.findByText("#1")).toBeInTheDocument();
+      expect(screen.getByText("NDA")).toBeInTheDocument();
+      expect(screen.getByText("#2")).toBeInTheDocument();
+      expect(screen.getByText("INDIA")).toBeInTheDocument();
+    });
+
+    it("opens InvestigationDrawer when investigate CTA is triggered from battleground card", async () => {
+      const user = userEvent.setup();
+      const battlegroundTemplate: Template = {
+        id: "pulse.battleground_test",
+        section: "pulse",
+        title: "Battleground Summary",
+        operation: "battleground",
+        body_adapter: "battleground_summary",
+        questions: [],
+        measures: ["seats"],
+        slices: [],
+        cell: ["value"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const battlegroundResult: CardResult = {
+        card_id: "pulse.battleground_test",
+        operation: "battleground",
+        state: "Uttar Pradesh",
+        rounds: { items: [], groups: [], anchor: "o2", compare: "o1" },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        battleground: {
+          flips: { winning_both: 120, gain: 45, loss: 12, losing_both: 80 },
+          margin_buckets: [
+            { bucket: "< 2%", count: 15, seat_ids: ["Meerut"] },
+            { bucket: "2-5%", count: 30, seat_ids: ["Aligarh"] },
+          ],
+          seats: [
+            { seat_id: "Meerut", winner: "NDA", margin_pp: 3.2, flip: "gain" },
+            { seat_id: "Aligarh", winner: "NDA", margin_pp: 4.8, flip: "gain" },
+          ],
+        },
+      };
+
+      stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: battlegroundResult, errors: {} } });
+      renderWithProviders(<Card template={battlegroundTemplate} ctx={ctxA} />);
+      expect(await screen.findByText("Held (120)")).toBeInTheDocument();
+      expect(screen.getByText("Gain (+45)")).toBeInTheDocument();
+
+      // Trigger investigate CTA
+      const investigateBtn = screen.getByRole("button", { name: /investigate gained seats/i });
+      await user.click(investigateBtn);
+
+      // Verify InvestigationDrawer is opened with role="dialog"
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog).toBeInTheDocument();
+      expect(within(dialog).getByText(/Investigating: 45 Gained Seats/i)).toBeInTheDocument();
+      expect(within(dialog).getByText("Meerut")).toBeInTheDocument();
+      expect(within(dialog).getByText("Aligarh")).toBeInTheDocument();
+
+      // Close the drawer
+      const closeBtn = within(dialog).getByRole("button", { name: /close drawer/i });
+      await user.click(closeBtn);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("renders TransitionMatrixBody when template specifies transition_matrix adapter", async () => {
+      const transitionTemplate: Template = {
+        id: "pulse.transition_test",
+        section: "pulse",
+        title: "Voter Transitions",
+        operation: "transition",
+        body_adapter: "transition_matrix",
+        lenses: { default: "origin_share", options: ["origin_share", "destination_share", "joint_share"] },
+        questions: [],
+        measures: ["share"],
+        slices: [],
+        cell: ["value"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const transitionResult: CardResult = {
+        card_id: "pulse.transition_test",
+        operation: "transition",
+        state: "Uttar Pradesh",
+        rounds: { items: [], groups: [], anchor: "o2", compare: "o1" },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        transition: {
+          origins: ["NDA", "SP"],
+          destinations: ["NDA", "SP"],
+          matrix: {
+            NDA: {
+              NDA: { origin: "NDA", destination: "NDA", origin_share: 82.5, destination_share: 75.0, joint_share: 35.0 },
+              SP: { origin: "NDA", destination: "SP", origin_share: 10.0, destination_share: 12.0, joint_share: 4.2 },
+            },
+            SP: {
+              NDA: { origin: "SP", destination: "NDA", origin_share: 8.0, destination_share: 15.0, joint_share: 3.0 },
+              SP: { origin: "SP", destination: "SP", origin_share: 78.0, destination_share: 72.0, joint_share: 28.0 },
+            },
+          },
+        },
+      };
+
+      stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: transitionResult, errors: {} } });
+      renderWithProviders(<Card template={transitionTemplate} ctx={ctxA} />);
+      expect(await screen.findByText("Voter Transitions")).toBeInTheDocument();
+      expect(await screen.findByText("Origin \\ Destination")).toBeInTheDocument();
+      expect(screen.getByText("83%")).toBeInTheDocument();
+    });
+
+    it("switches multi-measure lens in-memory via CardToolbar", async () => {
+      const user = userEvent.setup();
+      const lensTemplate: Template = {
+        id: "pulse.by_zone_lens",
+        section: "pulse",
+        title: "By Zone Multi-Lens",
+        operation: "distribution",
+        body_adapter: "composite_grid",
+        lenses: { default: "support_share", options: ["support_share", "contribution_share"] },
+        questions: [],
+        measures: ["support_share", "contribution_share"],
+        slices: ["zone"],
+        cell: ["value"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const lensResult: CardResult = {
+        card_id: "pulse.by_zone_lens",
+        operation: "distribution",
+        state: "Uttar Pradesh",
+        rounds: {
+          items: [{
+            obs_id: "o2", label: "R2", base_name: "2027 VS CAPI R2", cycle: "2027",
+            series: "VS", round: 2, dataset_id: "ds1", version: "normal", fallback: false,
+            seats: 403, borrowed: 0, seats_source: "metadata",
+          }],
+          groups: [],
+          anchor: "o2",
+          compare: null,
+        },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        grid: {
+          row_dim: "zone",
+          rows: [
+            {
+              value: "West",
+              label: "West Zone",
+              series: [
+                {
+                  series: "NDA",
+                  label: "NDA",
+                  colour: "#ff9933",
+                  cell: { value: 42.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+                  lenses: {
+                    support_share: { value: 42.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+                    contribution_share: { value: 18.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const f = stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: lensResult, errors: {} } });
+      renderWithProviders(<Card template={lensTemplate} ctx={ctxA} />);
+      const table = await screen.findByRole("table");
+      expect(within(table).getByText("42%")).toBeInTheDocument();
+
+      // CardToolbar should display availableLenses
+      const lensChip = screen.getByRole("button", { name: "Lens: Support % ▾" });
+      expect(lensChip).toBeInTheDocument();
+
+      const callsBefore = f.mock.calls.length;
+      await user.click(lensChip);
+
+      // Select Contribution %
+      const option = await screen.findByRole("radio", { name: "Contribution %" });
+      await user.click(option);
+
+      // Verify cell switched in-memory to 18% without API calls
+      expect(within(table).getByText("18%")).toBeInTheDocument();
+      expect(f.mock.calls.length).toBe(callsBefore);
+    });
   });
 });
 

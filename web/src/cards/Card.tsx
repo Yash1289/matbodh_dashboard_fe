@@ -1,15 +1,29 @@
 import { Alert, Button, Drawer, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../api/queries";
-import type { CardResult, RunError, StateContext, Template } from "../api/types";
+import type {
+  BattlegroundSeat,
+  CardResult,
+  PresentationRules,
+  RunError,
+  StateContext,
+  Template,
+} from "../api/types";
 import { defaultPreset, partsFor } from "../cells/parts";
-import { CompositeTable } from "../table/CompositeTable";
 import { toCsv } from "../table/csv";
-import { gridFor, transpose, type SortSpec } from "../table/grid";
+import { applyPresentationRules, gridFor, transpose, type SortSpec } from "../table/grid";
 import { CardFooter } from "./CardFooter";
+import { CardFilterBar, type FilterSpec, type SlicerSpec } from "./CardFilterBar";
 import { CardToolbar, ruleOf, type View } from "./CardToolbar";
 import { cardParts, partLabel } from "./coverage";
+import { InvestigationDrawer, type SeatCohort, type SeatItem } from "./InvestigationDrawer";
 import { MethodDrawer } from "./MethodDrawer";
+import {
+  BattlegroundSummaryBody,
+  CompositeGridBody,
+  RankedListBody,
+  TransitionMatrixBody,
+} from "./body";
 import { tokens } from "../theme";
 
 interface Props {
@@ -17,6 +31,11 @@ interface Props {
   ctx: StateContext | null;
   /** The page's first card: its subtitle says so. */
   lead?: boolean;
+  presentationRules?: PresentationRules | null;
+  slicers?: SlicerSpec[];
+  onSlicerChange?: (dimension: string, value: string) => void;
+  filters?: FilterSpec[];
+  onFilterChange?: (filterId: string, value: string) => void;
 }
 
 /** Infrastructure messages are never shown raw; other kinds carry a client-safe message. */
@@ -42,18 +61,33 @@ const Progress = ({ children }: { children: ReactNode }) => (
   </Stack>
 );
 
-export function Card({ template, ctx, lead = false }: Props) {
+export function Card({
+  template,
+  ctx,
+  lead = false,
+  presentationRules,
+  slicers,
+  onSlicerChange,
+  filters,
+  onFilterChange,
+}: Props) {
   const plan = useCardPlan(template.id, ctx);
   const blocked = plan.data !== undefined
     && cardParts(template).every((p) => plan.data.unavailable.some((u) => u.part === p));
   const run = useCardRun(template.id, ctx, plan.isSuccess && !blocked);
   // A card sliced by party zone starts diverging: its columns are shares of one party each.
   const initial = useMemo<View>(() => ({
-    preset: defaultPreset(template), density: template.density, transposed: false,
-    format: template.slices.length > 0 ? "diverging" : "none", within: "column", sort: null,
+    preset: defaultPreset(template),
+    density: template.density,
+    transposed: false,
+    format: template.slices.length > 0 ? "diverging" : "none",
+    within: "column",
+    sort: null,
+    lens: template.lenses?.default ?? "support_share",
   }), [template]);
   const [view, setView] = useState<View>(initial);
   const [methodOpen, setMethodOpen] = useState(false);
+  const [investigateCohort, setInvestigateCohort] = useState<SeatCohort | null>(null);
   const onView = useCallback((patch: Partial<View>) => setView((v) => ({ ...v, ...patch })), []);
   const onSort = useCallback((sort: SortSpec | null) => onView({ sort }), [onView]);
 
@@ -63,23 +97,78 @@ export function Card({ template, ctx, lead = false }: Props) {
   const shown = blocked || errored ? null : run.current ?? run.previous;
   const grid = useMemo(() => {
     if (shown === null) return null;
-    const g = gridFor(shown);
+    const g = applyPresentationRules(
+      gridFor(shown, view.lens ?? undefined),
+      presentationRules ?? (template as any).presentationRules
+    );
     return view.transposed ? transpose(g) : g;
-  }, [shown, view.transposed]);
+  }, [shown, view.lens, view.transposed, presentationRules, template]);
+
+  const handleInvestigate = useCallback((cohortOrItem: any) => {
+    if (!cohortOrItem) {
+      setInvestigateCohort(null);
+      return;
+    }
+    if (Array.isArray(cohortOrItem.seats)) {
+      setInvestigateCohort(cohortOrItem as SeatCohort);
+      return;
+    }
+    const bgSeats: BattlegroundSeat[] = shown?.battleground?.seats ?? [];
+    const ids: string[] = cohortOrItem.seat_ids ?? [];
+    const matchingSeats: SeatItem[] = (ids.length > 0
+      ? bgSeats.filter((s) => ids.includes(s.seat_id))
+      : bgSeats
+    ).map((s) => ({
+      name: s.seat_id,
+      winner: s.winner,
+      margin_pp: s.margin_pp,
+      flip: s.flip,
+    }));
+    setInvestigateCohort({
+      title: cohortOrItem.title ?? "Investigating Seats",
+      totalSeats: cohortOrItem.count ?? cohortOrItem.totalSeats ?? matchingSeats.length,
+      seats: matchingSeats,
+    });
+  }, [shown?.battleground?.seats]);
 
   if (ctx === null) return null;
 
-  const table = (result: CardResult) => grid && (
-    <CompositeTable grid={grid} parts={parts}
-      rounds={result.rounds} rule={ruleOf(view)} sort={view.sort} onSort={onSort} />
-  );
   const parts = partsFor(view.preset, view.density, template.cell);
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
+
+  const renderAdapter = (result: CardResult) => {
+    const adapter = template.body_adapter ?? "composite_grid";
+    if (adapter === "ranked_list" && result.ranked_list) {
+      return <RankedListBody data={result.ranked_list} onInvestigate={handleInvestigate} />;
+    }
+    if (adapter === "transition_matrix" && result.transition) {
+      return (
+        <TransitionMatrixBody
+          data={result.transition}
+          lens={view.lens as any}
+          onLensChange={(l) => onView({ lens: l })}
+        />
+      );
+    }
+    if (adapter === "battleground_summary" && result.battleground) {
+      return <BattlegroundSummaryBody data={result.battleground} onInvestigate={handleInvestigate} />;
+    }
+    return grid && (
+      <CompositeGridBody
+        grid={grid}
+        parts={parts}
+        rounds={result.rounds}
+        rule={ruleOf(view)}
+        sort={view.sort}
+        onSort={onSort}
+      />
+    );
+  };
 
   const previous = run.previous && !blocked && (
     <div>
       <Text size="xs" c="dimmed">Showing previous selection</Text>
-      <div aria-busy="true" style={{ opacity: 0.5 }}>{table(run.previous)}</div>
+      <div aria-busy="true" style={{ opacity: 0.5 }}>{renderAdapter(run.previous)}</div>
     </div>
   );
 
@@ -93,15 +182,15 @@ export function Card({ template, ctx, lead = false }: Props) {
       </Stack>
     );
   } else if (run.error) body = <Stack gap={4}><Text c="red" role="alert">{run.error.message}</Text>{refresh}</Stack>;
-  else if (run.current && grid) {
+  else if (run.current && (grid || run.current.ranked_list || run.current.transition || run.current.battleground)) {
     const failed = status?.state === "partial" ? Object.keys(status.errors) : [];
     body = (
       <Stack gap="xs">
         {failed.length > 0 && (
           <Alert color="yellow" p="xs">{`Some parts failed: ${failed.map((p) => partLabel(p, run.current)).join(", ")}`}</Alert>
         )}
-        {table(run.current)}
-        <CardFooter result={run.current} grid={grid} template={template} onMethod={() => setMethodOpen(true)} />
+        {renderAdapter(run.current)}
+        {grid && <CardFooter result={run.current} grid={grid} template={template} onMethod={() => setMethodOpen(true)} />}
       </Stack>
     );
   } else if (status?.state === "failed") {
@@ -148,16 +237,36 @@ export function Card({ template, ctx, lead = false }: Props) {
             {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" title={roundsTitle}>{subtitle}</Text>}
           </div>
           {grid && (
-            <CardToolbar view={view} onView={onView} initial={initial} canSort={parts.includes("delta") || view.sort !== null} columns={grid.columns}
-              onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
-              onExport={() => run.current && downloadCsv(`${template.id}.csv`, toCsv(gridFor(run.current), run.current.rounds))} />
+            <CardToolbar
+              view={view}
+              onView={onView}
+              initial={initial}
+              canSort={parts.includes("delta") || view.sort !== null}
+              columns={grid.columns}
+              onMethod={() => setMethodOpen(true)}
+              onRefresh={run.refresh}
+              canExport={run.current !== null}
+              availableLenses={template.lenses?.options}
+              onExport={() => run.current && downloadCsv(`${template.id}.csv`, toCsv(gridFor(run.current, view.lens ?? undefined), run.current.rounds))}
+            />
           )}
         </Group>
+        <CardFilterBar
+          slicers={slicers}
+          onSlicerChange={onSlicerChange}
+          filters={filters}
+          onFilterChange={onFilterChange}
+        />
         {body}
       </Stack>
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
         <MethodDrawer result={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
       </Drawer>
+      <InvestigationDrawer
+        opened={investigateCohort !== null}
+        onClose={() => setInvestigateCohort(null)}
+        cohort={investigateCohort}
+      />
     </div>
   );
 }
