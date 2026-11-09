@@ -1,19 +1,8 @@
 import { Group, SegmentedControl } from "@mantine/core";
+import type { FilterSpec, SlicerSpec } from "../api/types";
 import { PopoverChip } from "./CardToolbar";
 
-export interface SlicerSpec {
-  dimension: string;
-  label: string;
-  options: string[];
-  selected: string;
-}
-
-export interface FilterSpec {
-  id: string;
-  label: string;
-  options: string[];
-  selected?: string;
-}
+export type { FilterSpec, SlicerSpec };
 
 export interface CardFilterBarProps {
   slicers?: SlicerSpec[];

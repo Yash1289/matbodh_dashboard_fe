@@ -191,6 +191,20 @@ export interface PresentationRules {
   entityColors?: Record<string, string>;
 }
 
+export interface SlicerSpec {
+  dimension: string;
+  label: string;
+  options: string[];
+  selected: string;
+}
+
+export interface FilterSpec {
+  id: string;
+  label: string;
+  options: string[];
+  selected?: string;
+}
+
 export interface Template {
   id: string;
   section: string;
@@ -199,6 +213,9 @@ export interface Template {
   body_adapter?: "composite_grid" | "ranked_list" | "transition_matrix" | "battleground_summary" | string;
   lenses?: { default: string; options: string[] };
   presentation?: { row_field?: string; col_field?: string; slicer?: string };
+  slicers?: SlicerSpec[];
+  filters?: FilterSpec[];
+  presentationRules?: PresentationRules;
   questions: string[];
   measures: string[];
   slices: string[];

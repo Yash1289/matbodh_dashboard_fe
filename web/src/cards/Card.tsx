@@ -91,6 +91,34 @@ export function Card({
   const onView = useCallback((patch: Partial<View>) => setView((v) => ({ ...v, ...patch })), []);
   const onSort = useCallback((sort: SortSpec | null) => onView({ sort }), [onView]);
 
+  const [internalSlicers, setInternalSlicers] = useState<SlicerSpec[]>(
+    () => slicers ?? template.slicers ?? []
+  );
+  const activeSlicers = slicers ?? internalSlicers;
+  const handleSlicerChange = useCallback((dimension: string, value: string) => {
+    if (onSlicerChange) {
+      onSlicerChange(dimension, value);
+    } else {
+      setInternalSlicers((prev) =>
+        prev.map((s) => (s.dimension === dimension ? { ...s, selected: value } : s))
+      );
+    }
+  }, [onSlicerChange]);
+
+  const [internalFilters, setInternalFilters] = useState<FilterSpec[]>(
+    () => filters ?? template.filters ?? []
+  );
+  const activeFilters = filters ?? internalFilters;
+  const handleFilterChange = useCallback((filterId: string, value: string) => {
+    if (onFilterChange) {
+      onFilterChange(filterId, value);
+    } else {
+      setInternalFilters((prev) =>
+        prev.map((f) => (f.id === filterId ? { ...f, selected: value } : f))
+      );
+    }
+  }, [onFilterChange]);
+
   const status = run.status;
   // A newly unavailable or failed selection never shows stale numbers or metadata beside its error.
   const errored = plan.isError || run.error !== null || status?.state === "failed";
@@ -99,10 +127,19 @@ export function Card({
     if (shown === null) return null;
     const g = applyPresentationRules(
       gridFor(shown, view.lens ?? undefined),
-      presentationRules ?? (template as any).presentationRules
+      presentationRules ?? template.presentationRules
     );
-    return view.transposed ? transpose(g) : g;
-  }, [shown, view.lens, view.transposed, presentationRules, template]);
+    const baseGrid = view.transposed ? transpose(g) : g;
+    const activeNonDefault = activeSlicers.find(
+      (s) => s.selected && s.selected !== "All" && s.selected !== "All Zones" && s.selected !== s.options[0]
+    );
+    if (!activeNonDefault) return baseGrid;
+    const target = activeNonDefault.selected.toLowerCase();
+    const rows = baseGrid.rows.filter(
+      (r) => r.key.toLowerCase() === target || r.label.toLowerCase() === target || r.label.toLowerCase().includes(target)
+    );
+    return rows.length > 0 ? { ...baseGrid, rows } : baseGrid;
+  }, [shown, view.lens, view.transposed, presentationRules, template, activeSlicers]);
 
   const handleInvestigate = useCallback((cohortOrItem: any) => {
     if (!cohortOrItem) {
@@ -252,10 +289,10 @@ export function Card({
           )}
         </Group>
         <CardFilterBar
-          slicers={slicers}
-          onSlicerChange={onSlicerChange}
-          filters={filters}
-          onFilterChange={onFilterChange}
+          slicers={activeSlicers}
+          onSlicerChange={handleSlicerChange}
+          filters={activeFilters}
+          onFilterChange={handleFilterChange}
         />
         {body}
       </Stack>
