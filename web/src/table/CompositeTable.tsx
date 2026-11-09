@@ -95,7 +95,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
           ))}
         </tbody>
       </table>
-      {key && <p>{key.label}: {key.min} to {key.max}</p>}
+      {key && <p>{key.range === null ? key.label : `${key.label}: ${key.range}`}</p>}
     </div>
   );
 }

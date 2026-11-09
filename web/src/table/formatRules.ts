@@ -40,8 +40,10 @@ export function cellStyle(g: CellGrid, rowKey: string, colKey: string, rule: For
   return { background: `rgba(${v > 0 ? BLUE : ORANGE}, ${((Math.abs(v) / m) * MAX_ALPHA).toFixed(3)})` };
 }
 
-/** Whole-table legend; each end is formatted with the unit of the cell that holds it. */
-export function legend(g: CellGrid, rule: FormatRule): { label: string; min: string; max: string } | null {
+const SCOPE_TEXT = { column: " (scaled within each column)", row: " (scaled within each row)", table: "" } as const;
+
+/** Legend; a min-max range is only meaningful (and shown) when scaling is across the whole table. */
+export function legend(g: CellGrid, rule: FormatRule): { label: string; range: string | null } | null {
   if (rule.kind === "none") return null;
   const part = partOf(rule);
   const found = g.rows.flatMap((r) =>
@@ -52,11 +54,14 @@ export function legend(g: CellGrid, rule: FormatRule): { label: string; min: str
     }),
   );
   if (found.length === 0) return null;
-  const lo = found.reduce((a, b) => (b.v < a.v ? b : a));
-  const hi = found.reduce((a, b) => (b.v > a.v ? b : a));
+  const name = rule.kind === "heat" ? "Heat on value" : "Diverging on Δ";
+  const label = name + SCOPE_TEXT[rule.within];
+  if (rule.within !== "table") return { label, range: null };
   if (rule.kind === "heat") {
-    return { label: "Heat on value", min: formatValue(lo.v, lo.unit), max: formatValue(hi.v, hi.unit) };
+    const lo = found.reduce((a, b) => (b.v < a.v ? b : a));
+    const hi = found.reduce((a, b) => (b.v > a.v ? b : a));
+    return { label, range: `${formatValue(lo.v, lo.unit)} to ${formatValue(hi.v, hi.unit)}` };
   }
   const big = found.reduce((a, b) => (Math.abs(b.v) > Math.abs(a.v) ? b : a));
-  return { label: "Diverging on Δ", min: formatDelta(-Math.abs(big.v), big.unit), max: formatDelta(Math.abs(big.v), big.unit) };
+  return { label, range: `${formatDelta(-Math.abs(big.v), big.unit)} to ${formatDelta(Math.abs(big.v), big.unit)}` };
 }

@@ -27,7 +27,15 @@ describe("formatRules", () => {
     const rule = { kind: "heat", within: "column" } as const;
     expect(cellStyle(g, "r0", "a", rule)).toEqual({});
     expect(alpha(cellStyle(g, "r2", "a", rule))).toBeGreaterThan(alpha(cellStyle(g, "r1", "a", rule)));
-    expect(legend(g, rule)).toEqual({ label: "Heat on value", min: "10%", max: "20%" });
+    expect(legend(g, rule)).toEqual({ label: "Heat on value (scaled within each column)", range: null });
+  });
+
+  it("legend states its scope and gives a range only for the whole table", () => {
+    const g = grid([[10, -3], [20, 4]]);
+    expect(legend(g, { kind: "heat", within: "row" })).toEqual({ label: "Heat on value (scaled within each row)", range: null });
+    expect(legend(g, { kind: "heat", within: "table" })).toEqual({ label: "Heat on value", range: "10% to 20%" });
+    expect(legend(g, { kind: "diverging", within: "column" })).toEqual({ label: "Diverging on Δ (scaled within each column)", range: null });
+    expect(legend(g, { kind: "diverging", within: "table" })).toEqual({ label: "Diverging on Δ", range: "▼4% to ▲4%" });
   });
 
   it("none and null delta are unstyled", () => {
