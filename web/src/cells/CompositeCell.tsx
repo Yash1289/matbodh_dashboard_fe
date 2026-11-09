@@ -26,7 +26,11 @@ export function CompositeCell({ cell, unit, parts, rounds }: Props) {
         ) : (
           <span>{formatValue(cell.value, unit)}</span>
         ))}
-      {has("delta") && dTitle !== null && <span title={dTitle}>{formatDelta(cell.delta, unit)}</span>}
+      {has("delta") && dTitle !== null && (
+        <span title={cell.delta === null ? `${dTitle}: ${cell.value === null ? nullReason(cell) : flagInfo("no_delta").reason}` : dTitle}>
+          {formatDelta(cell.delta, unit)}
+        </span>
+      )}
       {has("trend") &&
         cell.trend.length > 0 &&
         (cell.trend.length <= 4 ? (
@@ -41,8 +45,9 @@ export function CompositeCell({ cell, unit, parts, rounds }: Props) {
       {has("flags") &&
         cell.flags.map((f) => {
           const { glyph, reason } = flagInfo(f);
+          if (!glyph) return null;
           return (
-            <span key={f} title={reason} aria-label={reason}>
+            <span key={f} role="img" title={reason} aria-label={reason}>
               {glyph}
             </span>
           );

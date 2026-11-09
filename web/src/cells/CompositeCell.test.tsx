@@ -47,4 +47,18 @@ describe("CompositeCell", () => {
     expect(f.textContent).toBe("?");
     expect(f.getAttribute("aria-label")).toBe("weird");
   });
+
+  it("null delta with a compare round carries its reason in the title", () => {
+    const { unmount } = render(<CompositeCell cell={cell({ delta: null, flags: ["no_delta"] })} unit="pct" parts={["value", "delta"]} rounds={rounds} />);
+    expect(screen.getByTitle("Δ 2027 VS CAPI R2 − 2027 VS CAPI R1: No Δ available for this round pair").textContent).toBe("—");
+    unmount();
+    render(<CompositeCell cell={cell({ value: null, delta: null, flags: ["not_asked"] })} unit="pct" parts={["value", "delta"]} rounds={rounds} />);
+    expect(screen.getByTitle("Δ 2027 VS CAPI R2 − 2027 VS CAPI R1: Not asked in this round")).toBeTruthy();
+  });
+
+  it("no_delta renders no invisible span and flags are images", () => {
+    const { container } = render(<CompositeCell cell={cell({ flags: ["no_delta", "low_base"] })} unit="pct" parts={["flags"]} rounds={rounds} />);
+    expect(container.querySelectorAll("[aria-label]")).toHaveLength(1);
+    expect(screen.getByRole("img", { name: "Low base" }).textContent).toBe("◌");
+  });
 });
