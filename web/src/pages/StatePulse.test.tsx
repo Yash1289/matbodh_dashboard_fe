@@ -86,7 +86,7 @@ describe("State Pulse", () => {
     stubApi();
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
     renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
-    expect(await screen.findByLabelText("Loading cards…")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Loading cardsâ€¦")).toBeInTheDocument();
   });
 
   it("says so when there are no cards", async () => {

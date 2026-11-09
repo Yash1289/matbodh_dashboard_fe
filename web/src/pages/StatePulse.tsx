@@ -9,7 +9,7 @@ export function StatePulse() {
   // Without a context the context bar's prompt is the only content; nothing runs.
   if (ctx === null) return null;
   if (templates.isError) return <Text c="red" role="alert">{templates.error.message}</Text>;
-  if (templates.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
+  if (templates.isPending) return <Skeleton height={80} aria-label="Loading cardsâ€¦" />;
   if (templates.data.length === 0) return <Text>No cards are available for this section.</Text>;
   const [lead, ...rest] = templates.data;
   return (
