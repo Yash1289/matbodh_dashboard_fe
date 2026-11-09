@@ -73,7 +73,7 @@ export function ContextBar() {
         <Text>{ctx && ctxSurveys.data ? contextSummary(ctx, ctxSurveys.data) : ctx ? "Loading context…" : "No context chosen"}</Text>
         {ctx && <Button variant="default" size="xs" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Edit"}</Button>}
       </Group>
-      {open && (
+      {(open || ctx === null) && (
         <Stack mt="sm" gap="sm">
           {ctx === null && <Text fw={500}>{PROMPT}</Text>}
           {planError && <Text c="red" role="alert">{planError}</Text>}

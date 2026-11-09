@@ -119,4 +119,29 @@ cd web && npm install
 npm run dev     # Vite dev server; proxies /api to the API on 127.0.0.1:8000
 npm test        # Vitest
 npm run build   # type-check and production build
+npm run e2e     # Playwright journey, API mocked from the test fixtures
 ```
+
+The e2e test builds the app, serves it on port 4173 and drives the installed
+Google Chrome (`channel: "chrome"`), so Chrome must be installed. As an
+alternative, run `npx playwright install chromium` once and drop the `channel`
+line from `web/playwright.config.ts`. The e2e never touches a real API or
+database.
+
+### Manual live check
+
+Live runs read the production databases (read-only) and need the product
+owner's go-ahead every time. Nothing in the automated suites runs against them.
+
+1. Network/VPN up; confirm the ClickHouse port is reachable:
+   `bash -c 'cat < /dev/null > /dev/tcp/<host>/8123'`.
+2. Redis running.
+3. API: `uvicorn matbodh_dashboard.bootstrap:create_production_app --factory --port 8000`.
+4. One worker: `rq worker engine --with-scheduler --worker-class rq.worker.SimpleWorker --url "$DASHBOARD_REDIS_URL"`.
+5. `cd web && npm run dev`, open the printed URL.
+6. Choose Uttar Pradesh, level AC, tick 2027 VS CAPI R1 and R2, compare R1, Apply.
+7. Expected scoreboard (Appendix A of the spec, shown with the percentage rule):
+   - NDA 42% ▼3% · AC 154 ▼89 · PC 26 ▼23
+   - SP+ 44% ▲3% · AC 249 ▲91 · PC 54 ▲23
+   - BSP 12%
+   - JDL 0.13% ⊂ within Other, AC 0 ▼2
