@@ -81,16 +81,13 @@ export function TransitionMatrixBody({ data, lens, onLensChange }: TransitionMat
             </tr>
           </thead>
           <tbody>
-            {data.origins.map((origin, originIdx) => (
+            {data.origins.map((origin) => (
               <tr key={origin}>
                 <th scope="row" style={HEADER_CELL}>
                   {origin}
                 </th>
-                {data.destinations.map((dest, destIdx) => {
-                  const isExactMatch = origin === dest;
-                  const isIndexDiagonalMatch =
-                    originIdx === destIdx && normalizeLabel(origin) === normalizeLabel(dest);
-                  const isDiagonal = isExactMatch || isIndexDiagonalMatch;
+                {data.destinations.map((dest) => {
+                  const isDiagonal = origin === dest || normalizeLabel(origin) === normalizeLabel(dest);
 
                   const nonVoterCell = isNonVoter(origin) || isNonVoter(dest);
                   const cell = data.matrix[origin]?.[dest];

@@ -53,6 +53,7 @@ export interface InvestigationDrawerProps {
 
 export function InvestigationDrawer({ opened, onClose, cohort }: InvestigationDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const filteredSeats = useMemo(() => {
     if (!cohort?.seats) return [];
@@ -84,9 +85,17 @@ export function InvestigationDrawer({ opened, onClose, cohort }: InvestigationDr
       })
       .join("\n");
 
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(lines);
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(lines);
+      }
+    } catch {
+      // Ignore clipboard write failures in test/restricted environments
     }
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   const handleExportCsv = () => {
@@ -190,7 +199,7 @@ export function InvestigationDrawer({ opened, onClose, cohort }: InvestigationDr
                 onClick={handleCopySeats}
                 style={{ borderRadius: tokens.radius.button }}
               >
-                Copy seat list
+                {copied ? "Copied!" : "Copy seat list"}
               </Button>
               <Button
                 variant="default"

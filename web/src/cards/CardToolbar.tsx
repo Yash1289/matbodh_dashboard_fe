@@ -31,6 +31,7 @@ interface Props {
   canExport: boolean;
   onRefresh: () => void;
   availableLenses?: string[];
+  isGrid?: boolean;
 }
 
 const PRESETS = [
@@ -78,7 +79,24 @@ export function PopoverChip({ label, selected, children }: { label: string; sele
 const labelOf = (options: { value: string; label: string }[], value: string) => options.find((o) => o.value === value)?.label ?? value;
 
 /** Display-only controls: none of them triggers a request. */
-export function CardToolbar({ view, onView, initial, canSort, columns, onMethod, onExport, canExport, onRefresh, availableLenses }: Props) {
+export function CardToolbar({ view, onView, initial, canSort, columns, onMethod, onExport, canExport, onRefresh, availableLenses, isGrid = true }: Props) {
+  if (!isGrid) {
+    return (
+      <Group gap={8} wrap="wrap" justify="flex-end">
+        <Menu position="bottom-end">
+          <Menu.Target>
+            <Button variant="default" style={{ border: "1px solid var(--mb-chip-border)", padding: "8px 14px", fontSize: tokens.font.button, fontWeight: 500, height: "auto" }}>⋯</Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item onClick={onMethod}>How this was calculated</Menu.Item>
+            <Menu.Item onClick={onExport} disabled={!canExport}>Export CSV</Menu.Item>
+            <Menu.Item onClick={onRefresh}>Refresh</Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Group>
+    );
+  }
+
   const sortValue = view.sort?.part === "delta" ? `${view.sort.dir}:${view.sort.column}` : "";
   const sortOptions = [
     { value: "", label: "No Δ sort" },

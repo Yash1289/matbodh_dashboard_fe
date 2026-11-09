@@ -164,7 +164,10 @@ function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: 
 export function applyPresentationRules(grid: CellGrid, rules?: PresentationRules | null): CellGrid {
   if (!rules) return grid;
   const columns = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors);
-  const rows = reorderHeaders(grid.rows, rules.rowOrder);
+  const rowOrder = Array.isArray(rules.rowOrder)
+    ? rules.rowOrder
+    : (rules.rowOrder && grid.rowDim ? rules.rowOrder[grid.rowDim] : undefined);
+  const rows = reorderHeaders(grid.rows, rowOrder);
   return {
     ...grid,
     rows,

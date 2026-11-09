@@ -185,7 +185,7 @@ export interface SurveysResponse {
 }
 
 export interface PresentationRules {
-  rowOrder?: string[];
+  rowOrder?: string[] | Record<string, string[]>;
   columnOrder?: string[];
   pinLast?: string[];
   entityColors?: Record<string, string>;

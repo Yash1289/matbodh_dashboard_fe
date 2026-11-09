@@ -306,6 +306,35 @@ describe("Specialized Body Adapters", () => {
 
       expect(screen.getByText("32%")).toBeInTheDocument();
     });
+
+    it("detects retention diagonal even when origins and destinations are ordered differently", () => {
+      const differentlyOrdered: TransitionMatrixResult = {
+        origins: ["SP+ (2022)", "NDA (2022)"],
+        destinations: ["NDA (2027)", "SP+ (2027)"],
+        matrix: {
+          "SP+ (2022)": {
+            "NDA (2027)": { origin: "SP+ (2022)", destination: "NDA (2027)", origin_share: 8.0, destination_share: 6.0, joint_share: 3.0 },
+            "SP+ (2027)": { origin: "SP+ (2022)", destination: "SP+ (2027)", origin_share: 85.0, destination_share: 84.0, joint_share: 28.0 },
+          },
+          "NDA (2022)": {
+            "NDA (2027)": { origin: "NDA (2022)", destination: "NDA (2027)", origin_share: 78.5, destination_share: 82.0, joint_share: 32.0 },
+            "SP+ (2027)": { origin: "NDA (2022)", destination: "SP+ (2027)", origin_share: 12.0, destination_share: 10.0, joint_share: 5.0 },
+          },
+        },
+      };
+
+      render(
+        <MantineProvider>
+          <TransitionMatrixBody data={differentlyOrdered} />
+        </MantineProvider>
+      );
+
+      const diagonalCells = screen.getAllByTestId("diagonal-cell");
+      // Both SP+ -> SP+ (85%) and NDA -> NDA (79%) should be detected as retention cells
+      expect(diagonalCells).toHaveLength(2);
+      expect(diagonalCells.map(c => c.textContent)).toContain("85%");
+      expect(diagonalCells.map(c => c.textContent)).toContain("79%");
+    });
   });
 
   describe("CompositeGridBody", () => {

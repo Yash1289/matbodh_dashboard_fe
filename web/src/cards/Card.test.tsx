@@ -646,6 +646,128 @@ describe("Card", () => {
       expect(within(table).getByText("18%")).toBeInTheDocument();
       expect(f.mock.calls.length).toBe(callsBefore);
     });
+
+    it("hides grid toolbar controls on non-grid cards and only shows the menu", async () => {
+      const battlegroundTemplate: Template = {
+        id: "pulse.battleground_tb",
+        section: "pulse",
+        title: "Battleground Toolbar Check",
+        operation: "battleground",
+        body_adapter: "battleground_summary",
+        questions: [],
+        measures: ["seats"],
+        slices: [],
+        cell: ["value"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const battlegroundResult: CardResult = {
+        card_id: "pulse.battleground_tb",
+        operation: "battleground",
+        state: "Uttar Pradesh",
+        rounds: { items: [], groups: [], anchor: "o2", compare: "o1" },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        battleground: {
+          flips: { winning_both: 10, gain: 5, loss: 2, losing_both: 8 },
+          margin_buckets: [],
+          seats: [],
+        },
+      };
+
+      stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: battlegroundResult, errors: {} } });
+      renderWithProviders(<Card template={battlegroundTemplate} ctx={ctxA} />);
+      expect(await screen.findByText("Held (10)")).toBeInTheDocument();
+
+      // Menu button should be present
+      expect(screen.getByRole("button", { name: "⋯" })).toBeInTheDocument();
+
+      // Irrelevant grid controls must NOT be rendered
+      expect(screen.queryByRole("button", { name: "⇄ Transpose" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Cell:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Density:/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Format/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Sort/ })).not.toBeInTheDocument();
+    });
+
+    it("chains multiple active non-default slicers iteratively", async () => {
+      const gridTemplate: Template = {
+        id: "pulse.multi_slicer",
+        section: "pulse",
+        title: "Demographics Multi Slicer",
+        operation: "distribution",
+        body_adapter: "composite_grid",
+        questions: [],
+        measures: ["support_share"],
+        slices: ["demographics"],
+        cell: ["value"],
+        density: "standard",
+        requires: { min_level: "state", focus_party: false },
+      };
+
+      const gridResult: CardResult = {
+        card_id: "pulse.multi_slicer",
+        operation: "distribution",
+        state: "Uttar Pradesh",
+        rounds: { items: [], groups: [], anchor: "o2", compare: "o1" },
+        unavailable: [],
+        not_asked: [],
+        coverage: [],
+        rules_version: "1",
+        engine_version: "0.8.0",
+        metadata_revision: 1,
+        alliance_epoch: 1,
+        hidden_count: 0,
+        grid: {
+          row_dim: "demographics",
+          rows: [
+            {
+              value: "gen_male",
+              label: "GEN Male",
+              series: [{ series: "NDA", label: "NDA", colour: "#ff9933", cell: { value: 50, delta: null, trend: [], secondary: null, flags: [], base: null } }],
+            },
+            {
+              value: "gen_female",
+              label: "GEN Female",
+              series: [{ series: "NDA", label: "NDA", colour: "#ff9933", cell: { value: 55, delta: null, trend: [], secondary: null, flags: [], base: null } }],
+            },
+            {
+              value: "obc_male",
+              label: "OBC Male",
+              series: [{ series: "NDA", label: "NDA", colour: "#ff9933", cell: { value: 40, delta: null, trend: [], secondary: null, flags: [], base: null } }],
+            },
+            {
+              value: "obc_female",
+              label: "OBC Female",
+              series: [{ series: "NDA", label: "NDA", colour: "#ff9933", cell: { value: 45, delta: null, trend: [], secondary: null, flags: [], base: null } }],
+            },
+          ],
+        },
+      };
+
+      const slicers = [
+        { dimension: "category", label: "Category", options: ["All", "GEN", "OBC"], selected: "GEN" },
+        { dimension: "gender", label: "Gender", options: ["All", "Male", "Female"], selected: "Female" },
+      ];
+
+      stubApi(PLAN, { r1: { state: "done", done: 1, total: 1, result: gridResult, errors: {} } });
+      renderWithProviders(<Card template={gridTemplate} ctx={ctxA} slicers={slicers} />);
+
+      const table = await screen.findByRole("table");
+      // "GEN Female" should match both "GEN" and "Female"
+      expect(within(table).getByText("GEN Female")).toBeInTheDocument();
+      // Rows not matching both filters should be excluded
+      expect(within(table).queryByText("GEN Male")).not.toBeInTheDocument();
+      expect(within(table).queryByText("OBC Male")).not.toBeInTheDocument();
+      expect(within(table).queryByText("OBC Female")).not.toBeInTheDocument();
+    });
   });
 });
 

@@ -230,6 +230,36 @@ describe("applyPresentationRules", () => {
     expect(reordered.rows.map(r => r.key)).toEqual(["GEN", "OBC", "SC", "ST", "Muslim"]);
   });
 
+  it("resolves dictionary-shaped rowOrder by grid.rowDim", () => {
+    const grid: CellGrid = {
+      rows: [
+        { key: "ST", label: "ST", colour: null },
+        { key: "GEN", label: "GEN", colour: null },
+        { key: "SC", label: "SC", colour: null },
+        { key: "OBC", label: "OBC", colour: null },
+      ],
+      columns: [{ key: "NDA", label: "NDA", colour: null }],
+      cells: {
+        ST: { NDA: { cell: null, unit: "pct" } },
+        GEN: { NDA: { cell: null, unit: "pct" } },
+        SC: { NDA: { cell: null, unit: "pct" } },
+        OBC: { NDA: { cell: null, unit: "pct" } },
+      },
+      rowDim: "category",
+      columnDim: "party",
+    };
+
+    const rules: PresentationRules = {
+      rowOrder: {
+        category: ["GEN", "OBC", "SC", "ST"],
+        zone: ["North", "South", "East", "West"],
+      },
+    };
+
+    const reordered = applyPresentationRules(grid, rules);
+    expect(reordered.rows.map(r => r.key)).toEqual(["GEN", "OBC", "SC", "ST"]);
+  });
+
   it("handles null/undefined rules gracefully and returns unchanged grid", () => {
     const grid: CellGrid = {
       rows: [{ key: "GEN", label: "GEN", colour: null }],

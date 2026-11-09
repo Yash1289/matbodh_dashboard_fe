@@ -120,6 +120,7 @@ export function Card({
   }, [onFilterChange]);
 
   const status = run.status;
+  const isGrid = !template.body_adapter || template.body_adapter === "composite_grid";
   // A newly unavailable or failed selection never shows stale numbers or metadata beside its error.
   const errored = plan.isError || run.error !== null || status?.state === "failed";
   const shown = blocked || errored ? null : run.current ?? run.previous;
@@ -130,15 +131,22 @@ export function Card({
       presentationRules ?? template.presentationRules
     );
     const baseGrid = view.transposed ? transpose(g) : g;
-    const activeNonDefault = activeSlicers.find(
+    const nonDefaultSlicers = activeSlicers.filter(
       (s) => s.selected && s.selected !== "All" && s.selected !== "All Zones" && s.selected !== s.options[0]
     );
-    if (!activeNonDefault) return baseGrid;
-    const target = activeNonDefault.selected.toLowerCase();
-    const rows = baseGrid.rows.filter(
-      (r) => r.key.toLowerCase() === target || r.label.toLowerCase() === target || r.label.toLowerCase().includes(target)
-    );
-    return rows.length > 0 ? { ...baseGrid, rows } : baseGrid;
+    if (nonDefaultSlicers.length === 0) return baseGrid;
+
+    let rows = baseGrid.rows;
+    for (const slicer of nonDefaultSlicers) {
+      const target = slicer.selected.toLowerCase();
+      const filtered = rows.filter(
+        (r) => r.key.toLowerCase() === target || r.label.toLowerCase() === target || r.label.toLowerCase().includes(target)
+      );
+      if (filtered.length > 0) {
+        rows = filtered;
+      }
+    }
+    return { ...baseGrid, rows };
   }, [shown, view.lens, view.transposed, presentationRules, template, activeSlicers]);
 
   const handleInvestigate = useCallback((cohortOrItem: any) => {
@@ -284,6 +292,7 @@ export function Card({
               onRefresh={run.refresh}
               canExport={run.current !== null}
               availableLenses={template.lenses?.options}
+              isGrid={isGrid}
               onExport={() => run.current && downloadCsv(`${template.id}.csv`, toCsv(gridFor(run.current, view.lens ?? undefined), run.current.rounds))}
             />
           )}

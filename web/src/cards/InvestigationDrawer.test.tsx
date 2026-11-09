@@ -96,6 +96,9 @@ describe("InvestigationDrawer", () => {
     const copiedText = writeTextMock.mock.calls[0][0];
     expect(copiedText).toContain("Meerut Cantt");
     expect(copiedText).toContain("Aligarh City");
+
+    // Shows transient "Copied!" feedback
+    expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
   });
 
   it("handles export CSV", async () => {
