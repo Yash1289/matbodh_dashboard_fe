@@ -352,3 +352,16 @@ def test_matched_mode_with_no_common_seat_marks_seats_unavailable():
                      load_catalogue(make_query(rows, levels)), PRESET)
     assert "seats_ac" in dict(plan.unavailable)
     assert not any(j.part == "seats_ac" for j in plan.jobs)
+
+
+def test_matched_mode_on_ac_survey_marks_pc_seats_unavailable():
+    plan = _plan("pulse.party_scoreboard",
+                 _ctx([R1, R2], compare_round=R1, version_mode="matched"))
+    assert not any(j.part == "seats_pc" for j in plan.jobs)
+    assert [j.part for j in plan.jobs] == ["vote", "parties", "seats_ac"]
+    assert dict(plan.unavailable) == {
+        "seats_pc": "Matched seats for PC counts need AC-to-PC membership; not yet supported"}
+    assert all(p != "seats_pc" for p, _ in plan.not_asked)
+    # Extrapolated mode on the same survey still plans PC benchmarks.
+    extrap = _plan("pulse.party_scoreboard", _ctx([R1, R2], compare_round=R1))
+    assert any(j.part == "seats_pc" for j in extrap.jobs)

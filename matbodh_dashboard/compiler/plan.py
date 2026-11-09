@@ -26,6 +26,8 @@ from matbodh_dashboard.templates import CardTemplate
 
 VOTE_SCENARIO = "vs_voting_intention"
 SEATS_UNAVAILABLE = "Seat views need an AC or PC level survey"
+MATCHED_PC_UNAVAILABLE = ("Matched seats for PC counts need AC-to-PC membership; "
+                          "not yet supported")
 # The ungrouped twin of the vote job. The vote job applies other_grouping, so
 # the engine folds every party outside the keep list into Other; benchmark
 # summaries cover only listed contenders. Contenders, and the vote share of a
@@ -205,9 +207,15 @@ class _Planner:
     def scoreboard(self) -> None:
         ctx, preset = self.ctx, self.preset
         allowed = capabilities(ctx.level).seat_levels
-        seat_parts = [f"seats_{level}" for level in SEAT_LEVELS if level in allowed]
         if not allowed:  # zone/state surveys have no seat views at all
             self.unavailable += [(f"seats_{level}", SEATS_UNAVAILABLE) for level in SEAT_LEVELS]
+        if ctx.version_mode == "matched":
+            # Dataset seat ids are native to the collection level; matching
+            # seats at a coarser level needs a membership master we lack.
+            coarser = [level for level in SEAT_LEVELS if level in allowed and level != ctx.level]
+            self.unavailable += [(f"seats_{level}", MATCHED_PC_UNAVAILABLE) for level in coarser]
+            allowed = allowed - set(coarser)
+        seat_parts = [f"seats_{level}" for level in SEAT_LEVELS if level in allowed]
         asked = _asked(self.rounds, VOTE_SCENARIO)
         if not asked:
             reason = _not_asked_reason(VOTE_SCENARIO, self.rounds)

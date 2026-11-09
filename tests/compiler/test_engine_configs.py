@@ -70,7 +70,7 @@ def test_matched_mode_benchmarks_with_seat_ids_accepted():
     plan = _plan("pulse.party_scoreboard", version_mode="matched")
     ac = [j for j in plan.jobs if j.part == "seats_ac"]
     assert ac and ac[0].config["benchmark"]["seat_ids"]
-    assert _check(plan) == 4
+    assert _check(plan) == 3  # vote, parties, seats_ac; seats_pc is unavailable
 
 
 def test_pc_level_benchmark_accepted():
