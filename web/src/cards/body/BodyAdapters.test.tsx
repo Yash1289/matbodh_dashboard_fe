@@ -270,9 +270,10 @@ describe("Specialized Body Adapters", () => {
     });
 
     it("allows switching lenses using segmented control", async () => {
+      const onLensChange = vi.fn();
       render(
         <MantineProvider>
-          <TransitionMatrixBody data={data} />
+          <TransitionMatrixBody data={data} onLensChange={onLensChange} />
         </MantineProvider>
       );
 
@@ -284,6 +285,25 @@ describe("Specialized Body Adapters", () => {
       await userEvent.click(jointButton);
 
       // In joint_share, NDA->NDA is 32.0% -> 32%
+      expect(screen.getByText("32%")).toBeInTheDocument();
+      expect(onLensChange).toHaveBeenCalledWith("joint_share");
+    });
+
+    it("synchronizes when lens prop changes externally", () => {
+      const { rerender } = render(
+        <MantineProvider>
+          <TransitionMatrixBody data={data} lens="origin_share" />
+        </MantineProvider>
+      );
+
+      expect(screen.getByText("79%")).toBeInTheDocument();
+
+      rerender(
+        <MantineProvider>
+          <TransitionMatrixBody data={data} lens="joint_share" />
+        </MantineProvider>
+      );
+
       expect(screen.getByText("32%")).toBeInTheDocument();
     });
   });

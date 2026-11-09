@@ -1,5 +1,5 @@
 import { Group, SegmentedControl, Text } from "@mantine/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { TransitionMatrixResult } from "../../api/types";
 import { formatPercent } from "../../cells/format";
 import { tokens } from "../../theme";
@@ -7,6 +7,7 @@ import { tokens } from "../../theme";
 export interface TransitionMatrixBodyProps {
   data: TransitionMatrixResult;
   lens?: "origin_share" | "destination_share" | "joint_share";
+  onLensChange?: (lens: "origin_share" | "destination_share" | "joint_share") => void;
 }
 
 const BORDER = "1px solid var(--mb-border)";
@@ -24,11 +25,18 @@ const HEADER_CELL = {
 
 const normalizeLabel = (s: string) => s.replace(/\s*\(\d{4}\)/g, "").trim().toLowerCase();
 
-export function TransitionMatrixBody({ data, lens }: TransitionMatrixBodyProps) {
+export function TransitionMatrixBody({ data, lens, onLensChange }: TransitionMatrixBodyProps) {
   const [internalLens, setInternalLens] = useState<"origin_share" | "destination_share" | "joint_share">(
     lens ?? "origin_share"
   );
-  const activeLens = lens ?? internalLens;
+
+  useEffect(() => {
+    if (lens) {
+      setInternalLens(lens);
+    }
+  }, [lens]);
+
+  const activeLens = internalLens;
 
   const isNonVoter = (s: string) => /(did not vote|do not remember)/i.test(s);
 
@@ -45,7 +53,11 @@ export function TransitionMatrixBody({ data, lens }: TransitionMatrixBodyProps) 
         <SegmentedControl
           size="xs"
           value={activeLens}
-          onChange={(val) => setInternalLens(val as any)}
+          onChange={(val) => {
+            const next = val as "origin_share" | "destination_share" | "joint_share";
+            setInternalLens(next);
+            onLensChange?.(next);
+          }}
           data={[
             { label: "Flow Out (Origin %)", value: "origin_share" },
             { label: "Flow In (Destination %)", value: "destination_share" },
