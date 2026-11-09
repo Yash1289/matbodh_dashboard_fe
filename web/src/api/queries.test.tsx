@@ -7,7 +7,8 @@ import runScoreboard from "../test/fixtures/run_scoreboard_done.json";
 import runPartial from "../test/fixtures/run_scoreboard_partial.json";
 import states from "../test/fixtures/states.json";
 import templates from "../test/fixtures/templates_pulse.json";
-import { useCardRun, useStates, useTemplates } from "./queries";
+import { createQueryClient } from "../App";
+import { useCardPlan, useCardRun, useStates, useTemplates } from "./queries";
 import type { RunStatus, StateContext } from "./types";
 
 const asRun = (v: unknown) => v as RunStatus;
@@ -240,6 +241,46 @@ describe("useCardRun", () => {
     await tick(3000);
     expect(count(f, "GET", "/runs/rA")).toBe(0);
     expect(result.current.current).toBeNull();
+  });
+});
+
+describe("poll retries", () => {
+  it("one 502 on a poll is retried and the run recovers", async () => {
+    const f = stubFetch(runServer(["r1"], { r1: [[502, { detail: "bad gateway" }], [200, DONE]] }));
+    const { result } = renderHook(() => useCardRun(CARD, ctxA, true), { wrapper: wrapper() });
+    await waitFor(() => expect(count(f, "GET", "/runs/")).toBe(1));
+    expect(result.current.error).toBeNull();
+    await tick(1000);
+    await waitFor(() => expect(result.current.status?.state).toBe("done"));
+    expect(result.current.error).toBeNull();
+    expect(count(f, "GET", "/runs/")).toBe(2);
+  });
+});
+
+describe("app query client defaults", () => {
+  const appWrapper = () => {
+    const client = createQueryClient();
+    return ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  };
+
+  it("a 422 on the plan is requested exactly once", async () => {
+    const f = stubFetch(() => [422, { detail: "bad context" }]);
+    const { result } = renderHook(() => useCardPlan(CARD, ctxA), { wrapper: appWrapper() });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    await tick(15000);
+    expect(count(f, "POST", "/cards/plan")).toBe(1);
+  });
+
+  it("the plan is not refetched on focus", async () => {
+    const f = stubFetch(() => [200, { rounds: [], unavailable: [], coverage_mode: {} }]);
+    const { result } = renderHook(() => useCardPlan(CARD, ctxA), { wrapper: appWrapper() });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    });
+    await tick(1000);
+    expect(count(f, "POST", "/cards/plan")).toBe(1);
   });
 });
 

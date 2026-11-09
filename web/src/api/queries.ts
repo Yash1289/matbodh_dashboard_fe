@@ -5,6 +5,9 @@ import type { CardResult, RunStatus, StateContext, SurveysResponse, Template } f
 
 const POLL_MS = 1500;
 
+/** Exponential retry delay: 1 s, 2 s, 4 s, capped at 5 s. */
+export const backoff = (attempt: number): number => Math.min(1000 * 2 ** attempt, 5000);
+
 export const useStates = () =>
   useQuery({
     queryKey: ["states"],
@@ -82,7 +85,9 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
     queryKey: ["run", runId, active?.seq ?? 0],
     queryFn: () => getRun(runId as string),
     enabled: runId !== null,
-    retry: false,
+    // Infrastructure blips retry; a 404 (evicted run) restarts the run instead, with no retry.
+    retry: (n, e) => e instanceof ApiError && (e.status >= 500 || e.status === 0) && n < 3,
+    retryDelay: backoff,
     // A finished run never changes; focus/reconnect refetches could 404 on an evicted run.
     staleTime: Infinity,
     refetchInterval: (q) => (q.state.status !== "error" && q.state.data?.state === "running" ? POLL_MS : false),
