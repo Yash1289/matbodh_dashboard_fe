@@ -8,5 +8,5 @@ afterEach(() => vi.unstubAllGlobals());
 test("renders the product name", () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ states: [] }))));
   render(<App />);
-  expect(screen.getByText("MatBodh Dashboard")).toBeInTheDocument();
+  expect(screen.getByText("MatBodh")).toBeInTheDocument();
 });

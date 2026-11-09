@@ -53,7 +53,7 @@ describe("ContextBar", () => {
       return <button type="button" onClick={() => navigate("/")}>clear url</button>;
     }
     renderWithProviders(<><ContextBar /><Clear /></>, { route: URL_CTX });
-    await screen.findByRole("button", { name: "Edit" });
+    await screen.findByRole("button", { name: "Edit context" });
     expect(screen.queryByText("Choose a state, survey level and rounds to begin.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "clear url" }));
     expect(await screen.findByText("Choose a state, survey level and rounds to begin.")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("ContextBar", () => {
     stubApi();
     const user = userEvent.setup();
     renderBar(URL_CTX);
-    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("button", { name: "Edit context" }));
     await user.click(await screen.findByRole("textbox", { name: "Compare" }));
     // Anchor defaults to the last selected round (R2), so only R1 is offered.
     expect(await screen.findByRole("option", { name: R1 })).toBeInTheDocument();
@@ -126,14 +126,14 @@ describe("ContextBar", () => {
         anchor_round: null, version_mode: "extrapolated", geo_scope: "state",
       });
     });
-    expect(await screen.findByText(/Uttar Pradesh · AC level · .* R1–R2 · No Δ · Extrapolated · Geo: whole state/)).toBeInTheDocument();
+    expect(await screen.findByTestId("context-pill")).toHaveTextContent(/Uttar Pradesh · AC level · .* R1–R2 · No Δ · Extrapolated · Geo: whole state/);
   });
 
   it("shows the lead card plan error verbatim", async () => {
     stubApi({ planResponse: json({ errors: ["compare round is not selected"] }, 422) });
     const user = userEvent.setup();
     renderBar(URL_CTX);
-    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("button", { name: "Edit context" }));
     expect(await screen.findByText("compare round is not selected")).toBeInTheDocument();
   });
 
@@ -172,7 +172,7 @@ describe("ContextBar", () => {
     stubApi();
     const user = userEvent.setup();
     renderBar(`/?state=Uttar+Pradesh&level=ac&rounds=${encodeURIComponent(R1)}&rounds=${encodeURIComponent(R2)}${extra}`);
-    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("button", { name: "Edit context" }));
     await user.click(await screen.findByRole("checkbox", { name: "R1" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     await waitFor(() => {

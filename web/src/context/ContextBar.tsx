@@ -1,8 +1,9 @@
 import { Badge, Button, Checkbox, Group, Paper, SegmentedControl, Select, Stack, Text } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { useCardPlan, useStates, useSurveys } from "../api/queries";
 import type { Level, StateContext, SurveyRound, SurveyVersion } from "../api/types";
+import { tokens } from "../theme";
 import { contextSummary } from "./summary";
 import { useDashboardContext } from "./urlContext";
 
@@ -19,6 +20,16 @@ const hasVersions = (level: Level) => level === "ac" || level === "pc";
 function fieldwork(round: SurveyRound): string | null {
   const v: SurveyVersion | undefined = Object.values(round.versions).find((x) => x.start_date && x.end_date);
   return v ? `${v.start_date} – ${v.end_date}` : null;
+}
+
+/** Summary text with muted separators; the text content stays identical to the summary. */
+function pillParts(summary: string) {
+  return summary.split(" · ").map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && <span style={{ color: "var(--mb-muted)" }}> · </span>}
+      <span>{part}</span>
+    </Fragment>
+  ));
 }
 
 export function ContextBar() {
@@ -68,13 +79,29 @@ export function ContextBar() {
   const planError = plan.error instanceof ApiError ? (plan.error.errors.join("; ") || plan.error.message) : null;
 
   return (
-    <Paper withBorder p="sm" radius="md">
-      <Group justify="space-between">
-        <Text>{ctx && ctxSurveys.data ? contextSummary(ctx, ctxSurveys.data) : ctx ? "Loading context…" : "No context chosen"}</Text>
-        {ctx && <Button variant="default" size="xs" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Edit"}</Button>}
+    <>
+      <Group justify="space-between" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+        <div
+          data-testid="context-pill"
+          style={{
+            background: "var(--mb-header-bg)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.pill,
+            padding: "6px 12px", fontSize: tokens.font.pill, minWidth: 0,
+          }}
+        >
+          {ctx && ctxSurveys.data ? pillParts(contextSummary(ctx, ctxSurveys.data)) : ctx ? "Loading context…" : "No context chosen"}
+        </div>
+        {ctx && (
+          <Button size="sm" fz={tokens.font.button} fw={600} onClick={() => setOpen((o) => !o)}>
+            {open ? "Close" : "Edit context"}
+          </Button>
+        )}
       </Group>
       {(open || ctx === null) && (
-        <Stack mt="sm" gap="sm">
+        <Paper
+          radius={0} p="md" shadow="md"
+          style={{ position: "absolute", top: "100%", left: 0, right: 0, maxHeight: "80vh", overflowY: "auto", zIndex: 300, borderBottom: "1px solid var(--mb-border)" }}
+        >
+        <Stack gap="sm">
           {ctx === null && <Text fw={500}>{PROMPT}</Text>}
           {planError && <Text c="red" role="alert">{planError}</Text>}
           <Select
@@ -141,7 +168,8 @@ export function ContextBar() {
             <Button disabled={!canApply} onClick={() => { setCtx({ ...draft, geo_scope: "state" }); setOpen(false); }}>Apply</Button>
           </Group>
         </Stack>
+        </Paper>
       )}
-    </Paper>
+    </>
   );
 }

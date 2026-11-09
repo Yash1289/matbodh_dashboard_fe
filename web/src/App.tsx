@@ -6,6 +6,7 @@ import { backoff } from "./api/queries";
 import { ComingLater } from "./pages/ComingLater";
 import { StatePulse } from "./pages/StatePulse";
 import { NAV, Shell } from "./shell/AppShell";
+import { cssVariablesResolver, theme } from "./theme";
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
@@ -33,7 +34,7 @@ export function AppRoutes() {
         <Route path="/pulse" element={<StatePulse />} />
         {NAV.filter((n) => n.path !== "/pulse").map((n) => (
           <Route key={n.path} path={n.path}
-            element={<ComingLater section={n.label} phase={n.path === "/my-cards" || n.path === "/builder" ? 3 : 2} />} />
+            element={<ComingLater section={n.title} phase={n.path === "/my-cards" || n.path === "/builder" ? 3 : 2} />} />
         ))}
         <Route path="*" element={<ToPulse />} />
       </Route>
@@ -45,7 +46,7 @@ const queryClient = createQueryClient();
 
 export function App() {
   return (
-    <MantineProvider>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AppRoutes />

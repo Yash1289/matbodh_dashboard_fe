@@ -1,4 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App";
 import planJson from "../test/fixtures/plan_scoreboard.json";
@@ -93,5 +95,31 @@ describe("State Pulse", () => {
     stubApi([]);
     renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
     expect(await screen.findByText("No cards are available for this section.")).toBeInTheDocument();
+  });
+
+  it("page header names the page", async () => {
+    stubApi();
+    renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
+    expect(await screen.findByRole("heading", { level: 1, name: "State Pulse" })).toBeInTheDocument();
+    expect(screen.getByText("Where does each party stand right now, and how has that moved across rounds?")).toBeInTheDocument();
+  });
+
+  it("coverage strip lists the rounds and toggles matched", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    function Probe() {
+      return <div data-testid="search">{useLocation().search}</div>;
+    }
+    renderWithProviders(<><AppRoutes /><Probe /></>, { route: `/pulse${CONTEXT}` });
+    expect(await screen.findByText("R1: 380 seats · Normal (no Extrapolated version)")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Matched seats only" }));
+    await waitFor(() => expect(screen.getByTestId("search").textContent).toContain("version=matched"));
+  });
+
+  it("coverage strip is hidden at state level", async () => {
+    stubApi();
+    renderWithProviders(<AppRoutes />, { route: "/pulse?state=Uttar+Pradesh&level=state&rounds=2027+VS+CAPI+R1" });
+    await screen.findByRole("heading", { level: 1, name: "State Pulse" });
+    expect(screen.queryByText("Applies to seat cards only")).not.toBeInTheDocument();
   });
 });
