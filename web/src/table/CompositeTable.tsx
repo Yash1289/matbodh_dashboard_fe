@@ -21,6 +21,12 @@ function nextSort(current: SortSpec | null, column: string): SortSpec | null {
   return current.dir === "desc" ? { column, part: "value", dir: "asc" } : null;
 }
 
+// Reset the look but keep the browser's focus-visible ring (no `all: unset`).
+const BUTTON_STYLE = { background: "none", border: 0, padding: 0, font: "inherit", color: "inherit", textAlign: "inherit", cursor: "pointer" } as const;
+
+const ariaSort = (sort: SortSpec | null, column: string) =>
+  sort?.column === column && sort.part === "value" ? (sort.dir === "desc" ? "descending" : "ascending") : "none";
+
 const Swatch = ({ colour }: { colour: string | null }) =>
   colour === null ? null : <span aria-hidden style={{ background: colour, display: "inline-block", width: 10, height: 10, marginRight: 6 }} />;
 
@@ -47,7 +53,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
         col.display({
           id: c.key,
           header: () => (
-            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={{ all: "unset", cursor: "pointer" }}>
+            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={BUTTON_STYLE}>
               <Swatch colour={c.colour} />
               {c.label}
               {sort?.column === c.key && sort.part === "value" ? (sort.dir === "desc" ? " ↓" : " ↑") : ""}
@@ -74,7 +80,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} scope="col">{flexRender(h.column.columnDef.header, h.getContext())}</th>
+                <th key={h.id} scope="col" aria-sort={h.column.id === "__row" ? undefined : ariaSort(sort, h.column.id)}>{flexRender(h.column.columnDef.header, h.getContext())}</th>
               ))}
             </tr>
           ))}

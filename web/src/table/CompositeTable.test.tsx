@@ -74,6 +74,19 @@ describe("CompositeTable", () => {
     expect(onSort).toHaveBeenLastCalledWith(null);
   });
 
+  it("sortable headers expose aria-sort", () => {
+    const sorts = [null, { column: "vote", part: "value", dir: "desc" }, { column: "vote", part: "value", dir: "asc" }] as const;
+    const expected = ["none", "descending", "ascending"];
+    sorts.forEach((sort, i) => {
+      const { unmount } = show(done, ["value"], { sort });
+      const th = screen.getByRole("button", { name: /Vote share/ }).closest("th")!;
+      expect(th.getAttribute("aria-sort")).toBe(expected[i]);
+      expect(screen.getByRole("button", { name: /Seats AC/ }).closest("th")!.getAttribute("aria-sort")).toBe("none");
+      expect(screen.getAllByRole("columnheader")[0].hasAttribute("aria-sort")).toBe(false);
+      unmount();
+    });
+  });
+
   it("sorts rows from sort prop and shows legend only with a rule", () => {
     const { container } = show(done, ["value"], { sort: { column: "vote", part: "value", dir: "asc" }, rule: { kind: "heat", within: "column" } });
     const names = [...container.querySelectorAll("tbody th")].map((t) => t.textContent);
