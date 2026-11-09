@@ -9,7 +9,7 @@ export function renderWithProviders(ui: ReactElement, { route = "/" }: { route?:
   return render(
     <MantineProvider>
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
+        <MemoryRouter initialEntries={[route]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
       </QueryClientProvider>
     </MantineProvider>,
   );

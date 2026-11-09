@@ -1,0 +1,124 @@
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SurveysResponse } from "../api/types";
+import plan from "../test/fixtures/plan_scoreboard.json";
+import states from "../test/fixtures/states.json";
+import surveysJson from "../test/fixtures/surveys.json";
+import { renderWithProviders } from "../test/render";
+import { ContextBar } from "./ContextBar";
+import { parseContext } from "./urlContext";
+import { useLocation } from "react-router-dom";
+
+const surveys = surveysJson as unknown as SurveysResponse;
+const R1 = "2027 VS CAPI R1";
+const R2 = "2027 VS CAPI R2";
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+function stubApi(opts: { surveys?: SurveysResponse; planResponse?: Response } = {}) {
+  const fetchMock = vi.fn((url: string) => {
+    if (url.endsWith("/catalogue/states")) return Promise.resolve(json(states));
+    if (url.endsWith("/surveys")) return Promise.resolve(json(opts.surveys ?? surveys));
+    if (url.endsWith("/cards/plan")) return Promise.resolve(opts.planResponse ?? json(plan));
+    return Promise.reject(new Error(`unexpected ${url}`));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+function Probe() {
+  return <div data-testid="search">{useLocation().search}</div>;
+}
+const renderBar = (route = "/") => renderWithProviders(<><ContextBar /><Probe /></>, { route });
+const URL_CTX = `/?state=Uttar+Pradesh&level=ac&rounds=${encodeURIComponent(R1)}&rounds=${encodeURIComponent(R2)}&compare=${encodeURIComponent(R1)}`;
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe("ContextBar", () => {
+  it("empty URL opens editor with prompt", async () => {
+    const fetchMock = stubApi();
+    renderBar();
+    expect(await screen.findByText("Choose a state, survey level and rounds to begin.")).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "AC" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/cards/run"))).toBe(false);
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+  });
+
+  it("level options come from the catalogue", async () => {
+    stubApi();
+    renderBar();
+    expect(await screen.findByRole("radio", { name: "AC" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "ZONE" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "PC" })).not.toBeInTheDocument();
+  });
+
+  it("changing level clears rounds", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(await screen.findByRole("radio", { name: "AC" }));
+    await user.click(await screen.findByRole("checkbox", { name: "R1" }));
+    expect(screen.getByRole("checkbox", { name: "R1" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: "ZONE" }));
+    expect(await screen.findByText("Normal only")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "R1" })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+  });
+
+  it("compare cannot be the anchor", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderBar(URL_CTX);
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("textbox", { name: "Compare" }));
+    // Anchor defaults to the last selected round (R2), so only R1 is offered.
+    expect(await screen.findByRole("option", { name: R1 })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: R2 })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "None" })).toBeInTheDocument();
+  });
+
+  it("mixed series is labelled", async () => {
+    const first = surveys.levels.ac![0];
+    const other = {
+      ...first, series: "CATI", group: "2027 VS · CATI",
+      rounds: first.rounds.map((r) => ({ ...r, base_name: r.base_name.replace("CAPI", "CATI") })),
+    };
+    stubApi({ surveys: { ...surveys, levels: { ...surveys.levels, ac: [first, other] } } });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(await screen.findByRole("radio", { name: "AC" }));
+    const boxes = await screen.findAllByRole("checkbox", { name: "R1" });
+    expect(screen.queryByText("Different survey series")).not.toBeInTheDocument();
+    await user.click(boxes[0]);
+    await user.click(boxes[1]);
+    expect(await screen.findByText("Different survey series")).toBeInTheDocument();
+  });
+
+  it("apply writes the URL", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(await screen.findByRole("radio", { name: "AC" }));
+    await user.click(await screen.findByRole("checkbox", { name: "R1" }));
+    await user.click(screen.getByRole("checkbox", { name: "R2" }));
+    expect(screen.getByTestId("search").textContent).toBe("");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => {
+      const ctx = parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""));
+      expect(ctx).toEqual({
+        state: "Uttar Pradesh", level: "ac", rounds: [R1, R2], compare_round: null,
+        anchor_round: null, version_mode: "extrapolated", geo_scope: "state",
+      });
+    });
+    expect(await screen.findByText(/Uttar Pradesh · AC level · .* R1–R2 · No Δ · Extrapolated · Geo: whole state/)).toBeInTheDocument();
+  });
+
+  it("shows the lead card plan error verbatim", async () => {
+    stubApi({ planResponse: json({ errors: ["compare round is not selected"] }, 422) });
+    const user = userEvent.setup();
+    renderBar(URL_CTX);
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    expect(await screen.findByText("compare round is not selected")).toBeInTheDocument();
+  });
+});
