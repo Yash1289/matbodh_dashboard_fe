@@ -33,7 +33,7 @@ export function MethodDrawer({ result, plan, errors }: Props) {
       {errs.length > 0 && <Title order={5}>Errors</Title>}
       {errs.map(([part, e]) => (
         <Text key={part} size="sm">
-          {partLabel(part, result)}: {e.kind} · fingerprint {e.fingerprint ?? "—"}
+          {partLabel(part, result)}: {e.kind} · {e.message} · fingerprint {e.fingerprint ?? "—"}
         </Text>
       ))}
     </Stack>

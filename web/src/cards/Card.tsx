@@ -52,8 +52,10 @@ export function Card({ template, ctx }: Props) {
   const onView = useCallback((patch: Partial<View>) => setView((v) => ({ ...v, ...patch })), []);
   const onSort = useCallback((sort: SortSpec | null) => onView({ sort }), [onView]);
 
-  // A newly unavailable selection never shows stale numbers.
-  const shown = blocked ? null : run.current ?? run.previous;
+  const status = run.status;
+  // A newly unavailable or failed selection never shows stale numbers or metadata beside its error.
+  const errored = plan.isError || run.error !== null || status?.state === "failed";
+  const shown = blocked || errored ? null : run.current ?? run.previous;
   const grid = useMemo(() => {
     if (shown === null) return null;
     const g = gridFor(shown);
@@ -66,7 +68,6 @@ export function Card({ template, ctx }: Props) {
     <CompositeTable grid={grid} parts={partsFor(view.preset, view.density, template.cell)}
       rounds={result.rounds} rule={ruleOf(view)} sort={view.sort} onSort={onSort} />
   );
-  const status = run.status;
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
 
   const previous = run.previous && !blocked && (
@@ -115,7 +116,7 @@ export function Card({ template, ctx }: Props) {
     );
   }
 
-  const items = shown?.rounds.items ?? plan.data?.rounds ?? [];
+  const items = errored ? [] : shown?.rounds.items ?? plan.data?.rounds ?? [];
   const roundsTitle = items
     .map((r) => `${r.base_name} · ${r.version}${r.fallback ? " (no Extrapolated version)" : ""} · ${r.seats} seats · ${r.dataset_id}`)
     .join("\n");

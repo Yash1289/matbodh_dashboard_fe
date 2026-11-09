@@ -235,6 +235,59 @@ describe("Card", () => {
     expect(document.querySelector("[aria-busy='true']")).toBeNull();
   });
 
+  describe("error for a new context never sits beside the previous context's metadata", () => {
+    const FAILED: RunStatus = {
+      ...PARTIAL, state: "failed", result: null,
+      errors: { vote: { kind: "too_heavy", message: "Pick fewer rounds", fingerprint: null, jobs: ["vote"] } },
+    };
+    async function switchToBroken(breakOn: "plan" | "run" | "none", runs: Record<string, RunStatus>) {
+      const user = userEvent.setup();
+      const f = stubApi(PLAN, runs);
+      const ok = f.getMockImplementation()!;
+      let broken = false;
+      f.mockImplementation(async (input, init) => {
+        const path = String(input).replace(/^\/api/, "");
+        const hit = broken && breakOn !== "none" && init?.method === "POST" && path === (breakOn === "plan" ? "/cards/plan" : "/cards/run");
+        return hit ? new Response(JSON.stringify({ detail: "engine down" }), { status: breakOn === "plan" ? 422 : 500 }) : ok(input, init);
+      });
+      function Harness() {
+        const [ctx, setCtx] = useState(ctxA);
+        return (
+          <>
+            <button type="button" onClick={() => { broken = true; setCtx(ctxB); }}>switch</button>
+            <Card template={SCOREBOARD} ctx={ctx} />
+          </>
+        );
+      }
+      renderWithProviders(<Harness />);
+      await screen.findByRole("table");
+      expect(screen.getByText("2 rounds")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "switch" }));
+    }
+    const expectBare = () => {
+      expect(screen.queryByText(/\d+ rounds$/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "⋯" })).not.toBeInTheDocument();
+    };
+
+    it("plan error", async () => {
+      await switchToBroken("plan", { r1: DONE });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expectBare();
+    });
+
+    it("run start error", async () => {
+      await switchToBroken("run", { r1: DONE });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expectBare();
+    });
+
+    it("failed status", async () => {
+      await switchToBroken("none", { r1: DONE, r2: FAILED });
+      expect(await screen.findByText(/This cut is too heavy/)).toBeInTheDocument();
+      expectBare();
+    });
+  });
+
   it("partly unavailable card runs and notes the missing part", async () => {
     const reason = "Gender gap needs the 'gender' field in every included round";
     const unavailable = [{ part: "gender_gap", reason }];
@@ -261,6 +314,7 @@ describe("MethodDrawer", () => {
     expect(text).toContain("common_positive_eligible_seats_full_constituents");
     expect(text).toContain("Seats PC: config");
     expect(text).toContain(PARTIAL.errors.seats_pc.fingerprint!);
+    expect(text).toContain("pc boom");
   });
 
   it("works with no result", () => {
