@@ -79,7 +79,11 @@ export function ContextBar() {
           {planError && <Text c="red" role="alert">{planError}</Text>}
           <Select
             label="State" data={states.data ?? []} value={draft.state || null}
-            onChange={(v) => v && setDraft({ ...EMPTY, state: v })}
+            onChange={(v) => {
+              if (!v) return;
+              setLevelChosen(false);
+              setDraft({ ...EMPTY, state: v });
+            }}
             error={states.isError ? "Cannot load states" : undefined}
           />
           {draft.state && (
@@ -105,7 +109,7 @@ export function ContextBar() {
                   {(Object.keys(r.versions) as (keyof typeof VERSION_LABEL)[]).map((k) => (
                     <Group key={k} gap={4}>
                       <Badge variant="light">{VERSION_LABEL[k]}</Badge>
-                      <Text size="xs" c="dimmed">{r.versions[k]?.seats} seats</Text>
+                      {typeof r.versions[k]?.seats === "number" && <Text size="xs" c="dimmed">{r.versions[k]?.seats} seats</Text>}
                     </Group>
                   ))}
                   {fieldwork(r) && <Text size="xs" c="dimmed">{fieldwork(r)}</Text>}

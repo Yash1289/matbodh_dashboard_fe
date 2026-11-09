@@ -16,9 +16,9 @@ const R2 = "2027 VS CAPI R2";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-function stubApi(opts: { surveys?: SurveysResponse; planResponse?: Response } = {}) {
+function stubApi(opts: { surveys?: SurveysResponse; planResponse?: Response; states?: string[] } = {}) {
   const fetchMock = vi.fn((url: string) => {
-    if (url.endsWith("/catalogue/states")) return Promise.resolve(json(states));
+    if (url.endsWith("/catalogue/states")) return Promise.resolve(json(opts.states ? { states: opts.states } : states));
     if (url.endsWith("/surveys")) return Promise.resolve(json(opts.surveys ?? surveys));
     if (url.endsWith("/cards/plan")) return Promise.resolve(opts.planResponse ?? json(plan));
     return Promise.reject(new Error(`unexpected ${url}`));
@@ -120,5 +120,50 @@ describe("ContextBar", () => {
     renderBar(URL_CTX);
     await user.click(await screen.findByRole("button", { name: "Edit" }));
     expect(await screen.findByText("compare round is not selected")).toBeInTheDocument();
+  });
+
+  it("changing state clears the level choice", async () => {
+    stubApi({ states: ["Uttar Pradesh", "Bihar"] });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(await screen.findByRole("textbox", { name: "State" }));
+    await user.click(await screen.findByRole("option", { name: "Uttar Pradesh" }));
+    await user.click(await screen.findByRole("radio", { name: "AC" }));
+    expect(await screen.findByRole("checkbox", { name: "R1" })).toBeInTheDocument();
+    await user.click(screen.getByRole("textbox", { name: "State" }));
+    await user.click(await screen.findByRole("option", { name: "Bihar" }));
+    expect(await screen.findByRole("radio", { name: "AC" })).not.toBeChecked();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("omits seats when a version has none", async () => {
+    const first = surveys.levels.ac![0];
+    const rounds = first.rounds.map((r) => ({
+      ...r,
+      versions: Object.fromEntries(Object.entries(r.versions).map(([k, v]) => [k, { ...v, seats: undefined }])),
+    }));
+    stubApi({ surveys: { ...surveys, levels: { ac: [{ ...first, rounds }] } } as unknown as SurveysResponse });
+    const user = userEvent.setup();
+    renderBar();
+    await user.click(await screen.findByRole("radio", { name: "AC" }));
+    expect(await screen.findByRole("checkbox", { name: "R1" })).toBeInTheDocument();
+    expect(screen.queryByText(/undefined seats|d+ seats/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["compare", `&compare=${encodeURIComponent(R1)}`, "compare_round"],
+    ["anchor", `&anchor=${encodeURIComponent(R1)}`, "anchor_round"],
+  ] as const)("deselecting the %s round leaves no dangling value", async (_n, extra, key) => {
+    stubApi();
+    const user = userEvent.setup();
+    renderBar(`/?state=Uttar+Pradesh&level=ac&rounds=${encodeURIComponent(R1)}&rounds=${encodeURIComponent(R2)}${extra}`);
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("checkbox", { name: "R1" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => {
+      const ctx = parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""));
+      expect(ctx?.rounds).toEqual([R2]);
+      expect(ctx?.[key]).toBeNull();
+    });
   });
 });
