@@ -55,7 +55,7 @@ describe("urlContext", () => {
 
   it("useDashboardContext pushes history entries", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <MemoryRouter initialEntries={["/?state=UP&level=ac&rounds=R1"]}>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={["/?state=UP&level=ac&rounds=R1"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{children}</MemoryRouter>
     );
     const { result } = renderHook(
       () => ({ dash: useDashboardContext(), loc: useLocation() }),
