@@ -147,7 +147,7 @@ describe("ContextBar", () => {
     renderBar();
     await user.click(await screen.findByRole("radio", { name: "AC" }));
     expect(await screen.findByRole("checkbox", { name: "R1" })).toBeInTheDocument();
-    expect(screen.queryByText(/undefined seats|d+ seats/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^(undefined|d+) seats$/)).not.toBeInTheDocument();
   });
 
   it.each([
