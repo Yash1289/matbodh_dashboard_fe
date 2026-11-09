@@ -75,6 +75,7 @@ export interface RankedItem {
   kind?: "difference" | "shakti" | string;
   secondary?: string | null;
   tags?: string[];
+  colour?: string | null;
 }
 
 export interface RankedPartition {
