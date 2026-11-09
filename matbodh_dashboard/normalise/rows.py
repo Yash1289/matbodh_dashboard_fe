@@ -99,6 +99,19 @@ def from_analysis(result: dict, state: str) -> list[NormalRow]:
                         r.get("weighted_denominator"), scenario=r.get("scenario_id"),
                         grouping_set_id=r.get("grouping_set_id")))
 
+        for measure, unit in (
+            ("contribution_share", "pct"),
+            ("size_of_impact_pp", "pp"),
+            ("composition_share", "pct"),
+        ):
+            val = r.get(measure)
+            if val is not None:
+                out.append(_row(state, r["observation_id"], measure, _series(r),
+                                r.get("dimensions"), val, unit,
+                                r.get("weighted_denominator"),
+                                scenario=r.get("scenario_id"),
+                                grouping_set_id=r.get("grouping_set_id")))
+
     for c in result.get("comparisons") or ():
         measure = _DELTA_MEASURES.get(c.get("measure", "support_share"))
         if measure is None:

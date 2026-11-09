@@ -393,13 +393,47 @@ class CardRunService:
         series_order = self.rules.order(_PARTY, series, states=states)
         hidden = (self.rules.hidden_count(row_dim, named, states=states)
                   + self.rules.hidden_count(_PARTY, series, states=states))
+
+        lenses_cfg = getattr(template, "lenses", None)
+        lenses_options = None
+        if lenses_cfg is not None:
+            if isinstance(lenses_cfg, dict):
+                lenses_options = lenses_cfg.get("options")
+            else:
+                lenses_options = getattr(lenses_cfg, "options", None)
+
+        cells_by_lens: dict[str, dict[tuple[str, str], Cell]] = {}
+        if lenses_options:
+            for lens in lenses_options:
+                if lens == "support_share":
+                    cells_by_lens[lens] = cells
+                else:
+                    cells_by_lens[lens] = build_grid(
+                        rows, row_dim=row_dim, round_ids=round_ids, anchor=anchor,
+                        compare=compare, measure=lens, failed=failed
+                    )
+
         grid_rows = []
         for v in value_order:
+            series_items = []
+            for s in series_order:
+                if (v, s) not in cells:
+                    continue
+                item = {
+                    **self._series(_PARTY, s, state),
+                    "cell": _cell(cells[(v, s)]),
+                }
+                if lenses_options:
+                    item["lenses"] = {
+                        m: _cell(cells_by_lens[m][(v, s)])
+                        for m in lenses_options
+                        if (v, s) in cells_by_lens.get(m, {})
+                    }
+                series_items.append(item)
             grid_rows.append({
                 "value": v,
                 "label": self.rules.label(row_dim, v, state) if v is not None else None,
-                "series": [{**self._series(_PARTY, s, state), "cell": _cell(cells[(v, s)])}
-                           for s in series_order if (v, s) in cells],
+                "series": series_items,
             })
         return {"row_dim": row_dim, "rows": grid_rows}, hidden
 
