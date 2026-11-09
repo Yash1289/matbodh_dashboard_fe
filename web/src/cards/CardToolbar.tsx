@@ -14,6 +14,7 @@ export interface View {
   format: FormatRule["kind"];
   within: Within;
   sort: SortSpec | null;
+  lens?: string | null;
 }
 
 export const ruleOf = (v: View): FormatRule => (v.format === "none" ? { kind: "none" } : { kind: v.format, within: v.within });
@@ -29,6 +30,7 @@ interface Props {
   onExport: () => void;
   canExport: boolean;
   onRefresh: () => void;
+  availableLenses?: string[];
 }
 
 const PRESETS = [
@@ -40,7 +42,17 @@ const FORMATS = [{ value: "none", label: "None" }, { value: "heat", label: "Heat
 // Default "column": a scoreboard mixes pct and seats columns, which must not share one scale.
 const SCOPES = [{ value: "column", label: "Within column" }, { value: "row", label: "Within row" }, { value: "table", label: "Within all columns" }];
 
-const chipStyle = (selected: boolean): CSSProperties => ({
+export const LENS_LABELS: Record<string, string> = {
+  support_share: "Support %",
+  contribution_share: "Contribution %",
+  size_of_impact_pp: "Net Impact (pp)",
+  composition_share: "Composition %",
+  net_score: "Net Score",
+  positive_share: "Gross Sat %",
+  negative_share: "Gross Dis %",
+};
+
+export const chipStyle = (selected: boolean): CSSProperties => ({
   background: selected ? "var(--mb-primary-soft)" : "var(--mb-surface)",
   border: `1px solid ${selected ? "var(--mb-primary)" : "var(--mb-chip-border)"}`,
   borderRadius: tokens.radius.chip,
@@ -52,9 +64,9 @@ const chipStyle = (selected: boolean): CSSProperties => ({
 });
 
 /** A chip that opens its controls in a popover. */
-function PopoverChip({ label, selected, children }: { label: string; selected: boolean; children: ReactNode }) {
+export function PopoverChip({ label, selected, children }: { label: string; selected: boolean; children: ReactNode }) {
   return (
-    <Popover position="bottom-start" shadow="md" withinPortal>
+    <Popover position="bottom-start" shadow="md" withinPortal transitionProps={{ duration: 0 }}>
       <Popover.Target>
         <UnstyledButton style={chipStyle(selected)}>{label}</UnstyledButton>
       </Popover.Target>
@@ -66,7 +78,7 @@ function PopoverChip({ label, selected, children }: { label: string; selected: b
 const labelOf = (options: { value: string; label: string }[], value: string) => options.find((o) => o.value === value)?.label ?? value;
 
 /** Display-only controls: none of them triggers a request. */
-export function CardToolbar({ view, onView, initial, canSort, columns, onMethod, onExport, canExport, onRefresh }: Props) {
+export function CardToolbar({ view, onView, initial, canSort, columns, onMethod, onExport, canExport, onRefresh, availableLenses }: Props) {
   const sortValue = view.sort?.part === "delta" ? `${view.sort.dir}:${view.sort.column}` : "";
   const sortOptions = [
     { value: "", label: "No Δ sort" },
@@ -82,6 +94,20 @@ export function CardToolbar({ view, onView, initial, canSort, columns, onMethod,
 
   return (
     <Group gap={8} wrap="wrap" justify="flex-end">
+      {availableLenses && availableLenses.length > 1 && (
+        <PopoverChip
+          label={`Lens: ${LENS_LABELS[view.lens ?? "support_share"] ?? view.lens} ▾`}
+          selected={Boolean(view.lens && view.lens !== initial.lens && view.lens !== "support_share")}
+        >
+          <SegmentedControl
+            size="xs"
+            aria-label="View Lens"
+            data={availableLenses.map((l) => ({ value: l, label: LENS_LABELS[l] ?? l }))}
+            value={view.lens ?? "support_share"}
+            onChange={(v) => onView({ lens: v })}
+          />
+        </PopoverChip>
+      )}
       <PopoverChip label={`Cell: ${labelOf(PRESETS, view.preset)} ▾`} selected={view.preset !== initial.preset}>
         <SegmentedControl size="xs" aria-label="Show" data={PRESETS} value={view.preset}
           onChange={(v) => onView({ preset: v as ShowPreset })} />
