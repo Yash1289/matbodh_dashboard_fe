@@ -35,7 +35,8 @@ def test_fixture_set_covers_card_states(tmp_path):
     assert data["plan_by_zone_state_level"]["unavailable"]
     rows = data["run_scoreboard_within_other"]["result"]["scoreboard"]
     assert any("within_other" in row["flags"] for row in rows)
-    assert '"not_asked"' in json.dumps(data["run_leaders_done"]["result"])
-    for name in NAMES - {"run_scoreboard_partial", "run_running"}:
-        if name.startswith("run_"):
-            assert data[name]["state"] == "done", name
+    not_asked = data["run_leaders_done"]["result"]["not_asked"]
+    assert not_asked and not_asked[0]["part"] == "cm_satisfaction"
+    for name in ("run_scoreboard_done", "run_scoreboard_within_other", "run_leaders_done",
+                 "run_change_appetite_done", "run_by_zone_done"):
+        assert data[name]["state"] == "done", name
