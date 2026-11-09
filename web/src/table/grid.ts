@@ -1,5 +1,6 @@
-import type { Cell, CardResult, Unit } from "../api/types";
+import type { Cell, CardResult, Unit, PresentationRules } from "../api/types";
 
+export type { PresentationRules };
 export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number }
 /** `pcCell` is set only on the merged seats column: `cell` is then the AC level. */
 export interface GridCell { cell: Cell | null; unit: Unit; pcCell?: Cell | null }
@@ -119,4 +120,54 @@ export function sortRows(g: CellGrid, by: SortSpec | null, apiOrder: string[]): 
     return sign * (x - y);
   });
   return { ...g, rows };
+}
+
+function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: string[], colors?: Record<string, string>): Header[] {
+  const byKey = new Map(headers.map((h) => [h.key, h]));
+  const pinnedSet = new Set(pinLast ?? []);
+  const specifiedSet = new Set(specifiedOrder ?? []);
+  const seen = new Set<string>();
+
+  const ordered: Header[] = [];
+
+  // 1. Specified headers (excluding any explicitly pinned to end)
+  for (const k of (specifiedOrder ?? [])) {
+    if (byKey.has(k) && !pinnedSet.has(k) && !seen.has(k)) {
+      ordered.push(byKey.get(k)!);
+      seen.add(k);
+    }
+  }
+
+  // 2. Unlisted headers (not specified and not pinned)
+  for (const h of headers) {
+    if (!specifiedSet.has(h.key) && !pinnedSet.has(h.key) && !seen.has(h.key)) {
+      ordered.push(h);
+      seen.add(h.key);
+    }
+  }
+
+  // 3. Pinned headers
+  for (const k of (pinLast ?? [])) {
+    if (byKey.has(k) && !seen.has(k)) {
+      ordered.push(byKey.get(k)!);
+      seen.add(k);
+    }
+  }
+
+  // Apply entity colors
+  return ordered.map((h) => ({
+    ...h,
+    colour: colors?.[h.key] ?? h.colour,
+  }));
+}
+
+export function applyPresentationRules(grid: CellGrid, rules?: PresentationRules | null): CellGrid {
+  if (!rules) return grid;
+  const columns = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors);
+  const rows = reorderHeaders(grid.rows, rules.rowOrder);
+  return {
+    ...grid,
+    rows,
+    columns,
+  };
 }

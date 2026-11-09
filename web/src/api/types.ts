@@ -183,6 +183,13 @@ export interface SurveysResponse {
   skipped: { dataset_id: string; reason: string }[];
 }
 
+export interface PresentationRules {
+  rowOrder?: string[];
+  columnOrder?: string[];
+  pinLast?: string[];
+  entityColors?: Record<string, string>;
+}
+
 export interface Template {
   id: string;
   section: string;
