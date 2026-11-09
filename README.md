@@ -109,3 +109,14 @@ Prerequisites:
 
 - Spec: [docs/specs/2026-11-08-dashboard-design.md](docs/specs/2026-11-08-dashboard-design.md)
 - Plan: [docs/plans/2026-11-09-phase-1a-backend.md](docs/plans/2026-11-09-phase-1a-backend.md)
+
+## Frontend
+
+The React/TypeScript dashboard lives in `web/`.
+
+```
+cd web && npm install
+npm run dev     # Vite dev server; proxies /api to the API on 127.0.0.1:8000
+npm test        # Vitest
+npm run build   # type-check and production build
+```
