@@ -83,6 +83,8 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
     queryFn: () => getRun(runId as string),
     enabled: runId !== null,
     retry: false,
+    // A finished run never changes; focus/reconnect refetches could 404 on an evicted run.
+    staleTime: Infinity,
     refetchInterval: (q) => (q.state.status !== "error" && q.state.data?.state === "running" ? POLL_MS : false),
   });
 
@@ -93,7 +95,7 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
   }, [restartPending, active, start]);
 
   const status = active !== null && poll.data !== undefined ? poll.data : null;
-  const current = status !== null && status.state !== "running" ? status.result : null;
+  const current = status !== null && (status.state === "done" || status.state === "partial") ? status.result : null;
   useEffect(() => {
     if (active !== null && current !== null) setLast({ key: active.key, result: current });
   }, [active, current]);

@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,6 +81,37 @@ describe("useCardRun", () => {
     await tick(5000);
     expect(count(f, "GET", "/runs/")).toBe(gets);
     expect(count(f, "POST", "/cards/run")).toBe(1);
+  });
+
+  it("a finished run is not fetched again on focus or reconnect", async () => {
+    const f = stubFetch(runServer(["r1"], { r1: [[200, DONE]] }));
+    const { result } = renderHook(() => useCardRun(CARD, ctxA, true), { wrapper: wrapper() });
+    await waitFor(() => expect(result.current.status?.state).toBe("done"));
+    const gets = count(f, "GET", "/runs/");
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      onlineManager.setOnline(false);
+      onlineManager.setOnline(true);
+    });
+    await tick(3000);
+    expect(count(f, "GET", "/runs/")).toBe(gets);
+    expect(result.current.current).toEqual(DONE.result);
+  });
+
+  it("a failed run is never current and stops polling", async () => {
+    // Synthetic: a failed status that still carries a result must not be shown.
+    const FAILED: RunStatus = { ...PARTIAL, state: "failed" };
+    const f = stubFetch(runServer(["r1"], { r1: [[200, RUNNING], [200, FAILED]] }));
+    const { result } = renderHook(() => useCardRun(CARD, ctxA, true), { wrapper: wrapper() });
+    await waitFor(() => expect(result.current.status?.state).toBe("running"));
+    await tick(1500);
+    await waitFor(() => expect(result.current.status?.state).toBe("failed"));
+    expect(result.current.current).toBeNull();
+    expect(result.current.isStale).toBe(false);
+    expect(result.current.status?.errors).toEqual(PARTIAL.errors);
+    await tick(5000);
+    expect(count(f, "GET", "/runs/")).toBe(2);
   });
 
   it("result of an older context is marked stale", async () => {
