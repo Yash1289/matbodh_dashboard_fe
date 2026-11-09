@@ -8,7 +8,7 @@ import surveysJson from "../test/fixtures/surveys.json";
 import { renderWithProviders } from "../test/render";
 import { ContextBar } from "./ContextBar";
 import { parseContext } from "./urlContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const surveys = surveysJson as unknown as SurveysResponse;
 const R1 = "2027 VS CAPI R1";
@@ -43,6 +43,21 @@ describe("ContextBar", () => {
     expect(await screen.findByRole("radio", { name: "AC" })).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/cards/run"))).toBe(false);
     expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+  });
+
+  it("going back to an empty URL reopens the editor with the prompt", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    function Clear() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate("/")}>clear url</button>;
+    }
+    renderWithProviders(<><ContextBar /><Clear /></>, { route: URL_CTX });
+    await screen.findByRole("button", { name: "Edit" });
+    expect(screen.queryByText("Choose a state, survey level and rounds to begin.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "clear url" }));
+    expect(await screen.findByText("Choose a state, survey level and rounds to begin.")).toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: "AC" })).toBeInTheDocument();
   });
 
   it("level options come from the catalogue", async () => {

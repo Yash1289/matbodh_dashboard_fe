@@ -126,7 +126,8 @@ The e2e test builds the app, serves it on port 4173 and drives the installed
 Google Chrome (`channel: "chrome"`), so Chrome must be installed. As an
 alternative, run `npx playwright install chromium` once and drop the `channel`
 line from `web/playwright.config.ts`. The e2e never touches a real API or
-database.
+database. Port 4173 must be free: the config always builds and starts its own
+preview (it never reuses a running server, which could serve a stale build).
 
 ### Manual live check
 
