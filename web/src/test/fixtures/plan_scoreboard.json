@@ -1,0 +1,38 @@
+{
+  "coverage_mode": {
+    "parties": "independent",
+    "seats_ac": "independent",
+    "seats_pc": "independent",
+    "vote": "independent"
+  },
+  "errors": [],
+  "not_asked": [],
+  "rounds": [
+    {
+      "base_name": "2027 VS CAPI R1",
+      "borrowed": 0,
+      "dataset_id": "2027 VS CAPI R1",
+      "fallback": true,
+      "label": "R1",
+      "obs_id": "o1",
+      "round": 1,
+      "seats": 380,
+      "seats_source": "metadata",
+      "version": "normal"
+    },
+    {
+      "base_name": "2027 VS CAPI R2",
+      "borrowed": 23,
+      "dataset_id": "2027 VS CAPI R2 (Extrapolated)",
+      "fallback": false,
+      "label": "R2",
+      "obs_id": "o2",
+      "round": 2,
+      "seats": 403,
+      "seats_source": "metadata",
+      "version": "extrapolated"
+    }
+  ],
+  "unavailable": [],
+  "valid": true
+}

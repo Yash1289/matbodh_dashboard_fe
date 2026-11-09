@@ -1,0 +1,152 @@
+{
+  "done": 1,
+  "errors": {},
+  "result": {
+    "alliance_epoch": 0,
+    "card_id": "pulse.by_zone",
+    "coverage": [],
+    "engine_version": "0.8.0",
+    "grid": {
+      "row_dim": "party_zone",
+      "rows": [
+        {
+          "label": "Bundelkhand",
+          "series": [
+            {
+              "cell": {
+                "base": null,
+                "delta": null,
+                "flags": [
+                  "no_delta"
+                ],
+                "secondary": null,
+                "trend": [
+                  45.0,
+                  45.0
+                ],
+                "value": 45.0
+              },
+              "colour": "#FF9933",
+              "label": "NDA (BJP+)",
+              "series": "NDA"
+            },
+            {
+              "cell": {
+                "base": null,
+                "delta": null,
+                "flags": [
+                  "no_delta"
+                ],
+                "secondary": null,
+                "trend": [
+                  30.0,
+                  30.0
+                ],
+                "value": 30.0
+              },
+              "colour": "#E41A1C",
+              "label": "SP+",
+              "series": "SP+"
+            }
+          ],
+          "value": "Bundelkhand"
+        },
+        {
+          "label": "Rohilkhand",
+          "series": [
+            {
+              "cell": {
+                "base": null,
+                "delta": null,
+                "flags": [
+                  "no_delta"
+                ],
+                "secondary": null,
+                "trend": [
+                  35.0,
+                  35.0
+                ],
+                "value": 35.0
+              },
+              "colour": "#FF9933",
+              "label": "NDA (BJP+)",
+              "series": "NDA"
+            },
+            {
+              "cell": {
+                "base": null,
+                "delta": null,
+                "flags": [
+                  "no_delta"
+                ],
+                "secondary": null,
+                "trend": [
+                  40.0,
+                  40.0
+                ],
+                "value": 40.0
+              },
+              "colour": "#E41A1C",
+              "label": "SP+",
+              "series": "SP+"
+            }
+          ],
+          "value": "Rohilkhand"
+        }
+      ]
+    },
+    "hidden_count": 0,
+    "metadata_revision": 9,
+    "not_asked": [],
+    "operation": "distribution",
+    "rounds": {
+      "anchor": "o2",
+      "compare": "o1",
+      "groups": [
+        {
+          "cycle": "2027 VS",
+          "obs_ids": [
+            "o1",
+            "o2"
+          ],
+          "series": "CAPI"
+        }
+      ],
+      "items": [
+        {
+          "base_name": "2027 VS CAPI R1",
+          "borrowed": 0,
+          "cycle": "2027 VS",
+          "dataset_id": "2027 VS CAPI R1",
+          "fallback": true,
+          "label": "R1",
+          "obs_id": "o1",
+          "round": 1,
+          "seats": 380,
+          "seats_source": "metadata",
+          "series": "CAPI",
+          "version": "normal"
+        },
+        {
+          "base_name": "2027 VS CAPI R2",
+          "borrowed": 23,
+          "cycle": "2027 VS",
+          "dataset_id": "2027 VS CAPI R2 (Extrapolated)",
+          "fallback": false,
+          "label": "R2",
+          "obs_id": "o2",
+          "round": 2,
+          "seats": 403,
+          "seats_source": "metadata",
+          "series": "CAPI",
+          "version": "extrapolated"
+        }
+      ]
+    },
+    "rules_version": "8df18ed3b831e1e0",
+    "state": "Uttar Pradesh",
+    "unavailable": []
+  },
+  "state": "done",
+  "total": 1
+}

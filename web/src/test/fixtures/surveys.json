@@ -1,0 +1,69 @@
+{
+  "levels": {
+    "ac": [
+      {
+        "cycle": "2027 VS",
+        "group": "2027 VS · CAPI",
+        "rounds": [
+          {
+            "base_name": "2027 VS CAPI R1",
+            "label": "R1",
+            "round": 1,
+            "versions": {
+              "normal": {
+                "borrowed": 0,
+                "end_date": "2027-01-31",
+                "seats": 380,
+                "start_date": "2027-01-01"
+              }
+            }
+          },
+          {
+            "base_name": "2027 VS CAPI R2",
+            "label": "R2",
+            "round": 2,
+            "versions": {
+              "extrapolated": {
+                "borrowed": 23,
+                "end_date": "2027-01-31",
+                "seats": 403,
+                "start_date": "2027-01-01"
+              },
+              "normal": {
+                "borrowed": 0,
+                "end_date": "2027-01-31",
+                "seats": 403,
+                "start_date": "2027-01-01"
+              }
+            }
+          }
+        ],
+        "series": "CAPI"
+      }
+    ],
+    "zone": [
+      {
+        "cycle": "2027 VS",
+        "group": "2027 VS · CAPI ST",
+        "rounds": [
+          {
+            "base_name": "2027 VS CAPI ST R1",
+            "label": "R1",
+            "round": 1,
+            "versions": {
+              "normal": {
+                "borrowed": 0,
+                "end_date": "2027-01-31",
+                "seats": 9,
+                "start_date": "2027-01-01"
+              }
+            }
+          }
+        ],
+        "series": "CAPI ST"
+      }
+    ]
+  },
+  "skipped": [],
+  "state": "Uttar Pradesh"
+}

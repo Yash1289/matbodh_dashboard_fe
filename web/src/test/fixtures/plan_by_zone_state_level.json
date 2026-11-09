@@ -1,0 +1,26 @@
+{
+  "coverage_mode": {},
+  "errors": [],
+  "not_asked": [],
+  "rounds": [
+    {
+      "base_name": "2027 VS CAPI SL R1",
+      "borrowed": 0,
+      "dataset_id": "2027 VS CAPI SL R1",
+      "fallback": true,
+      "label": "R1",
+      "obs_id": "o1",
+      "round": 1,
+      "seats": 1,
+      "seats_source": "metadata",
+      "version": "normal"
+    }
+  ],
+  "unavailable": [
+    {
+      "part": "zone",
+      "reason": "Needs a AC-level survey; this survey is STATE level; Slice 'party_zone' is not available for STATE-level surveys"
+    }
+  ],
+  "valid": true
+}

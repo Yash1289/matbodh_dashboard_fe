@@ -1,0 +1,246 @@
+{
+  "done": 4,
+  "errors": {},
+  "result": {
+    "alliance_epoch": 0,
+    "card_id": "pulse.party_scoreboard",
+    "coverage": [
+      {
+        "coverage": {
+          "mode": "independent"
+        },
+        "job": "vote",
+        "part": "vote"
+      },
+      {
+        "coverage": {
+          "mode": "independent"
+        },
+        "job": "parties",
+        "part": "parties"
+      },
+      {
+        "coverage": "common_positive_eligible_seats_full_constituents",
+        "job": "seats_ac_o2_o1",
+        "part": "seats_ac"
+      },
+      {
+        "coverage": "common_positive_eligible_seats_full_constituents",
+        "job": "seats_pc_o2_o1",
+        "part": "seats_pc"
+      }
+    ],
+    "engine_version": "0.8.0",
+    "hidden_count": 0,
+    "metadata_revision": 9,
+    "not_asked": [],
+    "operation": "scoreboard",
+    "rounds": {
+      "anchor": "o2",
+      "compare": "o1",
+      "groups": [
+        {
+          "cycle": "2027 VS",
+          "obs_ids": [
+            "o1",
+            "o2"
+          ],
+          "series": "CAPI"
+        }
+      ],
+      "items": [
+        {
+          "base_name": "2027 VS CAPI R1",
+          "borrowed": 0,
+          "cycle": "2027 VS",
+          "dataset_id": "2027 VS CAPI R1",
+          "fallback": true,
+          "label": "R1",
+          "obs_id": "o1",
+          "round": 1,
+          "seats": 380,
+          "seats_source": "metadata",
+          "series": "CAPI",
+          "version": "normal"
+        },
+        {
+          "base_name": "2027 VS CAPI R2",
+          "borrowed": 23,
+          "cycle": "2027 VS",
+          "dataset_id": "2027 VS CAPI R2 (Extrapolated)",
+          "fallback": false,
+          "label": "R2",
+          "obs_id": "o2",
+          "round": 2,
+          "seats": 403,
+          "seats_source": "metadata",
+          "series": "CAPI",
+          "version": "extrapolated"
+        }
+      ]
+    },
+    "rules_version": "8df18ed3b831e1e0",
+    "scoreboard": [
+      {
+        "colour": "#FF9933",
+        "flags": [],
+        "gender_gap": null,
+        "label": "NDA (BJP+)",
+        "seats_ac": {
+          "base": 380,
+          "delta": -88,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 380 seats",
+          "trend": [
+            243,
+            154
+          ],
+          "value": 154
+        },
+        "seats_pc": {
+          "base": 76,
+          "delta": -22,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 76 seats",
+          "trend": [
+            49,
+            26
+          ],
+          "value": 26
+        },
+        "series": "NDA",
+        "vote": {
+          "base": null,
+          "delta": -1.5,
+          "flags": [],
+          "secondary": null,
+          "trend": [
+            40.0,
+            38.0
+          ],
+          "value": 38.0
+        }
+      },
+      {
+        "colour": "#E41A1C",
+        "flags": [],
+        "gender_gap": null,
+        "label": "SP+",
+        "seats_ac": {
+          "base": 380,
+          "delta": 90,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 380 seats",
+          "trend": [
+            158,
+            249
+          ],
+          "value": 249
+        },
+        "seats_pc": {
+          "base": 76,
+          "delta": 22,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 76 seats",
+          "trend": [
+            31,
+            54
+          ],
+          "value": 54
+        },
+        "series": "SP+",
+        "vote": {
+          "base": null,
+          "delta": 3.5,
+          "flags": [],
+          "secondary": null,
+          "trend": [
+            30.0,
+            34.0
+          ],
+          "value": 34.0
+        }
+      },
+      {
+        "colour": null,
+        "flags": [],
+        "gender_gap": null,
+        "label": "BSP",
+        "seats_ac": {
+          "base": 380,
+          "delta": 0,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 380 seats",
+          "trend": [
+            0,
+            0
+          ],
+          "value": 0
+        },
+        "seats_pc": {
+          "base": 76,
+          "delta": 0,
+          "flags": [
+            "common_seats"
+          ],
+          "secondary": "on 76 seats",
+          "trend": [
+            0,
+            0
+          ],
+          "value": 0
+        },
+        "series": "BSP",
+        "vote": {
+          "base": null,
+          "delta": null,
+          "flags": [
+            "no_delta"
+          ],
+          "secondary": null,
+          "trend": [
+            12.0,
+            11.0
+          ],
+          "value": 11.0
+        }
+      },
+      {
+        "colour": null,
+        "flags": [],
+        "gender_gap": null,
+        "label": "Other",
+        "seats_ac": null,
+        "seats_pc": null,
+        "series": "Other",
+        "vote": {
+          "base": null,
+          "delta": null,
+          "flags": [
+            "no_delta"
+          ],
+          "secondary": null,
+          "trend": [
+            8.0,
+            9.0
+          ],
+          "value": 9.0
+        }
+      }
+    ],
+    "state": "Uttar Pradesh",
+    "unavailable": []
+  },
+  "state": "done",
+  "total": 4
+}
