@@ -56,15 +56,77 @@ export interface ScoreboardRow extends SeriesLabel {
   gender_gap: Cell | null;
 }
 export interface OpinionRow extends SeriesLabel { cell: Cell | null }
+export interface SeriesCell extends SeriesLabel {
+  cell: Cell | null;
+  lenses?: Record<string, Cell | null>;
+}
 export interface GridRow {
   value: string | null;
   label: string | null;
-  series: (SeriesLabel & { cell: Cell | null })[];
+  series: (SeriesLabel & { cell: Cell | null; lenses?: Record<string, Cell | null> })[];
+}
+
+export interface RankedItem {
+  rank: number;
+  label: string;
+  value: number | null;
+  delta: number | null;
+  measure: "net_score" | "positive_share" | "negative_share" | "support_share" | string;
+  kind?: "difference" | "shakti" | string;
+  secondary?: string | null;
+  tags?: string[];
+}
+
+export interface RankedPartition {
+  partition_key: string;
+  partition_label: string;
+  items: RankedItem[];
+}
+
+export interface RankedListResult {
+  measure: string;
+  kind?: string;
+  polarity: "highest_first" | "lowest_first";
+  partitions: RankedPartition[];
+  total_ranked: number;
+}
+
+export interface TransitionCell {
+  origin: string;
+  destination: string;
+  origin_share: number;
+  destination_share: number;
+  joint_share: number;
+}
+
+export interface TransitionMatrixResult {
+  origins: string[];
+  destinations: string[];
+  matrix: Record<string, Record<string, TransitionCell>>;
+}
+
+export interface BattlegroundSeat {
+  seat_id: string;
+  winner: string;
+  margin_pp: number;
+  flip: string;
+}
+
+export interface BattlegroundMarginBucket {
+  bucket: string;
+  count: number;
+  seat_ids: string[];
+}
+
+export interface BattlegroundResult {
+  flips: { winning_both: number; gain: number; loss: number; losing_both: number };
+  margin_buckets: BattlegroundMarginBucket[];
+  seats: BattlegroundSeat[];
 }
 
 export interface CardResult {
   card_id: string;
-  operation: "scoreboard" | "opinion" | "distribution";
+  operation: "scoreboard" | "opinion" | "distribution" | "ranked_list" | "transition" | "battleground";
   state: string;
   rounds: RoundsBlock;
   unavailable: PartReason[];
@@ -79,6 +141,9 @@ export interface CardResult {
   opinion?: OpinionRow[];
   not_returned?: string[];
   grid?: { row_dim: string; rows: GridRow[] };
+  ranked_list?: RankedListResult;
+  transition?: TransitionMatrixResult;
+  battleground?: BattlegroundResult;
 }
 
 export interface RunError { kind: string; message: string; fingerprint: string | null; jobs: string[] }
@@ -122,7 +187,10 @@ export interface Template {
   id: string;
   section: string;
   title: string;
-  operation: "scoreboard" | "distribution" | "opinion";
+  operation: "scoreboard" | "distribution" | "opinion" | "ranked_list" | "transition" | "battleground" | string;
+  body_adapter?: "composite_grid" | "ranked_list" | "transition_matrix" | "battleground_summary" | string;
+  lenses?: { default: string; options: string[] };
+  presentation?: { row_field?: string; col_field?: string; slicer?: string };
   questions: string[];
   measures: string[];
   slices: string[];

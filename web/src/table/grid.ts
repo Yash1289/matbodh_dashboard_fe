@@ -75,7 +75,7 @@ export function opinionGrid(result: CardResult): CellGrid {
   return build(rows, columns, () => "pp", (r) => byKey.get(r) ?? null, "question", "measure");
 }
 
-export function zoneGrid(result: CardResult): CellGrid {
+export function zoneGrid(result: CardResult, lens?: string): CellGrid {
   const g = result.grid ?? { row_dim: "", rows: [] };
   const rows: Header[] = g.rows.map((r) => ({ key: r.value ?? "__null__", label: r.label ?? "(no value)", colour: null }));
   const columns: Header[] = [];
@@ -83,16 +83,18 @@ export function zoneGrid(result: CardResult): CellGrid {
   g.rows.forEach((r, i) => {
     for (const s of r.series) {
       if (!columns.some((c) => c.key === s.series)) columns.push({ key: s.series, label: s.label, colour: s.colour });
-      cellOf.set(`${rows[i].key}\u0000${s.series}`, s.cell);
+      const cell = s.lenses && lens && lens in s.lenses ? s.lenses[lens] : s.cell;
+      cellOf.set(`${rows[i].key}\u0000${s.series}`, cell);
     }
   });
-  return build(rows, columns, () => "pct", (r, c) => cellOf.get(`${r}\u0000${c}`) ?? null, g.row_dim, "series");
+  const unit: Unit = (lens === "size_of_impact_pp" || lens === "net_score") ? "pp" : "pct";
+  return build(rows, columns, () => unit, (r, c) => cellOf.get(`${r}\u0000${c}`) ?? null, g.row_dim, "series");
 }
 
-export function gridFor(result: CardResult): CellGrid {
+export function gridFor(result: CardResult, lens?: string): CellGrid {
   if (result.operation === "scoreboard") return scoreboardGrid(result);
   if (result.operation === "opinion") return opinionGrid(result);
-  return zoneGrid(result);
+  return zoneGrid(result, lens);
 }
 
 export function transpose(g: CellGrid): CellGrid {

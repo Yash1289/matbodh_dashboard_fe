@@ -96,3 +96,62 @@ describe("transpose and sort", () => {
     expect(sortRows(s, null, api).rows.map((r) => r.key)).toEqual(api);
   });
 });
+
+describe("gridFor multi-measure lenses", () => {
+  it("switches cell value and unit when a lens is selected", () => {
+    const mockResult = {
+      card_id: "caste_support", operation: "distribution", state: "Uttar Pradesh",
+      rounds: { items: [], groups: [], anchor: "R2", compare: null },
+      unavailable: [], not_asked: [], coverage: [], rules_version: 1, engine_version: "0.8.0",
+      metadata_revision: 1, alliance_epoch: 1, hidden_count: 0,
+      grid: {
+        row_dim: "caste",
+        rows: [
+          {
+            value: "Jatav", label: "Jatav",
+            series: [{
+              series: "NDA", label: "NDA", colour: "#ff9933",
+              cell: { value: 42.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+              lenses: {
+                contribution_share: { value: 18.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+                size_of_impact_pp: { value: 3.5, delta: null, trend: [], secondary: null, flags: [], base: null },
+              }
+            }]
+          }
+        ]
+      }
+    } as unknown as CardResult;
+
+    const defaultGrid = gridFor(mockResult);
+    expect(defaultGrid.cells["Jatav"]["NDA"].cell?.value).toBe(42.0);
+    expect(defaultGrid.cells["Jatav"]["NDA"].unit).toBe("pct");
+
+    const impactGrid = gridFor(mockResult, "size_of_impact_pp");
+    expect(impactGrid.cells["Jatav"]["NDA"].cell?.value).toBe(3.5);
+    expect(impactGrid.cells["Jatav"]["NDA"].unit).toBe("pp");
+  });
+
+  it("falls back to default cell if the requested lens is not available for a series item", () => {
+    const mockResult = {
+      card_id: "caste_support", operation: "distribution", state: "Uttar Pradesh",
+      rounds: { items: [], groups: [], anchor: "R2", compare: null },
+      unavailable: [], not_asked: [], coverage: [], rules_version: 1, engine_version: "0.8.0",
+      metadata_revision: 1, alliance_epoch: 1, hidden_count: 0,
+      grid: {
+        row_dim: "caste",
+        rows: [
+          {
+            value: "Jatav", label: "Jatav",
+            series: [{
+              series: "NDA", label: "NDA", colour: "#ff9933",
+              cell: { value: 42.0, delta: null, trend: [], secondary: null, flags: [], base: null },
+            }]
+          }
+        ]
+      }
+    } as unknown as CardResult;
+
+    const impactGrid = gridFor(mockResult, "size_of_impact_pp");
+    expect(impactGrid.cells["Jatav"]["NDA"].cell?.value).toBe(42.0);
+  });
+});
