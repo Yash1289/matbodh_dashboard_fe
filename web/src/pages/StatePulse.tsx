@@ -1,4 +1,4 @@
-import { SimpleGrid, Stack, Text } from "@mantine/core";
+import { Skeleton, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useTemplates } from "../api/queries";
 import { Card } from "../cards/Card";
 import { useDashboardContext } from "../context/urlContext";
@@ -9,7 +9,9 @@ export function StatePulse() {
   // Without a context the context bar's prompt is the only content; nothing runs.
   if (ctx === null) return null;
   if (templates.isError) return <Text c="red" role="alert">{templates.error.message}</Text>;
-  const [lead, ...rest] = templates.data ?? [];
+  if (templates.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
+  if (templates.data.length === 0) return <Text>No cards are available for this section.</Text>;
+  const [lead, ...rest] = templates.data;
   return (
     <Stack>
       {lead && <Card template={lead} ctx={ctx} />}

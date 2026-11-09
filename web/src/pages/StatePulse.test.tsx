@@ -10,14 +10,14 @@ import { renderWithProviders } from "../test/render";
 
 const CONTEXT = "?state=Uttar+Pradesh&level=ac&rounds=2027+VS+CAPI+R1&version=extrapolated";
 
-function stubApi() {
+function stubApi(templates: unknown = templatesJson) {
   const f = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, "");
     const method = init?.method ?? "GET";
     let json: unknown = { detail: "not found" };
     if (path === "/catalogue/states") json = statesJson;
     else if (path.endsWith("/surveys")) json = surveysJson;
-    else if (path.startsWith("/templates")) json = templatesJson;
+    else if (path.startsWith("/templates")) json = templates;
     else if (method === "POST" && path === "/cards/plan") json = planJson;
     else if (method === "POST" && path === "/cards/run") json = { run_id: "r1" };
     else if (path.startsWith("/runs/")) json = doneJson;
@@ -73,5 +73,25 @@ describe("State Pulse", () => {
     expect(screen.queryByText("Party scoreboard")).not.toBeInTheDocument();
     const cardCalls = f.mock.calls.filter(([u]) => String(u).startsWith("/api/cards/"));
     expect(cardCalls).toHaveLength(0);
+  });
+
+  it("unknown paths go to pulse keeping the search", async () => {
+    stubApi();
+    renderWithProviders(<AppRoutes />, { route: `/foo${CONTEXT}` });
+    expect(await screen.findByText("Party scoreboard")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Vote Movement" })).toHaveAttribute("href", `/movement${CONTEXT}`);
+  });
+
+  it("shows loading while templates load", async () => {
+    stubApi();
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+    renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
+    expect(await screen.findByLabelText("Loading cards…")).toBeInTheDocument();
+  });
+
+  it("says so when there are no cards", async () => {
+    stubApi([]);
+    renderWithProviders(<AppRoutes />, { route: `/pulse${CONTEXT}` });
+    expect(await screen.findByText("No cards are available for this section.")).toBeInTheDocument();
   });
 });
