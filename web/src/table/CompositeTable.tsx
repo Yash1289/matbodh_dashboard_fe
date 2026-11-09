@@ -2,6 +2,8 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "
 import { useMemo } from "react";
 import type { CellPart, RoundsBlock } from "../api/types";
 import { CompositeCell } from "../cells/CompositeCell";
+import { SeatsCell } from "../cells/SeatsCell";
+import { tokens } from "../theme";
 import { cellStyle, legend, type FormatRule } from "./formatRules";
 import { sortRows, type CellGrid, type Header, type SortSpec } from "./grid";
 
@@ -24,6 +26,12 @@ function nextSort(current: SortSpec | null, column: string): SortSpec | null {
 // Reset the look but keep the browser's focus-visible ring (no `all: unset`).
 const BUTTON_STYLE = { background: "none", border: 0, padding: 0, font: "inherit", color: "inherit", textAlign: "inherit", cursor: "pointer" } as const;
 
+const BORDER = "1px solid var(--mb-border)";
+const HEADER_CELL = { background: "var(--mb-header-bg)", borderBottom: BORDER, padding: "10px 8px", textAlign: "left", verticalAlign: "top", fontWeight: 600 } as const;
+const BODY_CELL = { borderBottom: BORDER, padding: "10px 8px", textAlign: "left", verticalAlign: "top" } as const;
+const ROW_LABEL_WIDTH = 150;
+const OTHER_LABEL_WIDTH = 200;
+
 const ariaSort = (sort: SortSpec | null, column: string) =>
   sort?.column === column && sort.part === "value" ? (sort.dir === "desc" ? "descending" : "ascending") : "none";
 
@@ -44,8 +52,8 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
         cell: ({ row }) => (
           <>
             <Swatch colour={row.original.colour} />
-            {row.original.label}
-            {row.original.note && <small style={{ display: "block", opacity: 0.7 }}>{row.original.note}</small>}
+            <span style={{ fontSize: tokens.font.rowLabel, fontWeight: 600, color: "var(--mb-text)" }}>{row.original.label}</span>
+            {row.original.note && <small style={{ display: "block", color: "var(--mb-muted)" }}>{row.original.note}</small>}
           </>
         ),
       }),
@@ -53,15 +61,17 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
         col.display({
           id: c.key,
           header: () => (
-            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={BUTTON_STYLE}>
+            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={{ ...BUTTON_STYLE, color: "var(--mb-muted)", fontSize: tokens.font.tableHeader, fontWeight: 600 }}>
               <Swatch colour={c.colour} />
               {c.label}
               {sort?.column === c.key && sort.part === "value" ? (sort.dir === "desc" ? " ↓" : " ↑") : ""}
-              {c.note && <small style={{ display: "block", opacity: 0.7 }}>{c.note}</small>}
+              {c.sub && <span style={{ display: "block", fontSize: tokens.font.headerSub, fontWeight: 400 }}>{c.sub}</span>}
+              {c.note && <small style={{ display: "block", fontWeight: 400 }}>{c.note}</small>}
             </button>
           ),
           cell: ({ row }) => {
             const gc = ordered.cells[row.original.key]?.[c.key];
+            if (gc?.pcCell !== undefined) return <SeatsCell ac={gc.cell} pc={gc.pcCell} parts={parts} rounds={rounds} />;
             return <CompositeCell cell={gc?.cell ?? null} unit={gc?.unit ?? "pct"} parts={parts} rounds={rounds} />;
           },
         }),
@@ -72,15 +82,19 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
 
   const table = useReactTable({ data: ordered.rows, columns, getCoreRowModel: getCoreRowModel() });
 
+  const widths = new Map(ordered.columns.map((c) => [c.key, c.width]));
+  const fixed = ordered.columns.some((c) => c.width !== undefined);
+  const widthOf = (id: string): number | undefined => (id === "__row" ? (fixed ? ROW_LABEL_WIDTH : OTHER_LABEL_WIDTH) : widths.get(id));
+
   return (
     <div>
-      <table>
+      <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: fixed ? "fixed" : "auto" }}>
         <caption>Anchor round: {anchor}</caption>
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} scope="col" aria-sort={h.column.id === "__row" ? undefined : ariaSort(sort, h.column.id)}>{flexRender(h.column.columnDef.header, h.getContext())}</th>
+                <th key={h.id} scope="col" style={{ ...HEADER_CELL, width: widthOf(h.column.id) }} aria-sort={h.column.id === "__row" ? undefined : ariaSort(sort, h.column.id)}>{flexRender(h.column.columnDef.header, h.getContext())}</th>
               ))}
             </tr>
           ))}
@@ -90,9 +104,9 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
             <tr key={r.id}>
               {r.getVisibleCells().map((c) =>
                 c.column.id === "__row" ? (
-                  <th key={c.id} scope="row">{flexRender(c.column.columnDef.cell, c.getContext())}</th>
+                  <th key={c.id} scope="row" style={{ ...BODY_CELL, width: widthOf("__row") }}>{flexRender(c.column.columnDef.cell, c.getContext())}</th>
                 ) : (
-                  <td key={c.id} style={cellStyle(ordered, r.original.key, c.column.id, rule)}>
+                  <td key={c.id} style={{ ...BODY_CELL, ...cellStyle(ordered, r.original.key, c.column.id, rule) }}>
                     {flexRender(c.column.columnDef.cell, c.getContext())}
                   </td>
                 ),

@@ -14,21 +14,22 @@ describe("grid adapters", () => {
   it("scoreboard delta comes from the engine data", () => {
     const g = scoreboardGrid(done);
     expect(g.cells.NDA.vote.cell!.delta).toBe(-1.5);
-    expect(g.columns.map((c) => c.key)).toEqual(["vote", "seats_ac", "seats_pc"]);
+    expect(g.columns.map((c) => c.key)).toEqual(["vote", "seats"]);
     expect(g.rows.map((r) => r.key)).toEqual(["NDA", "SP+", "BSP", "Other"]);
   });
 
   it("seat winner outside keep list is its own row marked within Other", () => {
     const g = scoreboardGrid(res(withinOther));
     expect(g.rows.find((r) => r.key === "JDL")!.note).toBe("within Other");
-    expect(g.cells.JDL.seats_ac.cell!.trend[0]).toBe(2);
-    expect(g.cells.Other.seats_ac.cell).toBeNull();
+    expect(g.cells.JDL.seats.cell!.trend[0]).toBe(2);
+    expect(g.cells.Other.seats.cell).toBeNull();
   });
 
   it("partial run keeps failed seat column", () => {
     const g = scoreboardGrid(res(scoreboardPartial));
-    expect(g.columns.some((c) => c.key === "seats_pc")).toBe(true);
-    expect(g.cells.NDA.seats_pc.cell!.flags).toContain("failed");
+    expect(g.columns.some((c) => c.key === "seats")).toBe(true);
+    expect(g.cells.NDA.seats.cell!.value).toBe(154);
+    expect(g.cells.NDA.seats.pcCell!.flags).toContain("failed");
   });
 
   it("unavailable seat parts appear as column notes", () => {
@@ -39,8 +40,19 @@ describe("grid adapters", () => {
       scoreboard: done.scoreboard!.map((x) => ({ ...x, seats_ac: null, seats_pc: null })),
     };
     const g = scoreboardGrid(r);
-    expect(g.columns.find((c) => c.key === "seats_ac")!.note).toBe(reason);
-    expect(g.columns.find((c) => c.key === "seats_pc")!.note).toBe(reason);
+    expect(g.columns.find((c) => c.key === "seats")!.note).toBe(reason);
+    const other = scoreboardGrid({ ...r, unavailable: [{ part: "seats_ac", reason: "a" }, { part: "seats_pc", reason: "b" }] });
+    expect(other.columns.find((c) => c.key === "seats")!.note).toBe("a; b");
+  });
+
+  it("scoreboard has one seats column", () => {
+    const g = scoreboardGrid({ ...done, scoreboard: done.scoreboard!.map((x, i) => ({ ...x, gender_gap: i === 0 ? x.vote : null })) });
+    expect(g.columns.map((c) => c.key)).toEqual(["vote", "seats", "gender_gap"]);
+    expect(g.columns.map((c) => c.width)).toEqual([240, 240, 220]);
+    expect(g.columns.map((c) => c.label)).toEqual(["Vote share", "Seats  AC · PC", "Gender gap"]);
+    expect(g.columns[0].sub).toBe("% · Δ pp · trend R1 | R2");
+    expect(g.columns[1].sub).toBe("AC · PC · Δ seats");
+    expect(g.cells.NDA.seats).toEqual({ cell: done.scoreboard![0].seats_ac, pcCell: done.scoreboard![0].seats_pc, unit: "seats" });
   });
 
   it("opinion keeps not_returned and unavailable as rows", () => {

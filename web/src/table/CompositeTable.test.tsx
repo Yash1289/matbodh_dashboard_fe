@@ -31,9 +31,10 @@ describe("CompositeTable", () => {
 
   it("partial run keeps failed seat column with dashes", () => {
     show(res(scoreboardPartial), ["value"]);
-    expect(screen.getByText("Seats PC")).toBeTruthy();
+    expect(screen.getByText(/Seats\s+AC · PC/)).toBeTruthy();
     const nda = row("NDA (BJP+)");
     expect(within(nda).getByTitle("Calculation failed for this round").textContent).toBe("—");
+    expect(nda.textContent).toContain("154 · —");
   });
 
   it("opinion not-asked round is dash with reason", () => {
@@ -81,7 +82,7 @@ describe("CompositeTable", () => {
       const { unmount } = show(done, ["value"], { sort });
       const th = screen.getByRole("button", { name: /Vote share/ }).closest("th")!;
       expect(th.getAttribute("aria-sort")).toBe(expected[i]);
-      expect(screen.getByRole("button", { name: /Seats AC/ }).closest("th")!.getAttribute("aria-sort")).toBe("none");
+      expect(screen.getByRole("button", { name: /Seats/ }).closest("th")!.getAttribute("aria-sort")).toBe("none");
       expect(screen.getAllByRole("columnheader")[0].hasAttribute("aria-sort")).toBe(false);
       unmount();
     });
@@ -92,5 +93,15 @@ describe("CompositeTable", () => {
     const names = [...container.querySelectorAll("tbody th")].map((t) => t.textContent);
     expect(names[0]).toContain("Other");
     expect(screen.getByText(/Heat on value/)).toBeTruthy();
+  });
+
+  it("table header and row styling", () => {
+    const { container } = show(done, ["value"]);
+    const ths = [...container.querySelectorAll("thead th")] as HTMLElement[];
+    expect(ths.every((t) => t.style.background === "var(--mb-header-bg)" && t.style.borderBottom === "1px solid var(--mb-border)")).toBe(true);
+    expect(ths.map((t) => t.style.width)).toEqual(["150px", "240px", "240px"]);
+    expect(ths[1].textContent).toContain("% · Δ pp · trend R1 | R2");
+    expect((container.querySelector("tbody td") as HTMLElement).style.borderBottom).toBe("1px solid var(--mb-border)");
+    expect((container.querySelector("tbody th") as HTMLElement).style.textAlign).toBe("left");
   });
 });

@@ -27,4 +27,15 @@ describe("csv", () => {
     const line = toCsv(g, done.rounds).split("\r\n")[1];
     expect(line.startsWith('"NDA, ""x""",42.0712345,1,-1.5,,a;b')).toBe(true);
   });
+
+  it("csv expands merged seats", () => {
+    const [header, nda] = toCsv(scoreboardGrid(done), done.rounds).split("\r\n");
+    const cols = header.split(",");
+    const ac = cols.indexOf("seats_ac_2027_VS_CAPI_R1");
+    const pc = cols.indexOf("seats_pc_2027_VS_CAPI_R1");
+    expect(ac).toBeGreaterThan(0);
+    expect(pc).toBe(ac + 5);
+    expect(nda.split(",").slice(ac, ac + 3)).toEqual(["243", "154", "-88"]);
+    expect(nda.split(",").slice(pc, pc + 3)).toEqual(["49", "26", "-22"]);
+  });
 });

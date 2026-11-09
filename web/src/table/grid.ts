@@ -1,7 +1,8 @@
 import type { Cell, CardResult, Unit } from "../api/types";
 
-export interface Header { key: string; label: string; colour: string | null; note?: string }
-export interface GridCell { cell: Cell | null; unit: Unit }
+export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number }
+/** `pcCell` is set only on the merged seats column: `cell` is then the AC level. */
+export interface GridCell { cell: Cell | null; unit: Unit; pcCell?: Cell | null }
 export interface CellGrid {
   rows: Header[];
   columns: Header[];
@@ -23,31 +24,44 @@ function build(rows: Header[], columns: Header[], unitOf: (colKey: string) => Un
   return { rows, columns, cells, rowDim, columnDim };
 }
 
-const SCOREBOARD_COLUMNS = [
-  { key: "vote", label: "Vote share", unit: "pct", note: undefined },
-  { key: "seats_ac", label: "Seats AC", unit: "seats", note: undefined },
-  { key: "seats_pc", label: "Seats PC", unit: "seats", note: undefined },
-  { key: "gender_gap", label: "Gender gap", unit: "pp", note: "women − men" },
-] as const;
+const SEAT_PARTS = ["seats_ac", "seats_pc"] as const;
 
 export function scoreboardGrid(result: CardResult): CellGrid {
   const data = result.scoreboard ?? [];
+  const labels = result.rounds.items.map((r) => r.label).join(" | ");
+  const reasonOf = (...parts: string[]): string | undefined => {
+    const hits = [...new Set(result.unavailable.filter((u) => parts.includes(u.part)).map((u) => u.reason))];
+    return hits.length ? hits.join("; ") : undefined;
+  };
   const rows: Header[] = data.map((r) => ({
     key: r.series, label: r.label, colour: r.colour,
     ...(r.flags.includes("within_other") ? { note: "within Other" } : {}),
   }));
-  const columns: Header[] = [];
-  for (const c of SCOREBOARD_COLUMNS) {
-    const reason = result.unavailable.find((u) => u.part === c.key)?.reason;
-    const present = c.key === "vote" || data.some((r) => r[c.key] !== null) || reason !== undefined;
-    if (!present) continue;
-    columns.push({ key: c.key, label: c.label, colour: null, ...(reason ?? c.note ? { note: reason ?? c.note } : {}) });
+  const columns: Header[] = [{ key: "vote", label: "Vote share", colour: null, sub: `% · Δ pp · trend ${labels}`, width: 240, ...noteOf(reasonOf("vote")) }];
+  const seatsReason = reasonOf(...SEAT_PARTS);
+  if (seatsReason !== undefined || data.some((r) => r.seats_ac !== null || r.seats_pc !== null)) {
+    columns.push({ key: "seats", label: "Seats  AC · PC", colour: null, sub: "AC · PC · Δ seats", width: 240, ...noteOf(seatsReason) });
+  }
+  const gapReason = reasonOf("gender_gap");
+  if (gapReason !== undefined || data.some((r) => r.gender_gap !== null)) {
+    columns.push({ key: "gender_gap", label: "Gender gap", colour: null, sub: "F − M, pp · Δ · F / M shares", width: 220, ...noteOf(gapReason) });
   }
   const byKey = new Map(data.map((r) => [r.series, r]));
-  const unit = (k: string): Unit => SCOREBOARD_COLUMNS.find((c) => c.key === k)!.unit;
-  const get = (r: string, c: string): Cell | null => byKey.get(r)?.[c as "vote"] ?? null;
-  return build(rows, columns, unit, get, "series", "measure");
+  const unit = (k: string): Unit => (k === "vote" ? "pct" : k === "seats" ? "seats" : "pp");
+  const cells: CellGrid["cells"] = {};
+  for (const r of rows) {
+    cells[r.key] = {};
+    const row = byKey.get(r.key);
+    for (const c of columns) {
+      cells[r.key][c.key] = c.key === "seats"
+        ? { cell: row?.seats_ac ?? null, pcCell: row?.seats_pc ?? null, unit: "seats" }
+        : { cell: row?.[c.key as "vote" | "gender_gap"] ?? null, unit: unit(c.key) };
+    }
+  }
+  return { rows, columns, cells, rowDim: "series", columnDim: "measure" };
 }
+
+const noteOf = (note: string | undefined): { note?: string } => (note === undefined ? {} : { note });
 
 export function opinionGrid(result: CardResult): CellGrid {
   const data = result.opinion ?? [];

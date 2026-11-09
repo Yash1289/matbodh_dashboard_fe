@@ -60,7 +60,7 @@ const FLAG_ORDER = Object.keys(FLAG_INFO);
 
 export function flagLegend(g: CellGrid): { glyph: string; reason: string }[] {
   const present = new Set<string>();
-  for (const row of Object.values(g.cells)) for (const gc of Object.values(row)) gc.cell?.flags.forEach((f) => present.add(f));
+  for (const row of Object.values(g.cells)) for (const gc of Object.values(row)) for (const c of [gc.cell, gc.pcCell]) c?.flags.forEach((f) => present.add(f));
   const rank = (f: string) => (FLAG_ORDER.includes(f) ? FLAG_ORDER.indexOf(f) : FLAG_ORDER.length);
   return [...present].sort((a, b) => rank(a) - rank(b)).map(flagInfo);
 }
