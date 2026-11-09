@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom/vitest";
+import { configure } from "@testing-library/react";
+
+// Mantine popovers, router and query client are slow under parallel workers.
+configure({ asyncUtilTimeout: 5000 });
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

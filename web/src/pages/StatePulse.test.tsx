@@ -52,7 +52,7 @@ describe("State Pulse", () => {
     for (const gone of ["Sample values", "Question:", "Rows:", "Columns:", "+ Add state", "Focus party", "Shakti"]) {
       expect(text).not.toContain(gone);
     }
-        expect(screen.getByText(/^Lead card · /)).toBeInTheDocument();
+    expect(screen.getByText(/^Lead card · /)).toBeInTheDocument();
   });
 
   it("nav keeps context in links", async () => {

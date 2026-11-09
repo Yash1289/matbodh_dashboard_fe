@@ -148,7 +148,7 @@ export function Card({ template, ctx, lead = false }: Props) {
             {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" title={roundsTitle}>{subtitle}</Text>}
           </div>
           {grid && (
-            <CardToolbar view={view} onView={onView} initial={initial} canSort={parts.includes("delta")} columns={grid.columns}
+            <CardToolbar view={view} onView={onView} initial={initial} canSort={parts.includes("delta") || view.sort !== null} columns={grid.columns}
               onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
               onExport={() => run.current && downloadCsv(`${template.id}.csv`, toCsv(gridFor(run.current), run.current.rounds))} />
           )}

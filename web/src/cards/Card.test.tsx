@@ -133,6 +133,48 @@ describe("Card", () => {
     expect(f.mock.calls.length).toBe(calls);
   });
 
+  it("density and format choices do not refetch", async () => {
+    const user = userEvent.setup();
+    const f = stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    await screen.findByRole("table");
+    const calls = f.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: /^Density:/ }));
+    await user.click(await screen.findByRole("radio", { name: "Compact" }));
+    expect(screen.getByRole("button", { name: "Density: Compact ▾" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Format ▾" }));
+    await user.click(await screen.findByRole("radio", { name: "Heat on value" }));
+    expect(screen.getByText(/Heat on value \(scaled within each column\)/)).toBeInTheDocument();
+    expect(f.mock.calls.length).toBe(calls);
+  });
+
+  it("format choice survives a refresh", async () => {
+    const user = userEvent.setup();
+    stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "Format ▾" }));
+    await user.click(await screen.findByRole("radio", { name: "Heat on value" }));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "⋯" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Refresh" }));
+    await screen.findByRole("table");
+    expect(screen.getByText(/Heat on value \(scaled within each column\)/)).toBeInTheDocument();
+  });
+
+  it("an active Δ sort keeps its chip when the Δ part is hidden", async () => {
+    const user = userEvent.setup();
+    stubApi(PLAN, { r1: DONE });
+    renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "Sort ▾" }));
+    await user.selectOptions(await screen.findByRole("combobox", { name: "Sort by Δ" }), screen.getAllByRole("option", { name: /high to low/ })[0]);
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: /^Cell:/ }));
+    await user.click(await screen.findByRole("radio", { name: "Share" }));
+    expect(screen.getByRole("button", { name: "Sort ▾" })).toBeInTheDocument();
+  });
+
   it("toolbar has the Frame A chips and no wireframe controls", async () => {
     stubApi(PLAN, { r1: DONE });
     renderWithProviders(<Card template={SCOREBOARD} ctx={ctxA} />);
