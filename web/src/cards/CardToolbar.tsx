@@ -1,10 +1,10 @@
-import { Button, Group, Menu, NativeSelect, Popover, SegmentedControl, Stack, UnstyledButton } from "@mantine/core";
-import type { CSSProperties, ReactNode } from "react";
+import { Button, Group, Menu, NativeSelect, SegmentedControl, Stack, UnstyledButton } from "@mantine/core";
 import type { Density } from "../api/types";
 import type { ShowPreset } from "../cells/parts";
 import type { FormatRule } from "../table/formatRules";
 import type { Header, SortSpec } from "../table/grid";
 import { tokens } from "../theme";
+import { PopoverChip, chipStyle } from "./PopoverChip";
 
 type Within = Extract<FormatRule, { kind: "heat" }>["within"];
 export interface View {
@@ -53,28 +53,8 @@ export const LENS_LABELS: Record<string, string> = {
   negative_share: "Gross Dis %",
 };
 
-export const chipStyle = (selected: boolean): CSSProperties => ({
-  background: selected ? "var(--mb-primary-soft)" : "var(--mb-surface)",
-  border: `1px solid ${selected ? "var(--mb-primary)" : "var(--mb-chip-border)"}`,
-  borderRadius: tokens.radius.chip,
-  padding: "5px 10px",
-  fontSize: tokens.font.chip,
-  fontWeight: selected ? 600 : 500,
-  color: selected ? "var(--mb-primary)" : "var(--mb-text)",
-  whiteSpace: "nowrap",
-});
-
-/** A chip that opens its controls in a popover. */
-export function PopoverChip({ label, selected, children }: { label: string; selected: boolean; children: ReactNode }) {
-  return (
-    <Popover position="bottom-start" shadow="md" withinPortal transitionProps={{ duration: 0 }}>
-      <Popover.Target>
-        <UnstyledButton style={chipStyle(selected)}>{label}</UnstyledButton>
-      </Popover.Target>
-      <Popover.Dropdown>{children}</Popover.Dropdown>
-    </Popover>
-  );
-}
+// The chip primitives live in PopoverChip.tsx; re-exported until this toolbar is retired.
+export { PopoverChip, chipStyle };
 
 const labelOf = (options: { value: string; label: string }[], value: string) => options.find((o) => o.value === value)?.label ?? value;
 
