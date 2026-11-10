@@ -1,3 +1,5 @@
+> Superseded by [2026-11-10-card-foundation-and-grid-family-design.md](2026-11-10-card-foundation-and-grid-family-design.md): its body adapters and payloads did not match engine output.
+
 # Universal Card Component Architecture — Design Specification
 
 | Document Metadata | Details |

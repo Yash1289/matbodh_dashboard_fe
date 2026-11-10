@@ -71,11 +71,12 @@ rq worker engine --with-scheduler --url "$DASHBOARD_REDIS_URL"
   fingerprint, card, part, state, timings, row count, cache hit, error kind and
   versions; no respondent data.
 
-## Live smoke check (State Pulse scoreboard)
+## Live smoke check (one card)
 
-`scripts/smoke_state_pulse.py` runs the `pulse.party_scoreboard` card through
-the real engine and `CardRunService` synchronously (`InlineQueue`) and prints
-per-job timings, the scoreboard rows and any errors.
+`scripts/smoke_card.py` runs one card from `config/cards/cards.yaml` through the real
+engine and `CardRunService` synchronously (`InlineQueue`) and prints the payload shape
+(family, mode, cuts, columns), per-job timings, per-cut row, cell and delta counts, and
+any errors. A card compiles to a single engine job, `grid`.
 
 Prerequisites:
 
@@ -85,30 +86,56 @@ Prerequisites:
   ClickHouse credentials). Run it only with the product owner's go-ahead.
 
 ```bash
-.venv/Scripts/python.exe scripts/smoke_state_pulse.py --state "Uttar Pradesh" --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
+.venv/Scripts/python.exe scripts/smoke_card.py --card opinion.leaders --state "Uttar Pradesh" --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
 ```
 
 - It is read-only: the catalogue query and every engine job use read-only
   connections, and nothing is written to any database. Output is aggregates
   only. It lives outside `tests/`, so pytest never collects it.
-- It uses the Uttar Pradesh standard-v1 preset and the pulse templates from
-  `config/`, at AC level.
+- It uses the Uttar Pradesh standard-v1 preset and the cards from `config/`, at AC level.
 - With two or more `--rounds`, the first entry is the compare round and the
-  latest is the anchor; a single round runs without a compare round (no Δ).
+  latest is the anchor; a single round runs without a compare round.
   An invalid selection prints `INVALID:` lines and exits with code 2.
-- Timings are for information, not acceptance thresholds.
-- Expected (Appendix A of the spec): four jobs (`vote`, `parties`, `seats_ac`,
-  `seats_pc`) and no errors; rows NDA, SP+, BSP, Other, plus JDL as an
-  "of which" row flagged `within_other` (it led 2 AC seats in R1). JDL's vote
-  cell is its survey share from the ungrouped `parties` job, already counted
-  inside Other, so the vote column is not additive across such rows. Seat
-  counts AC NDA 243 to 154, SP+ 158 to 249; PC NDA 49 to 26, SP+ 31 to 54.
+- Timings are for information, not acceptance thresholds. This check has not been run
+  against a live database as part of the card foundation work.
 - Exit code 0 only when the run state is `done`.
+
+## Cards
+
+The card foundation replaces the State Pulse page. One card is one `CardConfig` in
+`config/cards/cards.yaml` (family, scenarios, cuts, filters, comparison). The card
+compiles to one engine job (`matbodh_dashboard/cards/compile.py`), runs through the
+existing queue, cache and fingerprint, and `matbodh_dashboard/cards/translate.py`
+turns the engine result into a typed long-format `GridPayload`. Each family
+(`distribution`, `opinion`, `gender_differential`) is a `FamilySpec` in
+`matbodh_dashboard/cards/families/`, and `matbodh_dashboard/cards/field_maps/*.yaml`
+maps every engine result key to a role; a test fails if the engine returns an unmapped key.
+
+```bash
+python scripts/export_card_fixtures.py   # real-engine payloads for the frontend tests
+python scripts/measure_payload.py        # payload sizes for the two largest samples
+```
+
+`GET /cards` lists the cards with each family's lenses and capabilities, and the browser
+renders them with `web/src/cards/CardShell.tsx` on the cards page (`/`).
+
+Measured payload sizes (`measure_payload.py`, standalone mode, first scenario, latest
+observation; "rows" are payload rows, not engine rows):
+
+| Sample | Family | Rows | JSON | Gzipped |
+|---|---|---|---|---|
+| `result_ac_1.json` | distribution | 2016 | 11.44 MB | 0.79 MB |
+| `result_gd_complex.json` | gender_differential | 2032 | 8.08 MB | 0.96 MB |
+
+Both are under the spec's 2 MB gzipped threshold, so the long-format encoding stays. The
+raw JSON is large, so parse time on a slow device is the thing to watch.
 
 ## Docs
 
 - Spec: [docs/specs/2026-11-08-dashboard-design.md](docs/specs/2026-11-08-dashboard-design.md)
 - Plan: [docs/plans/2026-11-09-phase-1a-backend.md](docs/plans/2026-11-09-phase-1a-backend.md)
+- Card foundation spec: [docs/specs/2026-11-10-card-foundation-and-grid-family-design.md](docs/specs/2026-11-10-card-foundation-and-grid-family-design.md)
+- Card foundation plan: [docs/plans/2026-11-10-card-foundation-and-grid-family.md](docs/plans/2026-11-10-card-foundation-and-grid-family.md)
 
 ## Frontend
 
@@ -141,8 +168,7 @@ owner's go-ahead every time. Nothing in the automated suites runs against them.
 4. One worker: `rq worker engine --with-scheduler --worker-class rq.worker.SimpleWorker --url "$DASHBOARD_REDIS_URL"`.
 5. `cd web && npm run dev`, open the printed URL.
 6. Choose Uttar Pradesh, level AC, tick 2027 VS CAPI R1 and R2, compare R1, Apply.
-7. Expected scoreboard (Appendix A of the spec, shown with the percentage rule):
-   - NDA 42% ▼3% · AC 154 ▼89 · PC 26 ▼23
-   - SP+ 44% ▲3% · AC 249 ▲91 · PC 54 ▲23
-   - BSP 12%
-   - JDL 0.13% ⊂ within Other, AC 0 ▼2
+7. The cards page lists the cards from `config/cards/cards.yaml`. For each, check that the lens,
+   cut, sort, transpose and format controls change the display without a network request,
+   that a missing value shows `—` with a reason, and that the numbers match the engine
+   result for the same selection (compare against `scripts/smoke_card.py` output).

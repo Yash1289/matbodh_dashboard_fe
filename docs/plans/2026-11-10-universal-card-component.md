@@ -1,3 +1,5 @@
+> Superseded by [2026-11-10-card-foundation-and-grid-family.md](2026-11-10-card-foundation-and-grid-family.md): the card foundation replaced this plan.
+
 # Universal Card Component Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
