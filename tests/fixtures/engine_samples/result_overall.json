@@ -1,0 +1,364 @@
+{
+  "rows": [
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "option_id": "BJP+",
+      "weighted_numerator": 429.8414007410607,
+      "weighted_denominator": 1021.6197871161963,
+      "unweighted_numerator": 213637,
+      "unweighted_base": 411612,
+      "support_share": 42.074498376192054,
+      "contribution_share": 100.00000000000001,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 42.074498376192054,
+      "scenario_composition_share": 100.0,
+      "joint_share": 42.074498376192054,
+      "coverage_status": "available",
+      "dimensions": {},
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "party_id": "BSP",
+      "option_id": "BSP",
+      "weighted_numerator": 124.22264848127242,
+      "weighted_denominator": 1021.6197871161963,
+      "unweighted_numerator": 46300,
+      "unweighted_base": 411612,
+      "support_share": 12.159381606333712,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 12.159381606333712,
+      "scenario_composition_share": 100.0,
+      "joint_share": 12.159381606333712,
+      "coverage_status": "available",
+      "dimensions": {},
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "party_id": "INC",
+      "option_id": "INC",
+      "weighted_numerator": 62.85365256128802,
+      "weighted_denominator": 1021.6197871161963,
+      "unweighted_numerator": 22308,
+      "unweighted_base": 411612,
+      "support_share": 6.152352700480655,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 6.152352700480655,
+      "scenario_composition_share": 100.0,
+      "joint_share": 6.152352700480655,
+      "coverage_status": "available",
+      "dimensions": {},
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "party_id": "Other",
+      "option_id": "Other",
+      "weighted_numerator": 20.149589801415512,
+      "weighted_denominator": 1021.6197871161963,
+      "unweighted_numerator": 7389,
+      "unweighted_base": 411612,
+      "support_share": 1.9723178872928144,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 1.9723178872928144,
+      "scenario_composition_share": 100.0,
+      "joint_share": 1.9723178872928144,
+      "coverage_status": "available",
+      "dimensions": {},
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "option_id": "SP+",
+      "weighted_numerator": 384.5524955311597,
+      "weighted_denominator": 1021.6197871161963,
+      "unweighted_numerator": 121978,
+      "unweighted_base": 411612,
+      "support_share": 37.64144942970077,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 37.64144942970077,
+      "scenario_composition_share": 100.0,
+      "joint_share": 37.64144942970077,
+      "coverage_status": "available",
+      "dimensions": {},
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    }
+  ],
+  "comparisons": [],
+  "contract": {
+    "request": {
+      "id": "party-support-by-age",
+      "state": "Uttar Pradesh",
+      "observations": [
+        {
+          "id": "R2",
+          "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+          "collection_level": "ac",
+          "available_fields": [
+            "age_group",
+            "ac_num",
+            "level_id"
+          ],
+          "available_scenarios": [
+            "vs_voting_intention"
+          ],
+          "completed_acs": null,
+          "completed_pcs": null
+        }
+      ],
+      "scenarios": [
+        "vs_voting_intention"
+      ],
+      "grouping_sets": [
+        []
+      ],
+      "weights": {
+        "mode": "mj_cap",
+        "invalid": "exclude",
+        "zero": "include",
+        "external": {}
+      },
+      "answers": {
+        "excluded": [
+          ""
+        ],
+        "strip_whitespace": true,
+        "policy_id": "all_answered_options"
+      },
+      "parties": {
+        "namespace": "party_alliance_mapping",
+        "version": "2027-01-01",
+        "mapping": {
+          "BJP": "BJP+",
+          "AD(S)": "BJP+",
+          "NINSHAD": "BJP+",
+          "SBSP": "BJP+",
+          "RLD": "BJP+",
+          "NDA": "BJP+",
+          "SP": "SP+",
+          "INC": "INC",
+          "AITC": "SP+",
+          "TMC": "SP+"
+        },
+        "passthrough": true,
+        "options": [],
+        "other_grouping": {
+          "keep": [
+            "BJP+",
+            "SP+",
+            "BSP",
+            "INC"
+          ],
+          "label": "Other"
+        }
+      },
+      "geography_path": "ac_hierarchy",
+      "filters": [],
+      "display_parties": [],
+      "comparisons": [],
+      "reference_observation": null,
+      "coverage_mode": "independent",
+      "opinion_weights": {
+        "source": "base",
+        "scenario": null,
+        "mode": "mj_cap"
+      },
+      "caste_clubbing": null,
+      "gender_differential": null,
+      "party_overrides": {}
+    },
+    "required_fields": [],
+    "caste_clubbing": {
+      "active": false
+    },
+    "dimensions": [],
+    "coverage_acs": [],
+    "unit": "percentage",
+    "population_basis": "answered_units",
+    "normalisation_scope": "within_conditioning_group",
+    "reference_population": "entire filtered observation/scenario population for support; independent base-weight population within the resolved hierarchy scope for composition",
+    "composition_basis": "factored base weights before outcome eligibility",
+    "operations": [
+      {
+        "instance": "distribution_0_0",
+        "family": "categorical_distribution",
+        "observation": "R2",
+        "scenario": "vs_voting_intention"
+      }
+    ],
+    "source_verification": "schema snapshot; caller supplies survey availability",
+    "field_bindings": {
+      "R2": {}
+    },
+    "scenario_bindings": {
+      "vs_voting_intention": {
+        "id": "vs_voting_intention",
+        "answer": {
+          "column": "vs_voting_intention",
+          "col_key": "um",
+          "is_json_key": false
+        },
+        "weight_keys": [
+          "mj_cap",
+          "m_cap"
+        ],
+        "role": "electoral_scenario",
+        "domain": "party",
+        "scale": null,
+        "higher_is_better": null,
+        "excluded_answers": []
+      }
+    },
+    "comparison_definitions": {},
+    "opinion_weight_binding": {
+      "policy": {
+        "source": "base",
+        "scenario": null,
+        "mode": "mj_cap"
+      },
+      "donor_scenario": null,
+      "scope": "all opinion outcomes in request; host reuses same policy across views"
+    },
+    "population_reference_scopes": {
+      "R2": {
+        "g0": []
+      }
+    },
+    "composition_scope": "highest geographic axes in each grouping set; otherwise seat-attribute intersection; otherwise whole filtered observation",
+    "size_of_impact": {
+      "formula": "cell_metric * impact_population_share / 100",
+      "weights": "factored_base",
+      "scope": "highest geographic axes in each grouping set; otherwise seat-attribute intersection; otherwise whole filtered observation",
+      "unit": "percentage_points",
+      "additivity": "only with compatible metric bases and a complete disjoint partition"
+    },
+    "master_versions": {},
+    "party_summary_grouping": {
+      "keep": [
+        "BJP+",
+        "SP+",
+        "BSP",
+        "INC"
+      ],
+      "label": "Other",
+      "stage": "after canonical mapping and analytical-universe validation; before summary mass aggregation",
+      "display_parties": "filters grouped output; does not alter bases",
+      "competition": "individual identities preserved by benchmark/ranking sources"
+    }
+  },
+  "context_status": {
+    "R2:vs_voting_intention": "available"
+  },
+  "scores": [],
+  "populations": [
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "grouping_set_id": "g0",
+      "group_mask": 0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "composition_share": 100.0,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "dimensions": {},
+      "unit": "percentage",
+      "weight_basis": "factored_base"
+    }
+  ],
+  "gender_differentials": []
+}

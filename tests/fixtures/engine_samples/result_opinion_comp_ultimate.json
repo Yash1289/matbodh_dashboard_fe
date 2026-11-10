@@ -1,0 +1,3543 @@
+{
+  "rows": [
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "option_id": "BJP+",
+      "weighted_numerator": 198.43284570019586,
+      "weighted_denominator": 476.47927023169984,
+      "unweighted_numerator": 93025,
+      "unweighted_base": 181181,
+      "support_share": 41.645640869896184,
+      "contribution_share": 46.16420041394128,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 19.419041359080072,
+      "scenario_composition_share": 46.639589037003056,
+      "joint_share": 19.423355753545763,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BSP",
+      "option_id": "BSP",
+      "weighted_numerator": 65.84791188911996,
+      "weighted_denominator": 476.47927023169984,
+      "unweighted_numerator": 24238,
+      "unweighted_base": 181181,
+      "support_share": 13.81968030993243,
+      "contribution_share": 53.00797615746135,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 6.4440104150691955,
+      "scenario_composition_share": 46.639589037003056,
+      "joint_share": 6.445442102780116,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "option_id": "Other",
+      "weighted_numerator": 5.365924114774275,
+      "weighted_denominator": 476.47927023169984,
+      "unweighted_numerator": 1830,
+      "unweighted_base": 181181,
+      "support_share": 1.1261610840204992,
+      "contribution_share": 26.63043847372673,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 0.5251202337334816,
+      "scenario_composition_share": 46.639589037003056,
+      "joint_share": 0.5252369014818196,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "option_id": "SP+",
+      "weighted_numerator": 206.83258852760974,
+      "weighted_denominator": 476.47927023169984,
+      "unweighted_numerator": 62088,
+      "unweighted_base": 181181,
+      "support_share": 43.408517736150884,
+      "contribution_share": 46.22926828552915,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 20.241057254662348,
+      "scenario_composition_share": 46.639589037003056,
+      "joint_share": 20.245554279195357,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "option_id": "BJP+",
+      "weighted_numerator": 231.39468752274058,
+      "weighted_denominator": 545.1207689482436,
+      "unweighted_numerator": 120603,
+      "unweighted_base": 230420,
+      "support_share": 42.44833451662347,
+      "contribution_share": 53.832573391908824,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 22.65416657729583,
+      "scenario_composition_share": 53.35847796047461,
+      "joint_share": 22.649785217641067,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BSP",
+      "option_id": "BSP",
+      "weighted_numerator": 58.37473659215256,
+      "weighted_denominator": 545.1207689482436,
+      "unweighted_numerator": 22062,
+      "unweighted_base": 230420,
+      "support_share": 10.70858787948601,
+      "contribution_share": 46.99202384253865,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 5.715044804278088,
+      "scenario_composition_share": 53.35847796047461,
+      "joint_share": 5.713939503553598,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "option_id": "Other",
+      "weighted_numerator": 14.782459112094214,
+      "weighted_denominator": 545.1207689482436,
+      "unweighted_numerator": 5558,
+      "unweighted_base": 230420,
+      "support_share": 2.711776904155661,
+      "contribution_share": 73.36357344135979,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 1.4472427812956414,
+      "scenario_composition_share": 53.35847796047461,
+      "joint_share": 1.4469628817411389,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "option_id": "SP+",
+      "weighted_numerator": 240.56888572125627,
+      "weighted_denominator": 545.1207689482436,
+      "unweighted_numerator": 82197,
+      "unweighted_base": 230420,
+      "support_share": 44.13130069973486,
+      "contribution_share": 53.76968706106094,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 23.552345426721132,
+      "scenario_composition_share": 53.35847796047461,
+      "joint_share": 23.547790357538798,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "option_id": "BJP+",
+      "weighted_numerator": 0.01386751812452417,
+      "weighted_denominator": 0.019747936253747725,
+      "unweighted_numerator": 9,
+      "unweighted_base": 11,
+      "support_share": 70.22261944912051,
+      "contribution_share": 0.0032261941498925193,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0013841916634718197,
+      "scenario_composition_share": 0.0019330025223465675,
+      "joint_share": 0.0013574050052093307,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "option_id": "Other",
+      "weighted_numerator": 0.0012065745470278123,
+      "weighted_denominator": 0.019747936253747725,
+      "unweighted_numerator": 1,
+      "unweighted_base": 11,
+      "support_share": 6.109876655080001,
+      "contribution_share": 0.005988084913485683,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.00012043470319318518,
+      "scenario_composition_share": 0.0019330025223465675,
+      "joint_share": 0.00011810406985496051,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "option_id": "SP+",
+      "weighted_numerator": 0.004673843582195744,
+      "weighted_denominator": 0.019747936253747725,
+      "unweighted_numerator": 1,
+      "unweighted_base": 11,
+      "support_share": 23.6675038957995,
+      "contribution_share": 0.0010446534099102234,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.00046652149755662206,
+      "scenario_composition_share": 0.0019330025223465675,
+      "joint_share": 0.00045749344728227643,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "BJP+",
+      "option_id": "BJP+",
+      "weighted_numerator": 429.8414007410607,
+      "weighted_denominator": 1021.619787116196,
+      "unweighted_numerator": 213637,
+      "unweighted_base": 411612,
+      "support_share": 42.07449837619207,
+      "contribution_share": 100.00000000000001,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 42.07449837619207,
+      "scenario_composition_share": 100.0,
+      "joint_share": 42.07449837619207,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "BSP",
+      "option_id": "BSP",
+      "weighted_numerator": 124.22264848127242,
+      "weighted_denominator": 1021.619787116196,
+      "unweighted_numerator": 46300,
+      "unweighted_base": 411612,
+      "support_share": 12.159381606333717,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 12.159381606333717,
+      "scenario_composition_share": 100.0,
+      "joint_share": 12.159381606333717,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "Other",
+      "option_id": "Other",
+      "weighted_numerator": 20.149589801415512,
+      "weighted_denominator": 1021.619787116196,
+      "unweighted_numerator": 7389,
+      "unweighted_base": 411612,
+      "support_share": 1.972317887292815,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 1.972317887292815,
+      "scenario_composition_share": 100.0,
+      "joint_share": 1.9723178872928153,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "vs_voting_intention",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "SP+",
+      "option_id": "SP+",
+      "weighted_numerator": 447.4061480924473,
+      "weighted_denominator": 1021.619787116196,
+      "unweighted_numerator": 144286,
+      "unweighted_base": 411612,
+      "support_share": 43.7938021301814,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 43.79380213018139,
+      "scenario_composition_share": 100.0,
+      "joint_share": 43.793802130181405,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "party",
+      "option_namespace": "party_alliance_mapping",
+      "option_mapping_version": "2027-01-01",
+      "party_namespace": "party_alliance_mapping",
+      "party_mapping_version": "2027-01-01"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 201.05746121888217,
+      "weighted_denominator": 476.37356704136374,
+      "unweighted_numerator": 64446,
+      "unweighted_base": 181244,
+      "support_share": 42.20583909967957,
+      "contribution_share": 50.92319978921953,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 19.680257475970485,
+      "scenario_composition_share": 46.62922926254511,
+      "joint_share": 19.680257475970492,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 207.42258875608746,
+      "weighted_denominator": 476.37356704136374,
+      "unweighted_numerator": 91303,
+      "unweighted_base": 181244,
+      "support_share": 43.54200214011389,
+      "contribution_share": 43.66815049127316,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 20.303300003415995,
+      "scenario_composition_share": 46.62922926254511,
+      "joint_share": 20.303300003416002,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 13.425968878962516,
+      "weighted_denominator": 476.37356704136374,
+      "unweighted_numerator": 4522,
+      "unweighted_base": 181244,
+      "support_share": 2.8183698273495374,
+      "contribution_share": 46.66941714922711,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 1.3141841282612123,
+      "scenario_composition_share": 46.62922926254511,
+      "joint_share": 1.3141841282612128,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 54.46754818743161,
+      "weighted_denominator": 476.37356704136374,
+      "unweighted_numerator": 20973,
+      "unweighted_base": 181244,
+      "support_share": 11.43378893285701,
+      "contribution_share": 44.271927553414784,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 5.331487654897403,
+      "scenario_composition_share": 46.62922926254511,
+      "joint_share": 5.331487654897405,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 193.76448466969646,
+      "weighted_denominator": 545.2263704823954,
+      "unweighted_numerator": 68016,
+      "unweighted_base": 230526,
+      "support_share": 35.53835528869616,
+      "contribution_share": 49.07605768556007,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 18.966393611460955,
+      "scenario_composition_share": 53.368799589590665,
+      "joint_share": 18.966393611460948,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 267.5599105912898,
+      "weighted_denominator": 545.2263704823954,
+      "unweighted_numerator": 129035,
+      "unweighted_base": 230526,
+      "support_share": 49.07317860553279,
+      "contribution_share": 56.32870803127094,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 26.189766342228687,
+      "scenario_composition_share": 53.368799589590665,
+      "joint_share": 26.189766342228676,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 15.342268864466995,
+      "weighted_denominator": 545.2263704823954,
+      "unweighted_numerator": 5586,
+      "unweighted_base": 230526,
+      "support_share": 2.813926415718437,
+      "contribution_share": 53.3305828507729,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 1.501758749403325,
+      "scenario_composition_share": 53.368799589590665,
+      "joint_share": 1.5017587494033244,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 68.5597063569422,
+      "weighted_denominator": 545.2263704823954,
+      "unweighted_numerator": 27889,
+      "unweighted_base": 230526,
+      "support_share": 12.574539690052628,
+      "contribution_share": 55.72621595657439,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 6.710880886497725,
+      "scenario_composition_share": 53.368799589590665,
+      "joint_share": 6.710880886497722,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 0.0029316742923239996,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 2,
+      "unweighted_base": 11,
+      "support_share": 14.558180395700166,
+      "contribution_share": 0.000742525220401586,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.00028696326193937535,
+      "scenario_composition_share": 0.001971147864221627,
+      "joint_share": 0.0002869632619393754,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 0.014921936905770998,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 8,
+      "unweighted_base": 11,
+      "support_share": 74.09972175158053,
+      "contribution_share": 0.003141477455903979,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0014606150827004478,
+      "scenario_composition_share": 0.001971147864221627,
+      "joint_share": 0.001460615082700448,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 0.0,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 0,
+      "unweighted_base": 11,
+      "support_share": 0.0,
+      "contribution_share": 0.0,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0,
+      "scenario_composition_share": 0.001971147864221627,
+      "joint_share": 0.0,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 0.0022840310940000002,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 1,
+      "unweighted_base": 11,
+      "support_share": 11.342097852719299,
+      "contribution_share": 0.001856490010810654,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0002235695195818034,
+      "scenario_composition_share": 0.001971147864221627,
+      "joint_share": 0.00022356951958180346,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 394.8248775628703,
+      "weighted_denominator": 1021.620075166051,
+      "unweighted_numerator": 132464,
+      "unweighted_base": 411781,
+      "support_share": 38.64693805069332,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 38.64693805069332,
+      "scenario_composition_share": 100.0,
+      "joint_share": 38.64693805069332,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 474.9974212842835,
+      "weighted_denominator": 1021.620075166051,
+      "unweighted_numerator": 220346,
+      "unweighted_base": 411781,
+      "support_share": 46.494526960727434,
+      "contribution_share": 99.99999999999999,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 46.494526960727434,
+      "scenario_composition_share": 100.0,
+      "joint_share": 46.49452696072743,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 28.76823774342951,
+      "weighted_denominator": 1021.620075166051,
+      "unweighted_numerator": 10108,
+      "unweighted_base": 411781,
+      "support_share": 2.8159428776645377,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 2.8159428776645377,
+      "scenario_composition_share": 100.0,
+      "joint_share": 2.815942877664537,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 123.02953857546775,
+      "weighted_denominator": 1021.620075166051,
+      "unweighted_numerator": 48863,
+      "unweighted_base": 411781,
+      "support_share": 12.042592110914706,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 12.042592110914706,
+      "scenario_composition_share": 100.0,
+      "joint_share": 12.042592110914706,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 182.6336055135346,
+      "weighted_denominator": 476.3735670413639,
+      "unweighted_numerator": 58487,
+      "unweighted_base": 181244,
+      "support_share": 38.338316428391664,
+      "contribution_share": 54.95963121870795,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 17.87686146279474,
+      "scenario_composition_share": 46.62922926254514,
+      "joint_share": 17.876861462794754,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 225.64289918655916,
+      "weighted_denominator": 476.3735670413639,
+      "unweighted_numerator": 97882,
+      "unweighted_base": 181244,
+      "support_share": 47.36679673223061,
+      "contribution_share": 42.18563683510888,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 22.08677224259553,
+      "scenario_composition_share": 46.62922926254514,
+      "joint_share": 22.086772242595547,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 13.82247215568263,
+      "weighted_denominator": 476.3735670413639,
+      "unweighted_numerator": 4525,
+      "unweighted_base": 181244,
+      "support_share": 2.901603512875519,
+      "contribution_share": 50.43577245675739,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 1.3529953543087878,
+      "scenario_composition_share": 46.62922926254514,
+      "joint_share": 1.3529953543087891,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 54.27459018558747,
+      "weighted_denominator": 476.3735670413639,
+      "unweighted_numerator": 20350,
+      "unweighted_base": 181244,
+      "support_share": 11.393283326502194,
+      "contribution_share": 42.72643847681225,
+      "composition_share": 46.629229262545095,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "size_of_impact_pp": 5.312600202846032,
+      "scenario_composition_share": 46.62922926254514,
+      "joint_share": 5.312600202846037,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 149.67139993083805,
+      "weighted_denominator": 545.2263704823952,
+      "unweighted_numerator": 50557,
+      "unweighted_base": 230526,
+      "support_share": 27.451240078210926,
+      "contribution_share": 45.04036878129204,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 14.650397302197787,
+      "scenario_composition_share": 53.368799589590644,
+      "joint_share": 14.650397302197776,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 309.2213187227185,
+      "weighted_denominator": 545.2263704823952,
+      "unweighted_numerator": 147319,
+      "unweighted_base": 230526,
+      "support_share": 56.71429986945265,
+      "contribution_share": 57.81125087621232,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 30.267741035967678,
+      "scenario_composition_share": 53.368799589590644,
+      "joint_share": 30.267741035967656,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 13.583615790196928,
+      "weighted_denominator": 545.2263704823952,
+      "unweighted_numerator": 4710,
+      "unweighted_base": 230526,
+      "support_share": 2.4913717541172247,
+      "contribution_share": 49.5642275432426,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 1.3296151984864917,
+      "scenario_composition_share": 53.368799589590644,
+      "joint_share": 1.3296151984864908,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 72.75003603864177,
+      "weighted_denominator": 545.2263704823952,
+      "unweighted_numerator": 27940,
+      "unweighted_base": 230526,
+      "support_share": 13.343088298219206,
+      "contribution_share": 57.27081362313664,
+      "composition_share": 53.36879958959069,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "size_of_impact_pp": 7.121046052938734,
+      "scenario_composition_share": 53.368799589590644,
+      "joint_share": 7.12104605293873,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 0.0,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 0,
+      "unweighted_base": 11,
+      "support_share": 0.0,
+      "contribution_share": 0.0,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0,
+      "scenario_composition_share": 0.0019711478642216273,
+      "joint_share": 0.0,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 0.016647036604800998,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 9,
+      "unweighted_base": 11,
+      "support_share": 82.66626431901499,
+      "contribution_share": 0.0031122886788042593,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0016294743035560682,
+      "scenario_composition_share": 0.0019711478642216273,
+      "joint_share": 0.0016294743035560686,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 0.0,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 0,
+      "unweighted_base": 11,
+      "support_share": 0.0,
+      "contribution_share": 0.0,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.0,
+      "scenario_composition_share": 0.0019711478642216273,
+      "joint_share": 0.0,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 0.0034906056872940003,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_numerator": 2,
+      "unweighted_base": 11,
+      "support_share": 17.333735680985022,
+      "contribution_share": 0.002747900051110515,
+      "composition_share": 0.0019711478642216265,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "size_of_impact_pp": 0.00034167356066555827,
+      "scenario_composition_share": 0.0019711478642216273,
+      "joint_share": 0.0003416735606655583,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Completely Dissatisfied",
+      "weighted_numerator": 332.3050054443719,
+      "weighted_denominator": 1021.6200751660515,
+      "unweighted_numerator": 109044,
+      "unweighted_base": 411781,
+      "support_share": 32.52725876499244,
+      "contribution_share": 99.99999999999999,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 32.52725876499244,
+      "scenario_composition_share": 100.0,
+      "joint_share": 32.52725876499244,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Completely Satisfied",
+      "weighted_numerator": 534.8808649458836,
+      "weighted_denominator": 1021.6200751660515,
+      "unweighted_numerator": 245210,
+      "unweighted_base": 411781,
+      "support_share": 52.35614275286685,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 52.35614275286685,
+      "scenario_composition_share": 100.0,
+      "joint_share": 52.35614275286685,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Somewhat Dissatisfied",
+      "weighted_numerator": 27.40608794587956,
+      "weighted_denominator": 1021.6200751660515,
+      "unweighted_numerator": 9235,
+      "unweighted_base": 411781,
+      "support_share": 2.682610552795279,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 2.6826105527952793,
+      "scenario_composition_share": 100.0,
+      "joint_share": 2.682610552795279,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "option_id": "Somewhat Satisfied",
+      "weighted_numerator": 127.02811682991651,
+      "weighted_denominator": 1021.6200751660515,
+      "unweighted_numerator": 48292,
+      "unweighted_base": 411781,
+      "support_share": 12.433987929345426,
+      "contribution_share": 100.0,
+      "composition_share": 100.0,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "size_of_impact_pp": 12.433987929345426,
+      "scenario_composition_share": 100.0,
+      "joint_share": 12.433987929345426,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "impact_unit": "percentage_points",
+      "impact_weight_basis": "factored_base",
+      "outcome_domain": "ordinal",
+      "option_namespace": "satisfaction",
+      "option_mapping_version": "v1"
+    }
+  ],
+  "comparisons": [
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "target_share": 41.645640869896184,
+      "reference_share": 54.97579107297089,
+      "target_value": 41.645640869896184,
+      "reference_value": 54.97579107297089,
+      "target_base": 476.47927023169984,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 13.330150203074709,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 6.215746299233326,
+      "size_of_impact_pp": 6.215746299233326,
+      "shakti_pp": 13.330150203074709,
+      "shaki_pp": 13.330150203074709,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BSP",
+      "target_share": 13.81968030993243,
+      "reference_share": 54.97579107297089,
+      "target_value": 13.81968030993243,
+      "reference_value": 54.97579107297089,
+      "target_base": 476.47927023169984,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 41.15611076303846,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 19.190777243244202,
+      "size_of_impact_pp": 19.190777243244202,
+      "shakti_pp": 41.15611076303846,
+      "shaki_pp": 41.15611076303846,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "target_share": 1.1261610840204992,
+      "reference_share": 54.97579107297089,
+      "target_value": 1.1261610840204992,
+      "reference_value": 54.97579107297089,
+      "target_base": 476.47927023169984,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 53.84962998895039,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 25.109667424579914,
+      "size_of_impact_pp": 25.109667424579914,
+      "shakti_pp": 53.84962998895039,
+      "shaki_pp": 53.84962998895039,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "target_share": 43.408517736150884,
+      "reference_share": 54.97579107297089,
+      "target_value": 43.408517736150884,
+      "reference_value": 54.97579107297089,
+      "target_base": 476.47927023169984,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 11.567273336820008,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 5.393730403651052,
+      "size_of_impact_pp": 5.393730403651052,
+      "shakti_pp": 11.567273336820008,
+      "shaki_pp": 11.567273336820008,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "target_share": 42.44833451662347,
+      "reference_share": 61.64771829558542,
+      "target_value": 42.44833451662347,
+      "reference_value": 61.64771829558542,
+      "target_base": 545.1207689482436,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 19.199383778961952,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 10.246480651430586,
+      "size_of_impact_pp": 10.246480651430586,
+      "shakti_pp": 19.199383778961952,
+      "shaki_pp": 19.199383778961952,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BSP",
+      "target_share": 10.70858787948601,
+      "reference_share": 61.64771829558542,
+      "target_value": 10.70858787948601,
+      "reference_value": 61.64771829558542,
+      "target_base": 545.1207689482436,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 50.93913041609941,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 27.185602424448327,
+      "size_of_impact_pp": 27.185602424448327,
+      "shakti_pp": 50.93913041609941,
+      "shaki_pp": 50.93913041609941,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "target_share": 2.711776904155661,
+      "reference_share": 61.64771829558542,
+      "target_value": 2.711776904155661,
+      "reference_value": 61.64771829558542,
+      "target_base": 545.1207689482436,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 58.93594139142976,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 31.45340444743077,
+      "size_of_impact_pp": 31.45340444743077,
+      "shakti_pp": 58.93594139142976,
+      "shaki_pp": 58.93594139142976,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "target_share": 44.13130069973486,
+      "reference_share": 61.64771829558542,
+      "target_value": 44.13130069973486,
+      "reference_value": 61.64771829558542,
+      "target_base": 545.1207689482436,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 17.516417595850562,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 9.348301802005286,
+      "size_of_impact_pp": 9.348301802005286,
+      "shakti_pp": 17.516417595850562,
+      "shaki_pp": 17.516417595850562,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "BJP+",
+      "target_share": 70.22261944912051,
+      "reference_share": 85.44181960429982,
+      "target_value": 70.22261944912051,
+      "reference_value": 85.44181960429982,
+      "target_base": 0.019747936253747725,
+      "reference_base": 0.020137642292094998,
+      "percentage_point_difference": 15.219200155179308,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 0.0019711478642216265,
+      "impact_pp": 0.0002999929388104314,
+      "size_of_impact_pp": 0.0002999929388104314,
+      "shakti_pp": 15.219200155179308,
+      "shaki_pp": 15.219200155179308,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "Other",
+      "target_share": 6.109876655080001,
+      "reference_share": 85.44181960429982,
+      "target_value": 6.109876655080001,
+      "reference_value": 85.44181960429982,
+      "target_base": 0.019747936253747725,
+      "reference_base": 0.020137642292094998,
+      "percentage_point_difference": 79.33194294921982,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 0.0019711478642216265,
+      "impact_pp": 0.001563749899089066,
+      "size_of_impact_pp": 0.001563749899089066,
+      "shakti_pp": 79.33194294921982,
+      "shaki_pp": 79.33194294921982,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "party_id": "SP+",
+      "target_share": 23.6675038957995,
+      "reference_share": 85.44181960429982,
+      "target_value": 23.6675038957995,
+      "reference_value": 85.44181960429982,
+      "target_base": 0.019747936253747725,
+      "reference_base": 0.020137642292094998,
+      "percentage_point_difference": 61.774315708500325,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 0.0019711478642216265,
+      "impact_pp": 0.001217663104725629,
+      "size_of_impact_pp": 0.001217663104725629,
+      "shakti_pp": 61.774315708500325,
+      "shaki_pp": 61.774315708500325,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "BJP+",
+      "target_share": 42.07449837619207,
+      "reference_share": 58.537119071642145,
+      "target_value": 42.07449837619207,
+      "reference_value": 58.537119071642145,
+      "target_base": 1021.619787116196,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 16.462620695450077,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 16.462620695450077,
+      "size_of_impact_pp": 16.462620695450077,
+      "shakti_pp": 16.462620695450077,
+      "shaki_pp": 16.462620695450077,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "BSP",
+      "target_share": 12.159381606333717,
+      "reference_share": 58.537119071642145,
+      "target_value": 12.159381606333717,
+      "reference_value": 58.537119071642145,
+      "target_base": 1021.619787116196,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 46.37773746530843,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 46.37773746530843,
+      "size_of_impact_pp": 46.37773746530843,
+      "shakti_pp": 46.37773746530843,
+      "shaki_pp": 46.37773746530843,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "Other",
+      "target_share": 1.972317887292815,
+      "reference_share": 58.537119071642145,
+      "target_value": 1.972317887292815,
+      "reference_value": 58.537119071642145,
+      "target_base": 1021.619787116196,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 56.56480118434933,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 56.56480118434933,
+      "size_of_impact_pp": 56.56480118434933,
+      "shakti_pp": 56.56480118434933,
+      "shaki_pp": 56.56480118434933,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "party_id": "SP+",
+      "target_share": 43.7938021301814,
+      "reference_share": 58.537119071642145,
+      "target_value": 43.7938021301814,
+      "reference_value": 58.537119071642145,
+      "target_base": 1021.619787116196,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 14.743316941460748,
+      "relative_change_pct": null,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 14.743316941460748,
+      "size_of_impact_pp": 14.743316941460748,
+      "shakti_pp": 14.743316941460748,
+      "shaki_pp": 14.743316941460748,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "shakti",
+      "target": [
+        "R2",
+        "vs_voting_intention"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "shakti",
+      "measure": "support_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 40.11477633534371,
+      "reference_share": 23.295436591170827,
+      "target_value": 40.11477633534371,
+      "reference_value": 23.295436591170827,
+      "target_base": 545.2263704823952,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 16.819339744172886,
+      "relative_change_pct": 72.2001482064842,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 8.976279720360003,
+      "size_of_impact_pp": 8.976279720360003,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "net_score",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 100.0,
+      "reference_share": 70.88363920859966,
+      "target_value": 100.0,
+      "reference_value": 70.88363920859966,
+      "target_base": 0.020137642292094998,
+      "reference_base": 0.020137642292094998,
+      "percentage_point_difference": 29.11636079140034,
+      "relative_change_pct": 41.076278131989476,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 0.0019711478642216265,
+      "impact_pp": 0.0005739265238787508,
+      "size_of_impact_pp": 0.0005739265238787508,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "net_score",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "target_share": 29.58026136442455,
+      "reference_share": 17.074238143284283,
+      "target_value": 29.58026136442455,
+      "reference_value": 17.074238143284283,
+      "target_base": 1021.6200751660515,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 12.506023221140268,
+      "relative_change_pct": 73.24498531759787,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 12.506023221140268,
+      "size_of_impact_pp": 12.506023221140268,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "net-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "net_score",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 17.520160117465622,
+      "reference_share": 9.951582145941785,
+      "target_value": 17.520160117465622,
+      "reference_value": 9.951582145941785,
+      "target_base": 476.3735670413639,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 7.568577971523837,
+      "relative_change_pct": 76.05401694453451,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 3.529169574256335,
+      "size_of_impact_pp": 3.529169574256335,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "net_score",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 70.05738816767186,
+      "reference_share": 61.64771829558542,
+      "target_value": 70.05738816767186,
+      "reference_value": 61.64771829558542,
+      "target_base": 545.2263704823952,
+      "reference_base": 545.2263704823954,
+      "percentage_point_difference": 8.40966987208644,
+      "relative_change_pct": 13.641494129213626,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 53.36879958959069,
+      "impact_pp": 4.4881398601799996,
+      "size_of_impact_pp": 4.4881398601799996,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-positive-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "positive_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 100.0,
+      "reference_share": 85.44181960429982,
+      "target_value": 100.0,
+      "reference_value": 85.44181960429982,
+      "target_base": 0.020137642292094998,
+      "reference_base": 0.020137642292094998,
+      "percentage_point_difference": 14.558180395700177,
+      "relative_change_pct": 17.03870594414113,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 0.0019711478642216265,
+      "impact_pp": 0.00028696326193937557,
+      "size_of_impact_pp": 0.00028696326193937557,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-positive-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "positive_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "target_share": 64.79013068221228,
+      "reference_share": 58.537119071642145,
+      "target_value": 64.79013068221228,
+      "reference_value": 58.537119071642145,
+      "target_base": 1021.6200751660515,
+      "reference_base": 1021.620075166051,
+      "percentage_point_difference": 6.253011610570134,
+      "relative_change_pct": 10.682130774008925,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 100.0,
+      "impact_pp": 6.253011610570134,
+      "size_of_impact_pp": 6.253011610570134,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "comparison_id": "net-positive-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "positive_share",
+      "difference_unit": "percentage_points"
+    },
+    {
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "target_share": 58.760080058732804,
+      "reference_share": 54.97579107297089,
+      "target_value": 58.760080058732804,
+      "reference_value": 54.97579107297089,
+      "target_base": 476.3735670413639,
+      "reference_base": 476.37356704136374,
+      "percentage_point_difference": 3.7842889857619113,
+      "relative_change_pct": 6.883555310261784,
+      "coverage_status": "aligned",
+      "population_observation_id": "R2",
+      "population_share": 46.629229262545095,
+      "impact_pp": 1.764584787128164,
+      "size_of_impact_pp": 1.764584787128164,
+      "impact_status": "aligned",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "comparison_id": "net-positive-gap",
+      "target": [
+        "R2",
+        "cm_satisfaction"
+      ],
+      "reference": [
+        "R2",
+        "pm_satisfaction"
+      ],
+      "kind": "difference",
+      "measure": "positive_share",
+      "difference_unit": "percentage_points"
+    }
+  ],
+  "contract": {
+    "request": {
+      "id": "party-support-by-age",
+      "state": "Uttar Pradesh",
+      "observations": [
+        {
+          "id": "R2",
+          "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+          "collection_level": "ac",
+          "available_fields": [
+            "category",
+            "caste",
+            "ac_num",
+            "gender",
+            "party_zone",
+            "incumbent_mp_party"
+          ],
+          "available_scenarios": [
+            "vs_voting_intention",
+            "pm_satisfaction",
+            "cm_satisfaction"
+          ],
+          "completed_acs": null,
+          "completed_pcs": null
+        }
+      ],
+      "scenarios": [
+        "vs_voting_intention",
+        "pm_satisfaction",
+        "cm_satisfaction"
+      ],
+      "grouping_sets": [
+        [],
+        [
+          "gender"
+        ]
+      ],
+      "weights": {
+        "mode": "mj_cap",
+        "invalid": "exclude",
+        "zero": "include",
+        "external": {}
+      },
+      "answers": {
+        "excluded": [
+          ""
+        ],
+        "strip_whitespace": true,
+        "policy_id": "all_answered_options"
+      },
+      "parties": {
+        "namespace": "party_alliance_mapping",
+        "version": "2027-01-01",
+        "mapping": {
+          "BJP": "BJP+",
+          "AD(S)": "BJP+",
+          "NINSHAD": "BJP+",
+          "SBSP": "BJP+",
+          "RLD": "BJP+",
+          "NDA": "BJP+",
+          "SP": "SP+",
+          "INC": "SP+",
+          "AITC": "SP+",
+          "TMC": "SP+"
+        },
+        "passthrough": true,
+        "options": [],
+        "other_grouping": {
+          "keep": [
+            "BJP+",
+            "SP+",
+            "BSP"
+          ],
+          "label": "Other"
+        }
+      },
+      "geography_path": "ac_hierarchy",
+      "filters": [],
+      "display_parties": [],
+      "comparisons": [
+        {
+          "id": "shakti",
+          "target": [
+            "R2",
+            "vs_voting_intention"
+          ],
+          "reference": [
+            "R2",
+            "pm_satisfaction"
+          ],
+          "kind": "shakti",
+          "measure": "support_share",
+          "population_observation": null
+        },
+        {
+          "id": "net-gap",
+          "target": [
+            "R2",
+            "cm_satisfaction"
+          ],
+          "reference": [
+            "R2",
+            "pm_satisfaction"
+          ],
+          "kind": "difference",
+          "measure": "net_score",
+          "population_observation": null
+        },
+        {
+          "id": "net-positive-gap",
+          "target": [
+            "R2",
+            "cm_satisfaction"
+          ],
+          "reference": [
+            "R2",
+            "pm_satisfaction"
+          ],
+          "kind": "difference",
+          "measure": "positive_share",
+          "population_observation": null
+        }
+      ],
+      "reference_observation": null,
+      "coverage_mode": "independent",
+      "opinion_weights": {
+        "source": "base",
+        "scenario": null,
+        "mode": "mj_cap"
+      },
+      "caste_clubbing": null,
+      "gender_differential": null
+    },
+    "required_fields": [
+      "gender"
+    ],
+    "caste_clubbing": {
+      "active": false
+    },
+    "dimensions": [
+      "gender"
+    ],
+    "coverage_acs": [],
+    "unit": "percentage",
+    "population_basis": "answered_units",
+    "normalisation_scope": "within_conditioning_group",
+    "reference_population": "entire filtered observation/scenario population for support; independent base-weight population within the resolved hierarchy scope for composition",
+    "composition_basis": "factored base weights before outcome eligibility",
+    "operations": [
+      {
+        "instance": "distribution_0_0",
+        "family": "categorical_distribution",
+        "observation": "R2",
+        "scenario": "vs_voting_intention"
+      },
+      {
+        "instance": "distribution_0_1",
+        "family": "categorical_distribution",
+        "observation": "R2",
+        "scenario": "pm_satisfaction"
+      },
+      {
+        "instance": "distribution_0_2",
+        "family": "categorical_distribution",
+        "observation": "R2",
+        "scenario": "cm_satisfaction"
+      },
+      {
+        "instance": "shakti",
+        "family": "comparative_analysis",
+        "inputs": [
+          [
+            "R2",
+            "vs_voting_intention"
+          ],
+          [
+            "R2",
+            "pm_satisfaction"
+          ]
+        ],
+        "measures": [
+          "shakti_pp",
+          "shaki_pp",
+          "impact_pp",
+          "size_of_impact_pp"
+        ]
+      },
+      {
+        "instance": "net-gap",
+        "family": "comparative_analysis",
+        "inputs": [
+          [
+            "R2",
+            "cm_satisfaction"
+          ],
+          [
+            "R2",
+            "pm_satisfaction"
+          ]
+        ],
+        "measures": [
+          "percentage_point_difference",
+          "relative_change_pct",
+          "impact_pp",
+          "size_of_impact_pp"
+        ]
+      },
+      {
+        "instance": "net-positive-gap",
+        "family": "comparative_analysis",
+        "inputs": [
+          [
+            "R2",
+            "cm_satisfaction"
+          ],
+          [
+            "R2",
+            "pm_satisfaction"
+          ]
+        ],
+        "measures": [
+          "percentage_point_difference",
+          "relative_change_pct",
+          "impact_pp",
+          "size_of_impact_pp"
+        ]
+      },
+      {
+        "instance": "score_R2_pm_satisfaction",
+        "family": "scored_summary",
+        "inputs": [
+          [
+            "R2",
+            "pm_satisfaction"
+          ]
+        ],
+        "measures": [
+          "positive_share",
+          "negative_share",
+          "net_score"
+        ]
+      },
+      {
+        "instance": "score_R2_cm_satisfaction",
+        "family": "scored_summary",
+        "inputs": [
+          [
+            "R2",
+            "cm_satisfaction"
+          ]
+        ],
+        "measures": [
+          "positive_share",
+          "negative_share",
+          "net_score"
+        ]
+      }
+    ],
+    "source_verification": "schema snapshot; caller supplies survey availability",
+    "field_bindings": {
+      "R2": {
+        "gender": {
+          "id": "gender",
+          "reference": {
+            "column": "gender",
+            "col_key": "",
+            "is_json_key": false
+          },
+          "source": "rmt",
+          "role": "profiling",
+          "cardinality": "single",
+          "geography": null,
+          "master_key": "ac_num",
+          "master_attribute": ""
+        }
+      }
+    },
+    "scenario_bindings": {
+      "vs_voting_intention": {
+        "id": "vs_voting_intention",
+        "answer": {
+          "column": "vs_voting_intention",
+          "col_key": "um",
+          "is_json_key": false
+        },
+        "weight_keys": [
+          "mj_cap",
+          "m_cap"
+        ],
+        "role": "electoral_scenario",
+        "domain": "party",
+        "scale": null,
+        "higher_is_better": null,
+        "excluded_answers": []
+      },
+      "pm_satisfaction": {
+        "id": "pm_satisfaction",
+        "answer": {
+          "column": "pm_satisfaction",
+          "col_key": "",
+          "is_json_key": false
+        },
+        "weight_keys": [],
+        "role": "rating",
+        "domain": "ordinal",
+        "scale": {
+          "id": "satisfaction",
+          "positive": [
+            "Completely Satisfied",
+            "Somewhat Satisfied"
+          ],
+          "negative": [
+            "Somewhat Dissatisfied",
+            "Completely Dissatisfied"
+          ],
+          "options": [
+            "Completely Satisfied",
+            "Somewhat Satisfied",
+            "Somewhat Dissatisfied",
+            "Completely Dissatisfied"
+          ],
+          "version": "v1",
+          "mapping": {},
+          "net_enabled": true
+        },
+        "higher_is_better": true,
+        "excluded_answers": []
+      },
+      "cm_satisfaction": {
+        "id": "cm_satisfaction",
+        "answer": {
+          "column": "cm_satisfaction",
+          "col_key": "",
+          "is_json_key": false
+        },
+        "weight_keys": [],
+        "role": "rating",
+        "domain": "ordinal",
+        "scale": {
+          "id": "satisfaction",
+          "positive": [
+            "Completely Satisfied",
+            "Somewhat Satisfied"
+          ],
+          "negative": [
+            "Somewhat Dissatisfied",
+            "Completely Dissatisfied"
+          ],
+          "options": [
+            "Completely Satisfied",
+            "Somewhat Satisfied",
+            "Somewhat Dissatisfied",
+            "Completely Dissatisfied"
+          ],
+          "version": "v1",
+          "mapping": {},
+          "net_enabled": true
+        },
+        "higher_is_better": true,
+        "excluded_answers": []
+      }
+    },
+    "comparison_definitions": {
+      "shakti": {
+        "kind": "shakti",
+        "measure": "support_share",
+        "population_observation": "R2",
+        "formula": "favourable_share - party_support"
+      },
+      "net-gap": {
+        "kind": "difference",
+        "measure": "net_score",
+        "population_observation": "R2",
+        "formula": "target - reference"
+      },
+      "net-positive-gap": {
+        "kind": "difference",
+        "measure": "positive_share",
+        "population_observation": "R2",
+        "formula": "target - reference"
+      }
+    },
+    "opinion_weight_binding": {
+      "policy": {
+        "source": "base",
+        "scenario": null,
+        "mode": "mj_cap"
+      },
+      "donor_scenario": null,
+      "scope": "all opinion outcomes in request; host reuses same policy across views"
+    },
+    "population_reference_scopes": {
+      "R2": {
+        "g0": [],
+        "g1": []
+      }
+    },
+    "composition_scope": "highest geographic axes in each grouping set; otherwise seat-attribute intersection; otherwise whole filtered observation",
+    "size_of_impact": {
+      "formula": "cell_metric * impact_population_share / 100",
+      "weights": "factored_base",
+      "scope": "highest geographic axes in each grouping set; otherwise seat-attribute intersection; otherwise whole filtered observation",
+      "unit": "percentage_points",
+      "additivity": "only with compatible metric bases and a complete disjoint partition"
+    },
+    "master_versions": {},
+    "party_summary_grouping": {
+      "keep": [
+        "BJP+",
+        "SP+",
+        "BSP"
+      ],
+      "label": "Other",
+      "stage": "after canonical mapping and analytical-universe validation; before summary mass aggregation",
+      "display_parties": "filters grouped output; does not alter bases",
+      "competition": "individual identities preserved by benchmark/ranking sources"
+    }
+  },
+  "context_status": {
+    "R2:vs_voting_intention": "available",
+    "R2:pm_satisfaction": "available",
+    "R2:cm_satisfaction": "available"
+  },
+  "scores": [
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 261.89013694351905,
+      "negative_mass": 214.4834300978447,
+      "weighted_denominator": 476.37356704136374,
+      "unweighted_base": 181244,
+      "composition_share": 46.629229262545095,
+      "impact_population_share": 46.629229262545095,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 54.97579107297089,
+      "negative_share": 45.02420892702911,
+      "net_score": 9.951582145941785,
+      "positive_size_of_impact_pp": 25.6347876583134,
+      "negative_size_of_impact_pp": 20.994441604231696,
+      "net_size_of_impact_pp": 4.6403460540817,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 0.017205967999770998,
+      "negative_mass": 0.0029316742923239996,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_base": 11,
+      "composition_share": 0.0019711478642216265,
+      "impact_population_share": 0.0019711478642216265,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 85.44181960429982,
+      "negative_share": 14.558180395700166,
+      "net_score": 70.88363920859966,
+      "positive_size_of_impact_pp": 0.001684184602282251,
+      "negative_size_of_impact_pp": 0.00028696326193937535,
+      "net_size_of_impact_pp": 0.0013972213403428758,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 336.11961694823196,
+      "negative_mass": 209.10675353416346,
+      "weighted_denominator": 545.2263704823954,
+      "unweighted_base": 230526,
+      "composition_share": 53.36879958959069,
+      "impact_population_share": 53.36879958959069,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 61.64771829558542,
+      "negative_share": 38.352281704414594,
+      "net_score": 23.295436591170827,
+      "positive_size_of_impact_pp": 32.90064722872641,
+      "negative_size_of_impact_pp": 20.46815236086428,
+      "net_size_of_impact_pp": 12.432494867862136,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "pm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "positive_mass": 598.0269598597513,
+      "negative_mass": 423.5931153062998,
+      "weighted_denominator": 1021.620075166051,
+      "unweighted_base": 411781,
+      "composition_share": 100.0,
+      "impact_population_share": 100.0,
+      "geography_population_base": 1021.6200751660507,
+      "positive_share": 58.537119071642145,
+      "negative_share": 41.46288092835786,
+      "net_score": 17.074238143284283,
+      "positive_size_of_impact_pp": 58.537119071642145,
+      "negative_size_of_impact_pp": 41.46288092835786,
+      "net_size_of_impact_pp": 17.074238143284283,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 381.97135476136026,
+      "negative_mass": 163.25501572103497,
+      "weighted_denominator": 545.2263704823952,
+      "unweighted_base": 230526,
+      "composition_share": 53.36879958959069,
+      "impact_population_share": 53.36879958959069,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 70.05738816767186,
+      "negative_share": 29.942611832328147,
+      "net_score": 40.11477633534371,
+      "positive_size_of_impact_pp": 37.38878708890641,
+      "negative_size_of_impact_pp": 15.980012500684277,
+      "net_size_of_impact_pp": 21.408774588222137,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 0.020137642292094998,
+      "negative_mass": 0.0,
+      "weighted_denominator": 0.020137642292094998,
+      "unweighted_base": 11,
+      "composition_share": 0.0019711478642216265,
+      "impact_population_share": 0.0019711478642216265,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 100.0,
+      "negative_share": 0.0,
+      "net_score": 100.0,
+      "positive_size_of_impact_pp": 0.0019711478642216265,
+      "negative_size_of_impact_pp": 0.0,
+      "net_size_of_impact_pp": 0.0019711478642216265,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "positive_mass": 661.9089817758,
+      "negative_mass": 359.71109339025145,
+      "weighted_denominator": 1021.6200751660515,
+      "unweighted_base": 411781,
+      "composition_share": 100.0,
+      "impact_population_share": 100.0,
+      "geography_population_base": 1021.6200751660507,
+      "positive_share": 64.79013068221228,
+      "negative_share": 35.20986931778773,
+      "net_score": 29.58026136442455,
+      "positive_size_of_impact_pp": 64.79013068221228,
+      "negative_size_of_impact_pp": 35.20986931778773,
+      "net_size_of_impact_pp": 29.58026136442455,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "scenario_id": "cm_satisfaction",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "positive_mass": 279.91748937214663,
+      "negative_mass": 196.45607766921722,
+      "weighted_denominator": 476.3735670413639,
+      "unweighted_base": 181244,
+      "composition_share": 46.629229262545095,
+      "impact_population_share": 46.629229262545095,
+      "geography_population_base": 1021.6200751660515,
+      "positive_share": 58.760080058732804,
+      "negative_share": 41.23991994126718,
+      "net_score": 17.520160117465622,
+      "positive_size_of_impact_pp": 27.399372445441564,
+      "negative_size_of_impact_pp": 19.229856817103528,
+      "net_size_of_impact_pp": 8.169515628338035,
+      "coverage_status": "available",
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "scale_id": "satisfaction",
+      "scale_version": "v1",
+      "measure_units": {
+        "positive_share": "percentage",
+        "negative_share": "percentage",
+        "net_score": "percentage_points",
+        "positive_size_of_impact_pp": "percentage_points",
+        "negative_size_of_impact_pp": "percentage_points",
+        "net_size_of_impact_pp": "percentage_points"
+      },
+      "positive_options": [
+        "Completely Satisfied",
+        "Somewhat Satisfied"
+      ],
+      "negative_options": [
+        "Somewhat Dissatisfied",
+        "Completely Dissatisfied"
+      ]
+    }
+  ],
+  "populations": [
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "population_group_base": 0.020137642292094998,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 11,
+      "composition_share": 0.0019711478642216265,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 0.0019711478642216265,
+      "dimensions": {
+        "gender": {
+          "value": "Other",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "weight_basis": "factored_base"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "population_group_base": 545.2263704823957,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 230526,
+      "composition_share": 53.36879958959069,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 53.36879958959069,
+      "dimensions": {
+        "gender": {
+          "value": "Male",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "weight_basis": "factored_base"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "grouping_set_id": "g1",
+      "group_mask": 0,
+      "population_group_base": 476.37356704136374,
+      "population_total_base": 1021.6200751660515,
+      "population_raw_base": 181244,
+      "composition_share": 46.629229262545095,
+      "geography_population_base": 1021.6200751660515,
+      "impact_population_share": 46.629229262545095,
+      "dimensions": {
+        "gender": {
+          "value": "Female",
+          "is_subtotal": false
+        }
+      },
+      "unit": "percentage",
+      "weight_basis": "factored_base"
+    },
+    {
+      "state": "Uttar Pradesh",
+      "observation_id": "R2",
+      "survey_id": "CT01-2027-UP-VS-CAPI-R2",
+      "grouping_set_id": "g0",
+      "group_mask": 1,
+      "population_group_base": 1021.6200751660507,
+      "population_total_base": 1021.6200751660507,
+      "population_raw_base": 411781,
+      "composition_share": 100.0,
+      "geography_population_base": 1021.6200751660507,
+      "impact_population_share": 100.0,
+      "dimensions": {
+        "gender": {
+          "value": null,
+          "is_subtotal": true
+        }
+      },
+      "unit": "percentage",
+      "weight_basis": "factored_base"
+    }
+  ],
+  "gender_differentials": []
+}
