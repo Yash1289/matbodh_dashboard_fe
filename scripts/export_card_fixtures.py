@@ -80,14 +80,19 @@ def _context(card_id: str, result: dict, anchor: str, compare: str | None) -> Tr
         engine_version="0.8.0", metadata_revision=1, alliance_epoch=0)
 
 
-def build_payload(name: str) -> dict:
-    sample, fields, anchor, compare = FIXTURES[name]
-    result = load_sample(sample)
+def payload_from_result(result: dict, name: str, fields: dict, anchor: str,
+                        compare: str | None) -> dict:
+    """Translate one engine result into a card payload with the real translator."""
     config = CardConfig.model_validate(
         {"id": f"fixture.{name}", "section": "fixture", "title": name, **fields})
     context = _context(config.id, result, anchor, compare)
     payload = translate_grid(config, get_family(config.family), result, context)
     return payload.model_dump()
+
+
+def build_payload(name: str) -> dict:
+    sample, fields, anchor, compare = FIXTURES[name]
+    return payload_from_result(load_sample(sample), name, fields, anchor, compare)
 
 
 def export_fixtures(out_dir: Path) -> list[Path]:
