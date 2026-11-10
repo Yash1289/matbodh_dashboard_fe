@@ -7,7 +7,7 @@ import { tokens } from "../theme";
 import { contextSummary } from "./summary";
 import { useDashboardContext } from "./urlContext";
 
-const LEAD_CARD = "pulse.party_scoreboard";
+const LEAD_CARD = "distribution.support_by_caste";
 const PROMPT = "Choose a state, survey level and rounds to begin.";
 const EMPTY: StateContext = {
   state: "", level: "ac", rounds: [], compare_round: null, anchor_round: null,
