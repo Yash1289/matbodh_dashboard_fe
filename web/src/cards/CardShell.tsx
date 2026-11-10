@@ -142,7 +142,7 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
   ].filter((p) => p !== null).join(" · ");
 
   return (
-    <div ref={ref} style={{
+    <div ref={ref} data-testid={`card:${info.id}`} style={{
       background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
       padding: "17px 19px",
     }}>
