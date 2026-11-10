@@ -1,41 +1,52 @@
 import { describe, expect, it } from "vitest";
-import scoreboardDone from "../test/fixtures/run_scoreboard_done.json";
-import type { CardResult, RunStatus } from "../api/types";
+import { payloadToGrid } from "../cards/grid/payloadToGrid";
+import { PAYLOADS } from "../test/cardApi";
 import { toCsv } from "./csv";
-import { scoreboardGrid } from "./grid";
+import type { CellGrid } from "./grid";
 
-const done = (scoreboardDone as unknown as RunStatus).result as CardResult;
+const gridOf = (make: () => ReturnType<typeof PAYLOADS.distributionStandalone>): CellGrid => {
+  const p = make();
+  return payloadToGrid(p, { lens: p.meta.default_lens, cut: p.cuts[0].id });
+};
 
 describe("csv", () => {
-  it("csv header flattens parts", () => {
-    const first = toCsv(scoreboardGrid(done), done.rounds).split("\r\n")[0];
-    expect(first.startsWith(
-      "row,vote_2027_VS_CAPI_R1,vote_2027_VS_CAPI_R2,delta_vote_2027_VS_CAPI_R2_vs_2027_VS_CAPI_R1,base_vote,flags_vote",
-    )).toBe(true);
+  it("a standalone column is its value, base and flags", () => {
+    const g = gridOf(PAYLOADS.distributionStandalone);
+    const key = g.columns[0].key;
+    expect(toCsv(g).split("\r\n")[0].split(",").slice(0, 4)).toEqual(["row", key, `base_${key}`, `flags_${key}`]);
   });
 
-  it("csv writes null as empty, not 0", () => {
-    const lines = toCsv(scoreboardGrid(done), done.rounds).split("\r\n");
-    const other = lines.find((l) => l.startsWith("Other,"))!;
-    expect(other.split(",")).toEqual(["Other", "8", "9", "", "", "no_delta", "", "", "", "", "", "", "", "", "", ""]);
+  it("a compare column adds the engine delta", () => {
+    const g = gridOf(PAYLOADS.distributionCompare);
+    const key = g.columns[0].key;
+    const header = toCsv(g).split("\r\n")[0].split(",");
+    expect(header.slice(1, 3)).toEqual([key, `delta_${key}`]);
+    const cell = g.cells[g.rows[0].key][key].cell!;
+    const line = toCsv(g).split("\r\n")[1].split(",");
+    expect(line[1]).toBe(cell.value === null ? "" : String(cell.value));
+    expect(line[2]).toBe(cell.delta === null ? "" : String(cell.delta));
   });
 
-  it("csv keeps full precision and quotes RFC 4180", () => {
-    const g = scoreboardGrid(done);
-    g.cells.NDA.vote.cell = { ...g.cells.NDA.vote.cell!, trend: [42.0712345, 1], flags: ["a", "b"] };
+  it("a trend column has one value per round and no delta", () => {
+    const g = gridOf(PAYLOADS.distributionTrend);
+    const key = g.columns[0].key;
+    const header = toCsv(g).split("\r\n")[0].split(",");
+    expect(header.slice(1, 3)).toEqual([`${key}_R1`, `${key}_R2`]);
+    expect(header.some((h) => h.startsWith("delta_"))).toBe(false);
+  });
+
+  it("writes null as empty, not 0", () => {
+    const g = gridOf(PAYLOADS.distributionStandalone);
+    g.cells[g.rows[0].key][g.columns[0].key] = { cell: null, unit: "pct" };
+    expect(toCsv(g).split("\r\n")[1].split(",").slice(1, 4)).toEqual(["", "", ""]);
+  });
+
+  it("keeps full precision and quotes per RFC 4180", () => {
+    const g = gridOf(PAYLOADS.distributionStandalone);
+    const key = g.columns[0].key;
+    const row = g.rows[0].key;
+    g.cells[row][key] = { cell: { ...g.cells[row][key].cell!, value: 42.0712345, flags: ["a", "b"], base: null }, unit: "pct" };
     g.rows[0].label = 'NDA, "x"';
-    const line = toCsv(g, done.rounds).split("\r\n")[1];
-    expect(line.startsWith('"NDA, ""x""",42.0712345,1,-1.5,,a;b')).toBe(true);
-  });
-
-  it("csv expands merged seats", () => {
-    const [header, nda] = toCsv(scoreboardGrid(done), done.rounds).split("\r\n");
-    const cols = header.split(",");
-    const ac = cols.indexOf("seats_ac_2027_VS_CAPI_R1");
-    const pc = cols.indexOf("seats_pc_2027_VS_CAPI_R1");
-    expect(ac).toBeGreaterThan(0);
-    expect(pc).toBe(ac + 5);
-    expect(nda.split(",").slice(ac, ac + 3)).toEqual(["243", "154", "-88"]);
-    expect(nda.split(",").slice(pc, pc + 3)).toEqual(["49", "26", "-22"]);
+    expect(toCsv(g).split("\r\n")[1].startsWith('"NDA, ""x""",42.0712345,,a;b')).toBe(true);
   });
 });

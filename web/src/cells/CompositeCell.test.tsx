@@ -1,12 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import runScoreboard from "../test/fixtures/run_scoreboard_done.json";
-import type { Cell, RunStatus } from "../api/types";
+import type { Cell } from "../api/types";
+import { PAYLOADS } from "../test/cardApi";
 import { CompositeCell } from "./CompositeCell";
-import { SeatsCell } from "./SeatsCell";
 import { deltaTitle } from "./parts";
 
-const rounds = (runScoreboard as unknown as RunStatus).result!.rounds;
+const rounds = PAYLOADS.distributionCompare().rounds;
 const cell = (over: Partial<Cell>): Cell => ({
   value: 38, delta: -1.5, trend: [40, 38], secondary: null, flags: [], base: null, ...over,
 });
@@ -99,43 +98,5 @@ describe("CompositeCell", () => {
     unmount();
     const r = render(<CompositeCell cell={null} unit="pct" parts={["value"]} rounds={rounds} />);
     expect(r.container.querySelector('[data-row="sub"]')!.textContent).toBe("Not applicable");
-  });
-});
-
-describe("SeatsCell", () => {
-  const board = (runScoreboard as unknown as RunStatus).result!.scoreboard!;
-  const nda = board[0];
-  const PARTS = ["value", "delta", "trend"] as const;
-  const seats = (ac: Cell | null, pc: Cell | null) => render(<SeatsCell ac={ac} pc={pc} rounds={rounds} parts={[...PARTS]} />);
-  const mainText = (c: HTMLElement) => c.querySelector('[data-row="main"]')!.firstElementChild!.textContent;
-
-  it("merged seats cell", () => {
-    const { container } = seats(nda.seats_ac, nda.seats_pc);
-    expect(mainText(container)).toBe("154 · 26");
-    const deltas = [...container.querySelectorAll("[data-tone]")];
-    expect(deltas.map((d) => d.textContent)).toEqual(["▼88", "▼22"]);
-    expect(deltas.map((d) => d.getAttribute("data-tone"))).toEqual(["loss", "loss"]);
-    expect(container.querySelector('[data-row="sub"]')!.textContent).toBe("R1 243 · 49 | R2 154 · 26");
-    const sp = board[1];
-    const mixed = seats(sp.seats_ac, { ...sp.seats_pc!, delta: 0 });
-    const tones = [...mixed.container.querySelectorAll("[data-tone]")].map((d) => d.getAttribute("data-tone"));
-    expect(tones).toEqual(["gain", "neutral"]);
-  });
-
-  it("borrowed AC seats carry an asterisk", () => {
-    const { container } = seats({ ...nda.seats_ac!, flags: ["borrowed"] }, nda.seats_pc);
-    expect(mainText(container)).toBe("154* · 26");
-  });
-
-  it("merged seats cell reports a missing level", () => {
-    const failed: Cell = { value: null, delta: null, trend: [null, null], secondary: null, flags: ["failed", "no_delta"], base: null };
-    const { container, unmount } = seats(nda.seats_ac, failed);
-    expect(mainText(container)).toBe("154 · —");
-    expect(container.querySelector('[data-row="main"] [title="Calculation failed for this round"]')!.textContent).toBe("—");
-    expect(container.querySelector('[data-row="sub"]')!.textContent).toBe("R1 243 · — | R2 154 · —");
-    unmount();
-    const both = seats(null, failed);
-    expect(both.container.querySelector('[data-row="main"]')!.textContent).toBe("—");
-    expect(both.container.querySelector('[data-row="sub"]')!.textContent).toBe("Not applicable; Calculation failed for this round");
   });
 });

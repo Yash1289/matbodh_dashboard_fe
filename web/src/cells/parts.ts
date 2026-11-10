@@ -1,4 +1,4 @@
-import type { CellPart, Density, RoundsBlock, Template } from "../api/types";
+import type { CellPart, Density, RoundsBlock } from "../api/types";
 
 export type ShowPreset = "share" | "delta" | "both" | "both_trend";
 
@@ -10,10 +10,6 @@ const PRESET_BASE: Record<ShowPreset, CellPart[]> = {
   both_trend: ["value", "delta", "trend"],
 };
 const DETAIL_ONLY: CellPart[] = ["base", "secondary", "flags"];
-
-export function defaultPreset(template: Template): ShowPreset {
-  return template.cell.includes("trend") ? "both_trend" : "both";
-}
 
 export function partsFor(preset: ShowPreset, density: Density, allowed: CellPart[]): CellPart[] {
   let wanted = PRESET_BASE[preset];

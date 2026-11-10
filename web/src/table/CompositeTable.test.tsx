@@ -1,106 +1,79 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import leaders from "../test/fixtures/run_leaders_done.json";
-import scoreboardDone from "../test/fixtures/run_scoreboard_done.json";
-import scoreboardPartial from "../test/fixtures/run_scoreboard_partial.json";
-import type { CardResult, CellPart, RunStatus } from "../api/types";
+import type { CellPart } from "../api/types";
+import { payloadToGrid } from "../cards/grid/payloadToGrid";
+import { PAYLOADS } from "../test/cardApi";
 import { CompositeTable } from "./CompositeTable";
-import { opinionGrid, scoreboardGrid } from "./grid";
+import type { CellGrid } from "./grid";
 
-const res = (f: unknown): CardResult => (f as RunStatus).result!;
-const done = res(scoreboardDone);
-const D_TITLE = "Δ 2027 VS CAPI R2 − 2027 VS CAPI R1";
-const row = (name: string): HTMLElement => screen.getByText(name).closest("tr")!;
+const payload = PAYLOADS.distributionCompare();
+const baseGrid = (): CellGrid => payloadToGrid(payload, { lens: payload.meta.default_lens, cut: payload.cuts[0].id });
+const COLUMN = baseGrid().columns[0];
 
-function show(result: CardResult, parts: CellPart[], extra: Partial<Parameters<typeof CompositeTable>[0]> = {}) {
-  const grid = result.operation === "opinion" ? opinionGrid(result) : scoreboardGrid(result);
-  return render(<CompositeTable grid={grid} parts={parts} rounds={result.rounds} rule={{ kind: "none" }} sort={null} onSort={() => {}} {...extra} />);
+function show(parts: CellPart[], extra: Partial<Parameters<typeof CompositeTable>[0]> = {}, grid: CellGrid = baseGrid()) {
+  return render(<CompositeTable grid={grid} parts={parts} rounds={payload.rounds} rule={{ kind: "none" }} sort={null} onSort={() => {}} {...extra} />);
 }
+const sortOn = (column: string, dir: "asc" | "desc") => ({ column, part: "value" as const, dir });
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const header = () => screen.getByRole("button", { name: new RegExp(`^${escape(COLUMN.label)}`) });
 
 describe("CompositeTable", () => {
-  it("scoreboard delta comes from the engine, not subtraction", () => {
-    expect(scoreboardGrid(done).cells.NDA.vote.cell!.delta).toBe(-1.5);
-    show(done, ["value", "delta"]);
-    const nda = row("NDA (BJP+)");
-    expect(nda.textContent).toContain("▼1.50%");
-    expect(nda.textContent).not.toContain("▼2%");
-    expect(nda.textContent).toContain("38%");
-    expect(nda.textContent).not.toMatch(/38\.\d/);
+  it("a delta comes from the engine, not from subtraction", () => {
+    const g = baseGrid();
+    g.cells[g.rows[0].key][COLUMN.key] = { cell: { value: 38, delta: -1.5, trend: [], secondary: null, flags: [], base: null }, unit: "pct" };
+    const { container } = show(["value", "delta"], {}, g);
+    const row = container.querySelector("tbody tr")!;
+    expect(row.textContent).toContain("▼1.50%");
+    expect(row.textContent).not.toContain("▼2%");
+    expect(row.textContent).toContain("38%");
+    expect(row.textContent).not.toMatch(/38\.\d/);
   });
 
-  it("partial run keeps failed seat column with dashes", () => {
-    show(res(scoreboardPartial), ["value"]);
-    expect(screen.getByText(/Seats\s+AC · PC/)).toBeTruthy();
-    const nda = row("NDA (BJP+)");
-    expect(within(nda).getByTitle("Calculation failed for this round").textContent).toBe("—");
-    expect(nda.textContent).toContain("154 · —");
-  });
-
-  it("opinion not-asked round is dash with reason", () => {
-    show(res(leaders), ["value", "trend"]);
-    expect(row("cm_satisfaction").textContent).toContain("— | +5%");
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
-  });
-
-  it("not_returned questions are rows of dashes with a note", () => {
-    show(res(leaders), ["value"]);
-    const r = row("state_govt_satisfaction");
-    expect(r.textContent).toContain("No result returned");
-    expect(within(r).getByTitle("Not applicable").textContent).toBe("—");
-  });
-
-  it("delta header names both rounds in full", () => {
-    show(done, ["value", "delta"]);
-    expect(screen.getAllByTitle(D_TITLE).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Anchor round: 2027 VS CAPI R2/)).toBeTruthy();
-    const texts = [...document.querySelectorAll("*")].flatMap((e) => [e.textContent?.trim(), e.getAttribute("title")]);
-    expect(texts).not.toContain("R1");
-    expect(texts).not.toContain("R2");
+  it("a missing cell shows a dash with its reason", () => {
+    const g = baseGrid();
+    g.cells[g.rows[0].key][COLUMN.key] = { cell: null, unit: "pct" };
+    show(["value"], {}, g);
+    expect(screen.getAllByTitle("Not applicable")[0].textContent).toBe("—");
   });
 
   it("clicking a column header cycles desc, asc, none", async () => {
     const onSort = vi.fn();
-    const u = userEvent.setup();
-    const { rerender } = show(done, ["value"], { onSort });
-    await u.click(screen.getByRole("button", { name: /Vote share/ }));
-    expect(onSort).toHaveBeenLastCalledWith({ column: "vote", part: "value", dir: "desc" });
-    rerender(<CompositeTable grid={scoreboardGrid(done)} parts={["value"]} rounds={done.rounds} rule={{ kind: "none" }}
-      sort={{ column: "vote", part: "value", dir: "desc" }} onSort={onSort} />);
-    await u.click(screen.getByRole("button", { name: /Vote share/ }));
-    expect(onSort).toHaveBeenLastCalledWith({ column: "vote", part: "value", dir: "asc" });
-    rerender(<CompositeTable grid={scoreboardGrid(done)} parts={["value"]} rounds={done.rounds} rule={{ kind: "none" }}
-      sort={{ column: "vote", part: "value", dir: "asc" }} onSort={onSort} />);
-    await u.click(screen.getByRole("button", { name: /Vote share/ }));
-    expect(onSort).toHaveBeenLastCalledWith(null);
+    const user = userEvent.setup();
+    const { rerender } = show(["value"], { onSort });
+    await user.click(header());
+    expect(onSort).toHaveBeenLastCalledWith(sortOn(COLUMN.key, "desc"));
+    for (const [current, expected] of [["desc", sortOn(COLUMN.key, "asc")], ["asc", null]] as const) {
+      rerender(<CompositeTable grid={baseGrid()} parts={["value"]} rounds={payload.rounds} rule={{ kind: "none" }} sort={sortOn(COLUMN.key, current)} onSort={onSort} />);
+      await user.click(header());
+      expect(onSort).toHaveBeenLastCalledWith(expected);
+    }
   });
 
   it("sortable headers expose aria-sort", () => {
-    const sorts = [null, { column: "vote", part: "value", dir: "desc" }, { column: "vote", part: "value", dir: "asc" }] as const;
-    const expected = ["none", "descending", "ascending"];
-    sorts.forEach((sort, i) => {
-      const { unmount } = show(done, ["value"], { sort });
-      const th = screen.getByRole("button", { name: /Vote share/ }).closest("th")!;
-      expect(th.getAttribute("aria-sort")).toBe(expected[i]);
-      expect(screen.getByRole("button", { name: /Seats/ }).closest("th")!.getAttribute("aria-sort")).toBe("none");
+    const expected = [[null, "none"], [sortOn(COLUMN.key, "desc"), "descending"], [sortOn(COLUMN.key, "asc"), "ascending"]] as const;
+    for (const [sort, aria] of expected) {
+      const { unmount } = show(["value"], { sort });
+      expect(header().closest("th")!.getAttribute("aria-sort")).toBe(aria);
       expect(screen.getAllByRole("columnheader")[0].hasAttribute("aria-sort")).toBe(false);
       unmount();
-    });
+    }
   });
 
-  it("sorts rows from sort prop and shows legend only with a rule", () => {
-    const { container } = show(done, ["value"], { sort: { column: "vote", part: "value", dir: "asc" }, rule: { kind: "heat", within: "column" } });
-    const names = [...container.querySelectorAll("tbody th")].map((t) => t.textContent);
-    expect(names[0]).toContain("Other");
+  it("sorts rows from the sort prop and shows a legend only with a rule", () => {
+    const g = baseGrid();
+    const valueOf = (key: string) => g.cells[key][COLUMN.key].cell?.value ?? null;
+    const asc = g.rows.map((r) => r.key).filter((k) => valueOf(k) !== null).sort((a, b) => valueOf(a)! - valueOf(b)!);
+    const { container } = show(["value"], { sort: sortOn(COLUMN.key, "asc"), rule: { kind: "heat", within: "column" } }, g);
+    const first = [...container.querySelectorAll("tbody th")][0].textContent;
+    expect(first).toContain(g.rows.find((r) => r.key === asc[0])!.label);
     expect(screen.getByText(/Heat on value/)).toBeTruthy();
   });
 
-  it("table header and row styling", () => {
-    const { container } = show(done, ["value"]);
+  it("header and row styling", () => {
+    const { container } = show(["value"]);
     const ths = [...container.querySelectorAll("thead th")] as HTMLElement[];
     expect(ths.every((t) => t.style.background === "var(--mb-header-bg)" && t.style.borderBottom === "1px solid var(--mb-border)")).toBe(true);
-    expect(ths.map((t) => t.style.width)).toEqual(["150px", "240px", "240px"]);
-    expect(ths[1].textContent).toContain("% · Δ pp · trend R1 | R2");
     expect((container.querySelector("tbody td") as HTMLElement).style.borderBottom).toBe("1px solid var(--mb-border)");
     expect((container.querySelector("tbody th") as HTMLElement).style.textAlign).toBe("left");
   });

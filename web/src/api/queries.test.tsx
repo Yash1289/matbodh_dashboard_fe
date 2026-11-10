@@ -3,20 +3,22 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import runRunning from "../test/fixtures/run_running.json";
-import runScoreboard from "../test/fixtures/run_scoreboard_done.json";
-import runPartial from "../test/fixtures/run_scoreboard_partial.json";
 import states from "../test/fixtures/states.json";
-import templates from "../test/fixtures/templates_pulse.json";
 import { createQueryClient } from "../App";
-import { useCardPlan, useCardRun, useStates, useTemplates } from "./queries";
+import { PAYLOADS, doneRun, infoFor } from "../test/cardApi";
+import { useCardPlan, useCardRun, useCards, useStates } from "./queries";
 import type { RunStatus, StateContext } from "./types";
 
 const asRun = (v: unknown) => v as RunStatus;
 const RUNNING = asRun(runRunning);
-const DONE = asRun(runScoreboard);
-const PARTIAL = asRun(runPartial);
+const DONE = doneRun(PAYLOADS.distributionStandalone());
+const PARTIAL: RunStatus = {
+  ...doneRun(PAYLOADS.distributionCompare()), state: "partial",
+  errors: { grid: { kind: "config", message: "Calculation failed", fingerprint: null, jobs: ["grid"] } },
+};
+const CARDS = [infoFor(PAYLOADS.distributionStandalone())];
 
-const CARD = "pulse.party_scoreboard";
+const CARD = "distribution.support_by_caste";
 const ctxA: StateContext = {
   state: "Uttar Pradesh", level: "ac", rounds: ["o1", "o2"], compare_round: "o1",
   anchor_round: "o2", version_mode: "extrapolated", geo_scope: "state",
@@ -285,12 +287,12 @@ describe("app query client defaults", () => {
 });
 
 describe("catalogue hooks", () => {
-  it("fetch states and templates by section", async () => {
-    const f = stubFetch((path) => (path === "/catalogue/states" ? [200, states] : [200, templates]));
+  it("fetch states and the card definitions", async () => {
+    const f = stubFetch((path) => (path === "/catalogue/states" ? [200, states] : [200, CARDS]));
     const s = renderHook(() => useStates(), { wrapper: wrapper() });
-    const t = renderHook(() => useTemplates("pulse"), { wrapper: wrapper() });
+    const t = renderHook(() => useCards(), { wrapper: wrapper() });
     await waitFor(() => expect(s.result.current.data).toEqual(["Uttar Pradesh"]));
-    await waitFor(() => expect(t.result.current.data).toEqual(templates));
-    expect(f.mock.calls.map(([u]) => String(u)).sort()).toEqual(["/api/catalogue/states", "/api/templates?section=pulse"]);
+    await waitFor(() => expect(t.result.current.data).toEqual(CARDS));
+    expect(f.mock.calls.map(([u]) => String(u)).sort()).toEqual(["/api/cards", "/api/catalogue/states"]);
   });
 });

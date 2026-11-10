@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiGet, getRun, planCard, startRun } from "./client";
-import type { CardResult, RunStatus, StateContext, SurveysResponse, Template } from "./types";
+import type { CardInfo, GridPayload, RunStatus, StateContext, SurveysResponse } from "./types";
 
 const POLL_MS = 1500;
 
@@ -24,10 +24,11 @@ export const useSurveys = (state: string | null) =>
     staleTime: 5 * 60_000,
   });
 
-export const useTemplates = (section: string) =>
+/** The engine's card definitions (with each family's lenses and capabilities). */
+export const useCards = (section?: string) =>
   useQuery({
-    queryKey: ["templates", section],
-    queryFn: () => apiGet<Template[]>(`/templates?section=${encodeURIComponent(section)}`),
+    queryKey: ["cards", section ?? null],
+    queryFn: () => apiGet<CardInfo[]>(section === undefined ? "/cards" : `/cards?section=${encodeURIComponent(section)}`),
     staleTime: Infinity,
   });
 
@@ -40,8 +41,8 @@ export const useCardPlan = (cardId: string, ctx: StateContext | null) =>
 
 export interface CardRun {
   status: RunStatus | null;
-  current: CardResult | null;
-  previous: CardResult | null;
+  current: GridPayload | null;
+  previous: GridPayload | null;
   isStale: boolean;
   error: ApiError | null;
   refresh(): void;
@@ -64,7 +65,7 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
   const key = enabled && ctx !== null ? JSON.stringify([cardId, ctx]) : null;
   const seq = useRef(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
-  const [last, setLast] = useState<{ key: string; result: CardResult } | null>(null);
+  const [last, setLast] = useState<{ key: string; result: GridPayload } | null>(null);
 
   const start = useCallback((k: string, restarts: number) => {
     const mine = ++seq.current;

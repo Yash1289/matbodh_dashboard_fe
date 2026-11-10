@@ -5,7 +5,7 @@ import { tokens } from "../theme";
 
 /** `label` is the nav text; `title` is the full section name used on placeholder pages. */
 export const NAV = [
-  { path: "/pulse", label: "State Pulse", title: "State Pulse" },
+  { path: "/", label: "Cards", title: "Cards" },
   { path: "/battleground", label: "Seat Battleground", title: "Seat Battleground" },
   { path: "/coalitions", label: "Voter Coalitions", title: "Voter Coalitions" },
   { path: "/leadership", label: "Leadership", title: "Leadership & Anti-incumbency" },

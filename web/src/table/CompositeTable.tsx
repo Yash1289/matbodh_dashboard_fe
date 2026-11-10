@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import type { CellPart, RoundsBlock } from "../api/types";
 import { CompositeCell } from "../cells/CompositeCell";
 import { PipeCell } from "../cells/PipeCell";
-import { SeatsCell } from "../cells/SeatsCell";
 import { tokens } from "../theme";
 import { cellStyle, legend, type FormatRule } from "./formatRules";
 import { sortRows, type CellGrid, type Header, type SortSpec } from "./grid";
@@ -75,7 +74,6 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
           ),
           cell: ({ row }) => {
             const gc = ordered.cells[row.original.key]?.[c.key];
-            if (gc?.pcCell !== undefined) return <SeatsCell ac={gc.cell} pc={gc.pcCell} parts={parts} rounds={rounds} />;
             if (grid.mode === "trend" && gc?.cell) {
               return <PipeCell values={gc.cell.trend} unit={gc.unit} labels={grid.roundLabels ?? []} flags={gc.roundFlags ?? []} />;
             }

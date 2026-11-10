@@ -1,16 +1,15 @@
 import { Code, Stack, Text, Title } from "@mantine/core";
-import type { CardResult, PlanResponse, RunError } from "../api/types";
-import { partLabel } from "./coverage";
+import type { GridPayload, PlanResponse, RunError } from "../api/types";
 
 interface Props {
-  result: CardResult | null;
+  payload: GridPayload | null;
   plan: PlanResponse | null;
   errors: Record<string, RunError>;
 }
 
 /** Read-only method detail; the only place fingerprints appear. */
-export function MethodDrawer({ result, plan, errors }: Props) {
-  const rounds = result?.rounds.items ?? plan?.rounds ?? [];
+export function MethodDrawer({ payload, plan, errors }: Props) {
+  const rounds = payload?.rounds.items ?? plan?.rounds ?? [];
   const modes = Object.entries(plan?.coverage_mode ?? {});
   const errs = Object.entries(errors);
   return (
@@ -24,16 +23,18 @@ export function MethodDrawer({ result, plan, errors }: Props) {
       ))}
       {modes.length > 0 && <Title order={5}>Coverage mode</Title>}
       {modes.map(([part, mode]) => <Text key={part} size="sm">{part}: {mode ?? "—"}</Text>)}
-      {result && (
+      {payload && (
         <>
-          <Title order={5}>Coverage contract</Title>
-          <Code block>{JSON.stringify(result.coverage, null, 2)}</Code>
+          <Title order={5}>Contract</Title>
+          <Code block>{JSON.stringify(payload.provenance.contract, null, 2)}</Code>
+          <Title order={5}>Coverage</Title>
+          <Code block>{JSON.stringify(payload.coverage, null, 2)}</Code>
         </>
       )}
       {errs.length > 0 && <Title order={5}>Errors</Title>}
       {errs.map(([part, e]) => (
         <Text key={part} size="sm">
-          {partLabel(part, result)}: {e.kind} · {e.message} · fingerprint {e.fingerprint ?? "—"}
+          {part}: {e.kind} · {e.message} · fingerprint {e.fingerprint ?? "—"}
         </Text>
       ))}
     </Stack>

@@ -1,64 +1,47 @@
 import { describe, expect, it } from "vitest";
-import type { CardResult, RunStatus, Template } from "../api/types";
-import { gridFor } from "../table/grid";
-import leadersJson from "../test/fixtures/run_leaders_done.json";
-import scoreboardJson from "../test/fixtures/run_scoreboard_done.json";
-import templatesJson from "../test/fixtures/templates_pulse.json";
-import { coverageNote, excludedNote, flagLegend, isSeatCard, notAskedNote, partLabel } from "./coverage";
-
-const res = (f: unknown): CardResult => (f as RunStatus).result!;
-const SCOREBOARD = res(scoreboardJson);
-const LEADERS = res(leadersJson);
-const TEMPLATES = templatesJson as Template[];
-const tpl = (id: string) => TEMPLATES.find((t) => t.id === id)!;
+import { PAYLOADS } from "../test/cardApi";
+import { payloadToGrid } from "./grid/payloadToGrid";
+import { coverageNote, excludedNote, flagLegend, notAskedNote } from "./coverage";
 
 describe("coverage notes", () => {
-  it("coverageNote marks Normal fallback", () => {
-    expect(coverageNote(SCOREBOARD.rounds)).toBe(
+  it("coverageNote names each round's seats and version, marking a fallback", () => {
+    const p = PAYLOADS.distributionCompare();
+    Object.assign(p.rounds.items[0], { fallback: true, seats: 380, version: "normal" });
+    Object.assign(p.rounds.items[1], { fallback: false, seats: 403, version: "extrapolated" });
+    expect(coverageNote(p.rounds)).toBe(
       "2027 VS CAPI R1: 380 seats · Normal (no Extrapolated version) · 2027 VS CAPI R2: 403 seats · Extrapolated",
     );
   });
 
-  it("excludedNote names rounds", () => {
-    const r: CardResult = {
-      ...SCOREBOARD,
-      coverage: [
-        ...SCOREBOARD.coverage,
-        { job: "seats_ac_o2_o1", part: "seats_ac", coverage: { excluded_by_observation: { o1: [5, 9], o2: [] } } },
-        // Same exclusion reported by a second job is not repeated.
-        { job: "seats_pc_o2_o1", part: "seats_pc", coverage: { excluded_by_observation: { o1: [5, 9], x9: [1] } } },
-      ],
-    };
-    expect(excludedNote(r)).toBe("2 seats excluded in 2027 VS CAPI R1 · 1 seats excluded in x9");
+  it("excludedNote names rounds and does not repeat an exclusion reported twice", () => {
+    const p = PAYLOADS.distributionCompare();
+    p.coverage = [
+      { job: "a", part: "grid", coverage: { excluded_by_observation: { R1: [5, 9], R2: [] } } },
+      { job: "b", part: "grid", coverage: { excluded_by_observation: { R1: [5, 9], x9: [1] } } },
+    ];
+    expect(excludedNote(p)).toBe("2 seats excluded in 2027 VS CAPI R1 · 1 seats excluded in x9");
   });
 
   it("excludedNote tolerates string coverage and no exclusions", () => {
-    expect(excludedNote(SCOREBOARD)).toBeNull();
+    const p = PAYLOADS.distributionStandalone();
+    p.coverage = [{ job: "a", part: "grid", coverage: "independent" }];
+    expect(excludedNote(p)).toBeNull();
   });
 
-  it("notAskedNote uses part labels and base names", () => {
-    expect(notAskedNote(LEADERS)).toBe("cm_satisfaction not asked in 2027 VS CAPI R1");
-    expect(notAskedNote(SCOREBOARD)).toBeNull();
-    const r = { ...SCOREBOARD, not_asked: [{ part: "gender_gap", rounds: ["A", "B"] }] };
-    expect(notAskedNote(r)).toBe("Gender gap not asked in A, B");
+  it("notAskedNote lists the rounds in which the scenario was not asked", () => {
+    const p = PAYLOADS.distributionTrend();
+    expect(notAskedNote(p)).toBeNull();
+    p.not_asked = [{ part: "grid", rounds: ["A", "B"] }];
+    expect(notAskedNote(p)).toBe("Not asked in A, B");
   });
 
-  it("partLabel prefers fixed labels, then row label, then id", () => {
-    expect(partLabel("seats_pc", SCOREBOARD)).toBe("Seats PC");
-    expect(partLabel("pm_satisfaction", LEADERS)).toBe("pm_satisfaction");
-    expect(partLabel("unknown_q", null)).toBe("unknown_q");
-  });
-
-  it("flagLegend lists only present flags, known first", () => {
-    expect(flagLegend(gridFor(SCOREBOARD))).toEqual([
-      { glyph: "", reason: "No Δ available for this round pair" },
-      { glyph: "?", reason: "common_seats" },
-    ]);
-  });
-
-  it("isSeatCard for scoreboard and geographic slices only", () => {
-    expect(isSeatCard(tpl("pulse.party_scoreboard"))).toBe(true);
-    expect(isSeatCard(tpl("pulse.by_zone"))).toBe(true);
-    expect(isSeatCard(tpl("pulse.leaders"))).toBe(false);
+  it("flagLegend lists only the flags present, known ones first", () => {
+    const p = PAYLOADS.distributionCompare();
+    const g = payloadToGrid(p, { lens: p.meta.default_lens, cut: p.cuts[0].id });
+    const [row, column] = [g.rows[0].key, g.columns[0].key];
+    g.cells[row][column] = { cell: { value: 1, delta: null, trend: [], secondary: null, flags: ["unknown_flag", "no_delta"], base: null }, unit: "pct" };
+    const reasons = flagLegend(g).map((f) => f.reason);
+    expect(reasons.indexOf("No Δ available for this round pair")).toBeLessThan(reasons.indexOf("unknown_flag"));
+    expect(reasons).not.toContain("not_asked");
   });
 });

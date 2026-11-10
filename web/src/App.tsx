@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { ApiError } from "./api/client";
 import { backoff } from "./api/queries";
 import { ComingLater } from "./pages/ComingLater";
-import { StatePulse } from "./pages/StatePulse";
+import { CardsPage } from "./pages/CardsPage";
 import { NAV, Shell } from "./shell/AppShell";
 import { cssVariablesResolver, theme } from "./theme";
 
@@ -21,22 +21,21 @@ export function createQueryClient(): QueryClient {
   });
 }
 
-function ToPulse() {
+function ToCards() {
   const { search } = useLocation();
-  return <Navigate to={{ pathname: "/pulse", search }} replace />;
+  return <Navigate to={{ pathname: "/", search }} replace />;
 }
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route element={<Shell />}>
-        <Route index element={<ToPulse />} />
-        <Route path="/pulse" element={<StatePulse />} />
-        {NAV.filter((n) => n.path !== "/pulse").map((n) => (
+        <Route index element={<CardsPage />} />
+        {NAV.filter((n) => n.path !== "/").map((n) => (
           <Route key={n.path} path={n.path}
             element={<ComingLater section={n.title} phase={n.path === "/my-cards" || n.path === "/builder" ? 3 : 2} />} />
         ))}
-        <Route path="*" element={<ToPulse />} />
+        <Route path="*" element={<ToCards />} />
       </Route>
     </Routes>
   );
