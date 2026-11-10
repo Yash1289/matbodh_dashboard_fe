@@ -12,7 +12,9 @@ const BLUE = "33, 102, 172";
 const ORANGE = "230, 97, 1";
 const MAX_ALPHA = 0.6;
 
-const partOf = (rule: FormatRule): "value" | "delta" => (rule.kind === "heat" ? "value" : "delta");
+// Diverging colours the Δ, except in standalone and trend cards, which have none: the value then.
+const partOf = (rule: FormatRule, g: CellGrid): "value" | "delta" =>
+  rule.kind === "heat" || g.mode === "standalone" || g.mode === "trend" ? "value" : "delta";
 
 function scoped(g: CellGrid, rowKey: string, colKey: string, within: Within): GridCell[] {
   const rows = within === "column" || within === "table" ? g.rows.map((r) => r.key) : [rowKey];
@@ -26,7 +28,7 @@ const numbers = (cells: GridCell[], part: "value" | "delta"): number[] =>
 /** Display-only colour; never changes a value. */
 export function cellStyle(g: CellGrid, rowKey: string, colKey: string, rule: FormatRule): { background?: string } {
   if (rule.kind === "none") return {};
-  const part = partOf(rule);
+  const part = partOf(rule, g);
   const v = g.cells[rowKey]?.[colKey]?.cell?.[part] ?? null;
   if (v === null) return {};
   const all = numbers(scoped(g, rowKey, colKey, rule.within), part);
@@ -45,7 +47,7 @@ const SCOPE_TEXT = { column: " (scaled within each column)", row: " (scaled with
 /** Legend; a min-max range is only meaningful (and shown) when scaling is across the whole table. */
 export function legend(g: CellGrid, rule: FormatRule): { label: string; range: string | null } | null {
   if (rule.kind === "none") return null;
-  const part = partOf(rule);
+  const part = partOf(rule, g);
   const found = g.rows.flatMap((r) =>
     g.columns.flatMap((c) => {
       const gc = g.cells[r.key]?.[c.key];
@@ -54,7 +56,7 @@ export function legend(g: CellGrid, rule: FormatRule): { label: string; range: s
     }),
   );
   if (found.length === 0) return null;
-  const name = rule.kind === "heat" ? "Heat on value" : "Diverging on Δ";
+  const name = rule.kind === "heat" ? "Heat on value" : part === "delta" ? "Diverging on Δ" : "Diverging on value";
   const label = name + SCOPE_TEXT[rule.within];
   if (rule.within !== "table") return { label, range: null };
   if (rule.kind === "heat") {

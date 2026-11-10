@@ -111,7 +111,7 @@ export function transpose(g: CellGrid): CellGrid {
     cells[c.key] = {};
     for (const r of g.rows) cells[c.key][r.key] = g.cells[r.key][c.key];
   }
-  return { rows: g.columns, columns: g.rows, cells, rowDim: g.columnDim, columnDim: g.rowDim };
+  return { ...g, rows: g.columns, columns: g.rows, cells, rowDim: g.columnDim, columnDim: g.rowDim };
 }
 
 /** Reorders rows only; nulls last in both directions; stable; null restores apiOrder. */
@@ -129,8 +129,10 @@ export function sortRows(g: CellGrid, by: SortSpec | null, apiOrder: string[]): 
   return { ...g, rows };
 }
 
-function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: string[], colors?: Record<string, string>): Header[] {
-  const byKey = new Map(headers.map((h) => [h.key, h]));
+/** `keyOf` names the item a header stands for; the default is its own key. */
+function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: string[], colors?: Record<string, string>,
+  keyOf: (h: Header) => string = (h) => h.key): Header[] {
+  const byKey = new Map(headers.map((h) => [keyOf(h), h]));
   const pinnedSet = new Set(pinLast ?? []);
   const specifiedSet = new Set(specifiedOrder ?? []);
   const seen = new Set<string>();
@@ -147,9 +149,9 @@ function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: 
 
   // 2. Unlisted headers (not specified and not pinned)
   for (const h of headers) {
-    if (!specifiedSet.has(h.key) && !pinnedSet.has(h.key) && !seen.has(h.key)) {
+    if (!specifiedSet.has(keyOf(h)) && !pinnedSet.has(keyOf(h)) && !seen.has(keyOf(h))) {
       ordered.push(h);
-      seen.add(h.key);
+      seen.add(keyOf(h));
     }
   }
 
@@ -164,17 +166,22 @@ function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: 
   // Apply entity colors
   return ordered.map((h) => ({
     ...h,
-    colour: colors?.[h.key] ?? h.colour,
+    colour: colors?.[keyOf(h)] ?? h.colour,
   }));
 }
 
-export function applyPresentationRules(grid: CellGrid, rules?: PresentationRules | null): CellGrid {
+/**
+ * `columnKey` and `rowKey` map a header to the name the rules use: payload columns are
+ * `scenario:party` and rows are `dimension=value`, while rules name the bare party or value.
+ */
+export function applyPresentationRules(grid: CellGrid, rules?: PresentationRules | null,
+  columnKey?: (h: Header) => string, rowKey?: (h: Header) => string): CellGrid {
   if (!rules) return grid;
-  const columns = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors);
+  const columns = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors, columnKey);
   const rowOrder = Array.isArray(rules.rowOrder)
     ? rules.rowOrder
     : (rules.rowOrder && grid.rowDim ? rules.rowOrder[grid.rowDim] : undefined);
-  const rows = reorderHeaders(grid.rows, rowOrder);
+  const rows = reorderHeaders(grid.rows, rowOrder, undefined, undefined, rowKey);
   return {
     ...grid,
     rows,

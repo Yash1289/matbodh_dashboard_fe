@@ -12,7 +12,9 @@ export const reasonOf = (cell: Cell | null): string => (cell === null ? "Not app
 /** Title of a Δ: the round pair, plus the reason when the Δ is missing. */
 export function cellDeltaTitle(cell: Cell | null, dTitle: string): string {
   if (cell !== null && cell.delta !== null) return dTitle;
-  return `${dTitle}: ${cell === null || cell.value === null ? reasonOf(cell) : flagInfo("no_delta").reason}`;
+  // The engine says why a comparison has no Δ even when the cell has its own value.
+  const why = cell?.flags.find((f) => f === "missing_reference" || f === "missing_target");
+  return `${dTitle}: ${cell === null || cell.value === null ? reasonOf(cell) : flagInfo(why ?? "no_delta").reason}`;
 }
 
 /** Δ in its tone colour; the ▲/▼ glyph from the formatter keeps it readable without colour. */

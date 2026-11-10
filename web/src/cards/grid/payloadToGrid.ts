@@ -5,6 +5,7 @@ import type { CellGrid, GridCell, Header } from "../../table/grid";
 export interface GridView { lens: string; cut: string }
 
 const SEP = "\u0000";
+const BASE_FIELDS = ["weighted_denominator", "unweighted_base", "population_group_base"] as const;
 const unitOf = (lens: LensDef): Unit => (lens.unit === "percentage_points" ? "pp" : "pct");
 const statusFlags = (status: string | undefined): string[] =>
   status === undefined || status === "available" ? [] : [status];
@@ -35,6 +36,12 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
   for (const c of cut.cells) if (c.lens === lens.id) values.set(cellKey(c.row, c.column, c.round), c);
   const deltas = new Map<string, DeltaValue>();
   for (const d of cut.deltas) if (d.lens === lens.id) deltas.set(`${d.row}${SEP}${d.column}`, d);
+  // The cell's base for the details view: the first base the engine reported for it.
+  const bases = new Map<string, number>();
+  for (const b of cut.bases) {
+    const found = BASE_FIELDS.map((f) => b.fields[f]).find((v): v is number => typeof v === "number");
+    if (found !== undefined) bases.set(cellKey(b.row, b.column, b.round), found);
+  }
 
   const mode = p.mode;
   const cutRounds = [...new Set(cut.cells.map((c) => c.round).filter((r): r is string => r !== null))];
@@ -67,7 +74,7 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
         const at = roundIds.indexOf(p.rounds.anchor);
         const cell: Cell = {
           value: trend[at >= 0 ? at : trend.length - 1], delta: null, trend, secondary: null,
-          flags: unique(roundFlags.flat()), base: null,
+          flags: unique(roundFlags.flat()), base: bases.get(cellKey(row.key, column.key, roundIds[at >= 0 ? at : roundIds.length - 1])) ?? null,
         };
         gridCell = { cell, unit, roundFlags };
       } else {
@@ -84,7 +91,10 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
           }
         }
         gridCell = {
-          cell: { value: cv?.value ?? null, delta, trend: [], secondary: null, flags: unique(flags), base: null },
+          cell: {
+            value: cv?.value ?? null, delta, trend: [], secondary: null, flags: unique(flags),
+            base: bases.get(cellKey(row.key, column.key, valueRound)) ?? null,
+          },
           unit,
         };
       }

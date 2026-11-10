@@ -31,9 +31,9 @@ interface Control {
 const PRESET_LABELS: Record<ShowPreset, string> = {
   share: "Values", delta: "Δ only", both: "Values + Δ", both_trend: "Values + trend",
 };
+// Only compare cards have parts to choose between: a trend cell already is its per-round values.
 const PRESETS_BY_MODE: Record<string, ShowPreset[]> = {
   compare: ["share", "delta", "both"],
-  trend: ["share", "both_trend"],
 };
 const DENSITIES: { value: Density; label: string }[] = [
   { value: "compact", label: "Compact" }, { value: "standard", label: "Standard" }, { value: "detailed", label: "Detailed" },

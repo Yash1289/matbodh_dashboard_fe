@@ -9,12 +9,14 @@ interface Props {
   unit: Unit;
   parts: CellPart[];
   rounds: RoundsBlock;
+  /** Compare mode: what the Δ is against (e.g. "Δ vs R1"); overrides the round-pair title. */
+  deltaLabel?: string;
 }
 
-export function CompositeCell({ cell, unit, parts, rounds }: Props) {
+export function CompositeCell({ cell, unit, parts, rounds, deltaLabel }: Props) {
   if (cell === null) return <CellFrame value={<Dash title="Not applicable" />} delta={null} sub={[<span key="r">Not applicable</span>]} />;
   const has = (p: CellPart) => parts.includes(p);
-  const dTitle = deltaTitle(rounds);
+  const dTitle = deltaLabel ?? deltaTitle(rounds);
   const names = rounds.items.map((r) => r.base_name).join(" | ");
   const missing = cell.value === null;
 
