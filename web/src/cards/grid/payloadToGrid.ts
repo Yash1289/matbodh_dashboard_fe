@@ -1,0 +1,119 @@
+import type { Cell, CellValue, DeltaValue, GridPayload, LensDef, Unit } from "../../api/types";
+import type { CellGrid, GridCell, Header } from "../../table/grid";
+
+/** What the display controls pick from a payload; nothing here needs the network. */
+export interface GridView { lens: string; cut: string }
+
+const SEP = "\u0000";
+const unitOf = (lens: LensDef): Unit => (lens.unit === "percentage_points" ? "pp" : "pct");
+const statusFlags = (status: string | undefined): string[] =>
+  status === undefined || status === "available" ? [] : [status];
+const unique = (flags: string[]): string[] => [...new Set(flags)];
+
+function rowLabel(key: string, labels: Record<string, string | null>): string {
+  if (key === "overall") return "Overall";
+  return Object.values(labels).map((label) => label ?? "(no value)").join(" · ");
+}
+
+/**
+ * Pivot one cut of an engine payload into the table's CellGrid. Every number is copied
+ * from the payload: the engine owns the arithmetic, the browser never adds or subtracts.
+ */
+export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
+  const cut = p.cuts.find((c) => c.id === view.cut);
+  if (!cut) throw new Error(`Unknown cut ${view.cut}`);
+  const lens = p.meta.lenses.find((l) => l.id === view.lens)
+    ?? p.meta.lenses.find((l) => l.id === p.meta.default_lens)
+    ?? p.meta.lenses[0];
+  const unit = unitOf(lens);
+  const columns = p.columns.filter((c) => c.lenses === null || c.lenses.includes(lens.id));
+
+  const items = p.rounds.items;
+  const labelOf = (obs: string) => items.find((i) => i.obs_id === obs)?.label ?? obs;
+  const cellKey = (row: string, column: string, round: string | null) => `${row}${SEP}${column}${SEP}${round ?? ""}`;
+  const values = new Map<string, CellValue>();
+  for (const c of cut.cells) if (c.lens === lens.id) values.set(cellKey(c.row, c.column, c.round), c);
+  const deltas = new Map<string, DeltaValue>();
+  for (const d of cut.deltas) if (d.lens === lens.id) deltas.set(`${d.row}${SEP}${d.column}`, d);
+
+  const mode = p.mode;
+  const cutRounds = [...new Set(cut.cells.map((c) => c.round).filter((r): r is string => r !== null))];
+  const valueRound = cutRounds.includes(p.rounds.anchor) ? p.rounds.anchor : (cutRounds[0] ?? p.rounds.anchor);
+  const roundIds = mode === "trend" ? items.map((i) => i.obs_id) : [valueRound];
+  const roundLabels = roundIds.map(labelOf);
+  const notAsked = new Set(
+    p.not_asked.flatMap((n) => n.rounds).map((name) => items.find((i) => i.base_name === name || i.obs_id === name)?.obs_id)
+      .filter((o): o is string => o !== undefined),
+  );
+
+  const cells: CellGrid["cells"] = {};
+  for (const row of cut.rows) {
+    cells[row.key] = {};
+    for (const column of columns) {
+      const has = roundIds.some((round) => values.has(cellKey(row.key, column.key, round)));
+      if (!has) {
+        cells[row.key][column.key] = { cell: null, unit };
+        continue;
+      }
+      let gridCell: GridCell;
+      if (mode === "trend") {
+        const per = roundIds.map((round) => values.get(cellKey(row.key, column.key, round)));
+        const trend = per.map((cv) => cv?.value ?? null);
+        const roundFlags = per.map((cv, i) => {
+          const flags = statusFlags(cv?.status);
+          if (cv === undefined) flags.push(notAsked.has(roundIds[i]) ? "not_asked" : "null_value");
+          return flags;
+        });
+        const at = roundIds.indexOf(p.rounds.anchor);
+        const cell: Cell = {
+          value: trend[at >= 0 ? at : trend.length - 1], delta: null, trend, secondary: null,
+          flags: unique(roundFlags.flat()), base: null,
+        };
+        gridCell = { cell, unit, roundFlags };
+      } else {
+        const cv = values.get(cellKey(row.key, column.key, valueRound));
+        const flags = statusFlags(cv?.status);
+        let delta: number | null = null;
+        if (mode === "compare") {
+          const dv = deltas.get(`${row.key}${SEP}${column.key}`);
+          if (dv) {
+            delta = dv.value;
+            flags.push(...statusFlags(dv.status));
+          } else if (lens.has_delta) {
+            flags.push("no_delta");
+          }
+        }
+        gridCell = {
+          cell: { value: cv?.value ?? null, delta, trend: [], secondary: null, flags: unique(flags), base: null },
+          unit,
+        };
+      }
+      cells[row.key][column.key] = gridCell;
+    }
+  }
+
+  const multiScenario = new Set(columns.map((c) => c.scenario)).size > 1;
+  const headers: Header[] = columns.map((c) => {
+    const sub = [multiScenario ? c.scenario : null, mode === "trend" ? roundLabels.join(" | ") : null]
+      .filter((s): s is string => s !== null).join(" · ");
+    return { key: c.key, label: c.label, colour: c.colour, ...(sub ? { sub } : {}) };
+  });
+  const rows: Header[] = cut.rows.map((r) => ({ key: r.key, label: rowLabel(r.key, r.labels), colour: null }));
+
+  const grid: CellGrid = {
+    rows, columns: headers, cells,
+    rowDim: cut.dimensions.length ? cut.dimensions.join(" · ") : "overall",
+    columnDim: columns[0]?.kind === "scale" ? "question" : (columns[0]?.kind ?? "series"),
+    mode,
+  };
+  if (mode === "trend") grid.roundLabels = roundLabels;
+  if (mode === "compare") {
+    const delta = p.cuts.flatMap((c) => c.deltas)[0];
+    if (delta) {
+      const [targetObs] = delta.target.split(":");
+      const [referenceObs, ...scenario] = delta.reference.split(":");
+      grid.referenceLabel = referenceObs !== targetObs ? labelOf(referenceObs) : scenario.join(":");
+    }
+  }
+  return grid;
+}

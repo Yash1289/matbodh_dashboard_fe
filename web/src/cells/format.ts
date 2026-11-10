@@ -37,6 +37,10 @@ export const FLAG_INFO: Record<string, { glyph: string; reason: string }> = {
   not_contender: { glyph: "—", reason: "Not a seat contender" },
   no_delta: { glyph: "", reason: "No Δ available for this round pair" },
   null_value: { glyph: "—", reason: "No value returned" },
+  missing_target: { glyph: "—", reason: "No value in the target round" },
+  missing_reference: { glyph: "—", reason: "No value in the reference, so no Δ" },
+  not_covered: { glyph: "—", reason: "Seat not covered in both rounds" },
+  no_eligible_result: { glyph: "—", reason: "No eligible result for this question" },
   within_other: { glyph: "⊂", reason: "Already counted inside Other" },
   vote_from_seat_view: { glyph: "†", reason: "Vote share from the seat view" },
   borrowed: { glyph: "*", reason: "Includes seats carried from an earlier round" },
@@ -47,7 +51,8 @@ export function flagInfo(flag: string): { glyph: string; reason: string } {
   return FLAG_INFO[flag] ?? { glyph: "?", reason: flag };
 }
 
-const NULL_FLAG_ORDER = ["failed", "not_asked", "not_contender", "null_value"];
+const NULL_FLAG_ORDER = ["failed", "not_asked", "no_eligible_result", "missing_target",
+  "missing_reference", "not_covered", "not_contender", "null_value"];
 
 export function nullReason(cell: Cell): string {
   const hit = NULL_FLAG_ORDER.find((f) => cell.flags.includes(f));

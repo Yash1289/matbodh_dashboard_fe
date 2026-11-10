@@ -223,3 +223,76 @@ export interface Template {
   density: Density;
   requires: { min_level: "state" | "ac"; focus_party: boolean };
 }
+
+// --- Card payload: mirrors matbodh_dashboard/cards/payload.py -------------------------
+export type Family = "distribution" | "opinion" | "gender_differential";
+export type CardMode = "standalone" | "compare" | "trend";
+export type LensUnit = "percentage" | "percentage_points";
+
+export interface LensDef { id: string; label: string; unit: LensUnit; has_delta: boolean }
+export interface Capabilities { modes: CardMode[]; transpose: boolean; sort: boolean; details: boolean }
+export interface FamilyMeta { family: Family; lenses: LensDef[]; default_lens: string; capabilities: Capabilities }
+export interface GridColumn {
+  key: string;
+  label: string;
+  scenario: string;
+  kind: "party" | "option" | "scale";
+  colour: string | null;
+  lenses: string[] | null; // lenses this column applies to; null = all
+}
+export interface RowDef { key: string; labels: Record<string, string | null>; subtotal: string[] }
+export interface CellValue { row: string; column: string; round: string | null; lens: string; value: number | null; status: string }
+export interface DeltaValue {
+  row: string;
+  column: string;
+  lens: string;
+  target: string; // "<observation>:<scenario>"
+  reference: string;
+  value: number | null;
+  reference_value: number | null;
+  relative_change_pct: number | null;
+  status: string;
+}
+export interface BaseDetail { row: string; column: string; round: string | null; fields: Record<string, unknown> }
+export interface Cut {
+  id: string;
+  dimensions: string[];
+  rows: RowDef[];
+  cells: CellValue[];
+  deltas: DeltaValue[];
+  bases: BaseDetail[];
+}
+export interface GridPayload {
+  family: Family;
+  card_id: string;
+  mode: CardMode;
+  state: string;
+  rounds: RoundsBlock;
+  meta: FamilyMeta;
+  columns: GridColumn[];
+  cuts: Cut[];
+  unavailable: PartReason[];
+  not_asked: NotAsked[];
+  coverage: { job: string; part: string; coverage: Record<string, unknown> | string }[];
+  provenance: { contract: Record<string, unknown>; resolved_datasets: unknown };
+  hidden_count: number;
+  rules_version: string | number;
+  engine_version: string;
+  metadata_revision: number;
+  alliance_epoch: number;
+}
+
+export interface CardFilterConfig { field: string; operator: "in" | "not_in"; values: string[] }
+export interface CardInfo {
+  id: string;
+  family: Family;
+  section: string;
+  title: string;
+  scenarios: string[];
+  cuts: string[][];
+  filters: CardFilterConfig[];
+  comparison: { mode: CardMode; target: unknown; reference: unknown; delta_measures: string[] };
+  caste_clubbing: boolean;
+  requires: { min_level: "state" | "ac" };
+  meta: FamilyMeta;
+}

@@ -3,13 +3,20 @@ import type { Cell, CardResult, Unit, PresentationRules } from "../api/types";
 export type { PresentationRules };
 export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number }
 /** `pcCell` is set only on the merged seats column: `cell` is then the AC level. */
-export interface GridCell { cell: Cell | null; unit: Unit; pcCell?: Cell | null }
+/** `roundFlags` (trend mode): one flag list per round, aligned with `Cell.trend`. */
+export interface GridCell { cell: Cell | null; unit: Unit; pcCell?: Cell | null; roundFlags?: string[][] }
 export interface CellGrid {
   rows: Header[];
   columns: Header[];
   cells: Record<string, Record<string, GridCell>>;
   rowDim: string;
   columnDim: string;
+  /** Card mode; absent means standalone. */
+  mode?: "standalone" | "compare" | "trend";
+  /** Trend mode: the round sub-labels, in the order of `Cell.trend`. */
+  roundLabels?: string[];
+  /** Compare mode: what every delta is measured against (a round label or a scenario). */
+  referenceLabel?: string;
 }
 export interface SortSpec { column: string; part: "value" | "delta"; dir: "asc" | "desc" }
 
