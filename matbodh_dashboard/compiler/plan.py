@@ -356,3 +356,34 @@ def bind_contenders(
     contenders = sorted(p for p in set(parties) if p not in excluded)
     benchmark = {**job.config["benchmark"], "contenders": contenders}
     return replace(job, config={**job.config, "benchmark": benchmark})
+
+
+def rounds_block(plan: RunPlan, anchor: str, compare: str | None) -> dict:
+    """The RoundsBlock sent to the browser: round items, series groups, anchor and
+    compare observation ids."""
+    items = []
+    groups: list[dict] = []
+    for r in plan.rounds:
+        ds = r.dataset
+        items.append({
+            "obs_id": r.obs_id,
+            "label": r.label,
+            "base_name": r.identity.base_name,
+            "cycle": r.identity.cycle,
+            "series": r.identity.series,
+            "round": r.identity.round,
+            "dataset_id": ds.dataset_id,
+            "version": ds.variant,
+            "fallback": r.fallback,
+            # Metadata coverage (surveyed seats); a seat cell's base is the
+            # engine's eligible seat count for that benchmark instead.
+            "seats": len(ds.seat_ids),
+            "borrowed": len(ds.borrowed_seat_ids),
+            "seats_source": "metadata",
+        })
+        key = (r.identity.cycle, r.identity.series)
+        if groups and (groups[-1]["cycle"], groups[-1]["series"]) == key:
+            groups[-1]["obs_ids"].append(r.obs_id)
+        else:
+            groups.append({"cycle": key[0], "series": key[1], "obs_ids": [r.obs_id]})
+    return {"items": items, "groups": groups, "anchor": anchor, "compare": compare}
