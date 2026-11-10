@@ -5,7 +5,8 @@ import type { CellGrid, GridCell, Header } from "../../table/grid";
 export interface GridView { lens: string; cut: string }
 
 const SEP = "\u0000";
-const BASE_FIELDS = ["weighted_denominator", "unweighted_base", "population_group_base"] as const;
+// The sample size comes first: a weight mass reads as a nonsense "n".
+const BASE_FIELDS = ["unweighted_base", "population_raw_base", "weighted_denominator"] as const;
 const unitOf = (lens: LensDef): Unit => (lens.unit === "percentage_points" ? "pp" : "pct");
 const statusFlags = (status: string | undefined): string[] =>
   status === undefined || status === "available" ? [] : [status];
@@ -57,7 +58,9 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
   for (const row of cut.rows) {
     cells[row.key] = {};
     for (const column of columns) {
-      const has = roundIds.some((round) => values.has(cellKey(row.key, column.key, round)));
+      // A compare cell whose target has no value still carries the engine delta and its reason.
+      const has = roundIds.some((round) => values.has(cellKey(row.key, column.key, round)))
+        || (mode === "compare" && deltas.has(`${row.key}${SEP}${column.key}`));
       if (!has) {
         cells[row.key][column.key] = { cell: null, unit };
         continue;

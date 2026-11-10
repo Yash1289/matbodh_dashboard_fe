@@ -134,7 +134,13 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
   const nameOf = (id: string | null) => items.find((r) => r.obs_id === id)?.base_name;
   // Round names are series-qualified; the bare R1/R2 labels only head columns inside the table.
   const anchor = nameOf(shown && !errored ? shown.rounds.anchor : ctx.anchor_round);
-  const compare = shown?.mode === "compare" ? nameOf(shown.rounds.compare) : undefined;
+  // The reference is whatever the engine's deltas were measured against: another round, or another scenario in the same round.
+  const firstDelta = shown?.mode === "compare" ? shown.cuts.flatMap((c) => c.deltas)[0] : undefined;
+  const compare = firstDelta === undefined ? undefined : (() => {
+    const [targetObs] = firstDelta.target.split(":");
+    const [referenceObs, ...scenario] = firstDelta.reference.split(":");
+    return referenceObs !== targetObs ? nameOf(referenceObs) : scenario.join(":");
+  })();
   const subtitle = anchor === undefined ? null : [
     `anchor round ${anchor}`,
     compare === undefined ? null : `Δ vs ${compare}`,

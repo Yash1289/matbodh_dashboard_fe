@@ -68,8 +68,12 @@ def _dims(item: dict) -> list[tuple[str, str | None, bool]]:
     return out
 
 
+# Row-level engine statuses that say nothing about a lens whose own value is present.
+_ROW_LEVEL = frozenset({"missing_or_zero_gender_base"})
+
+
 def _status(raw: str | None, value) -> str:
-    status = "available" if raw is None or raw in _OK else raw
+    status = "available" if raw is None or raw in _OK or (value is not None and raw in _ROW_LEVEL) else raw
     return "null_value" if value is None and status == "available" else status
 
 
@@ -192,7 +196,9 @@ class _Translator:
                 scenario, obs = item["scenario_id"], item["observation_id"]
                 column = self._column(item, source.array, scenario, source)
                 value = item[source.field]
-                status = _status(item.get("coverage_status"), value)
+                # The impact lens has its own engine status; the other lenses use coverage_status.
+                raw = item.get("impact_status") if source.field == "size_of_impact_pp" else None
+                status = _status(raw or item.get("coverage_status"), value)
                 if value is None and self.context_status.get(f"{obs}:{scenario}") == "no_eligible_result":
                     status = "no_eligible_result"
                 cut.cells.append(CellValue(row=row.key, column=column, round=obs, lens=lens.id,

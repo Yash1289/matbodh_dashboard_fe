@@ -228,3 +228,14 @@ def test_lens_units_match_engine_units(family, name):
                 declared = item.get("impact_unit")
             if declared is not None:
                 assert units[declared] == lens.unit, (lens.id, declared)
+
+
+def test_gender_base_status_flags_only_the_lens_whose_own_value_is_missing():
+    """Engine rows flagged missing_or_zero_gender_base still carry valid values for other lenses."""
+    result = load_sample("result_gd.json")
+    payload = _translate(result, _config("gender_differential"))
+    cells = [c for cut in payload.cuts for c in cut.cells]
+    assert all(c.status == "available" for c in cells if c.value is not None)
+    assert {c.status for c in cells if c.value is None} <= {"null_value", "missing_or_zero_gender_base"}
+    impact = [c for c in cells if c.lens == "size_of_impact_pp" and c.value is not None]
+    assert impact and all(c.status == "available" for c in impact)

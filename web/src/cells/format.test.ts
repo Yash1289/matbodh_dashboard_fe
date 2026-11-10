@@ -55,4 +55,9 @@ describe("formatters", () => {
     expect(nullReason(cell(["not_asked"]))).toBe("Not asked in this round");
     expect(nullReason(cell(["low_base"]))).toBe("No value returned");
   });
+
+  it("explains a missing gender base instead of a generic dash", () => {
+    expect(nullReason(cell(["missing_or_zero_gender_base"]))).toBe("No female or male base in this group");
+    expect(flagInfo("missing_or_zero_gender_base").glyph).toBe("—");
+  });
 });

@@ -45,6 +45,7 @@ export const FLAG_INFO: Record<string, { glyph: string; reason: string }> = {
   vote_from_seat_view: { glyph: "†", reason: "Vote share from the seat view" },
   borrowed: { glyph: "*", reason: "Includes seats carried from an earlier round" },
   low_base: { glyph: "◌", reason: "Low base" },
+  missing_or_zero_gender_base: { glyph: "—", reason: "No female or male base in this group" },
 };
 
 export function flagInfo(flag: string): { glyph: string; reason: string } {
@@ -52,7 +53,7 @@ export function flagInfo(flag: string): { glyph: string; reason: string } {
 }
 
 const NULL_FLAG_ORDER = ["failed", "not_asked", "no_eligible_result", "missing_target",
-  "missing_reference", "not_covered", "not_contender", "null_value"];
+  "missing_reference", "not_covered", "not_contender", "missing_or_zero_gender_base", "null_value"];
 
 export function nullReason(cell: Cell): string {
   const hit = NULL_FLAG_ORDER.find((f) => cell.flags.includes(f));

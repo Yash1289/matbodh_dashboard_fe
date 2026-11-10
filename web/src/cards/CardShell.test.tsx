@@ -87,6 +87,15 @@ describe("CardShell", () => {
     expect(within(await screen.findByRole("table")).getByText(/Δ vs R1/)).toBeInTheDocument();
   });
 
+  it("names the reference from the card's own deltas, not the context compare round", async () => {
+    const p = PAYLOADS.distributionCompare();
+    for (const cut of p.cuts) for (const d of cut.deltas) d.reference = `${d.target.split(":")[0]}:ls_past`;
+    stubCardApi({ payloads: [p] });
+    mount(p);
+    await screen.findByRole("table");
+    expect(screen.getByTestId("card-subtitle")).toHaveTextContent(/^anchor round 2027 VS CAPI R2 · Δ vs ls_past$/);
+  });
+
   it("opens the method drawer with the contract from the payload", async () => {
     const p = PAYLOADS.distributionStandalone();
     stubCardApi({ payloads: [p] });

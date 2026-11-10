@@ -168,3 +168,34 @@ describe("payloadToGrid: trend", () => {
     expect(gridCell.roundFlags?.[0]).toContain("not_asked");
   });
 });
+
+describe("payloadToGrid: review fixes", () => {
+  it("keeps the engine reason and the cell when the target round has no value", () => {
+    const p = load(compareFixture);
+    const cut = p.cuts[1];
+    const delta = cut.deltas.find((d) => d.lens === "support_share")!;
+    cut.cells = cut.cells.filter((c) => !(c.row === delta.row && c.column === delta.column && c.lens === "support_share"));
+    delta.value = null;
+    delta.status = "missing_target";
+    const g = payloadToGrid(p, { lens: "support_share", cut: cut.id });
+    const cell = g.cells[delta.row][delta.column].cell;
+    expect(cell?.value).toBeNull();
+    expect(cell?.flags).toContain("missing_target");
+  });
+
+  it("shows the unweighted sample size as the base, not a weight mass", () => {
+    const p = load(compareFixture);
+    const cut = p.cuts[1];
+    const b = cut.bases.find((x) => x.round === "R2" && typeof x.fields.unweighted_base === "number")!;
+    b.fields.weighted_denominator = 0.2549;
+    b.fields.unweighted_base = 85;
+    const cell = payloadToGrid(p, { lens: "support_share", cut: cut.id }).cells[b.row][b.column].cell;
+    expect(cell?.base).toBe(85);
+  });
+
+  it("names the reference from the deltas, whatever the context compare round is", () => {
+    const p = load(compareFixture);
+    for (const cut of p.cuts) for (const d of cut.deltas) d.reference = "R2:ls_past";
+    expect(payloadToGrid(p, { lens: "support_share", cut: p.cuts[1].id }).referenceLabel).toBe("ls_past");
+  });
+});
