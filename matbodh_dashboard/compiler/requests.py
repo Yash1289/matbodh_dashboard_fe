@@ -20,13 +20,22 @@ def comparison(
     reference: ResolvedRound,
     scenario: str,
     measure: str = "support_share",
+    *,
+    kind: str = "difference",
+    reference_scenario: str | None = None,
 ) -> dict:
+    """One engine comparison. The reference scenario defaults to the target's; give
+    both when pairing two scenarios (intra-round). Ids stay unique per scenario pair
+    and measure."""
+    ref_scenario = reference_scenario or scenario
+    pair = scenario if ref_scenario == scenario else f"{scenario}~{ref_scenario}"
+    suffix = "" if measure == "support_share" else f"-{measure}"
     return {
-        "id": f"d-{scenario}-{target.obs_id}-{reference.obs_id}",
+        "id": f"d-{pair}-{target.obs_id}-{reference.obs_id}{suffix}",
         "target": [target.obs_id, scenario],
-        "reference": [reference.obs_id, scenario],
+        "reference": [reference.obs_id, ref_scenario],
         "measure": measure,
-        "kind": "difference",
+        "kind": kind,
     }
 
 
@@ -51,6 +60,9 @@ def build_request(
     gender: bool = False,
     coverage_mode: str = "independent",
     other_grouping: bool = True,
+    filters: Sequence[dict] = (),
+    caste_clubbing: dict | None = None,
+    reference_observation: str | None = None,
 ) -> dict:
     if not rounds:
         raise ValueError("at least one resolved round is required")
@@ -83,13 +95,16 @@ def build_request(
             ),
         },
         "geography_path": "ac_hierarchy",
-        "filters": [],
+        "filters": [dict(f) for f in filters],
         "display_parties": [],
         "comparisons": [dict(c) for c in comparisons],
-        "reference_observation": latest.obs_id if coverage_mode == "common" else None,
+        "reference_observation": (
+            reference_observation if reference_observation is not None
+            else latest.obs_id if coverage_mode == "common" else None
+        ),
         "coverage_mode": coverage_mode,
         "opinion_weights": _opinion_weights(preset),
-        "caste_clubbing": None,
+        "caste_clubbing": dict(caste_clubbing) if caste_clubbing else None,
         "gender_differential": (
             {
                 "field": preset.gender.field,

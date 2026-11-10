@@ -70,6 +70,52 @@ def test_no_other_grouping():
     assert _request(other_grouping=False)["parties"]["other_grouping"] is None
 
 
+def test_defaults_leave_filters_clubbing_and_reference_empty():
+    request = _request()
+    assert request["filters"] == []
+    assert request["caste_clubbing"] is None
+    assert request["reference_observation"] is None
+
+
+def test_build_request_passes_filters_and_caste_clubbing():
+    filters = [{"field": "party_zone", "operator": "in", "values": ["Jat Belt"]}]
+    clubbing = {"threshold_pct": 0.5, "reference_observation": "o2"}
+    request = _request(filters=filters, caste_clubbing=clubbing)
+    assert request["filters"] == filters
+    assert request["caste_clubbing"] == clubbing
+
+
+def test_explicit_reference_observation_wins():
+    assert _request(coverage_mode="common", reference_observation="o1")[
+        "reference_observation"] == "o1"
+    assert _request(reference_observation="o1")["reference_observation"] == "o1"
+
+
+def test_comparison_kind_is_emitted():
+    o1, o2 = _rounds()
+    assert comparison(o2, o1, "vs_voting_intention", kind="shakti")["kind"] == "shakti"
+    assert comparison(o2, o1, "vs_voting_intention")["kind"] == "difference"
+
+
+def test_comparison_can_pair_two_scenarios_in_one_round():
+    o1, o2 = _rounds()
+    c = comparison(o2, o2, "vs_voting_intention", reference_scenario="ls_past")
+    assert c["target"] == ["o2", "vs_voting_intention"]
+    assert c["reference"] == ["o2", "ls_past"]
+
+
+def test_comparison_ids_are_unique_per_measure_and_scenario_pair():
+    o1, o2 = _rounds()
+    ids = {
+        comparison(o2, o1, "pm_satisfaction", "net_score")["id"],
+        comparison(o2, o1, "pm_satisfaction", "positive_share")["id"],
+        comparison(o2, o2, "vs_voting_intention", reference_scenario="ls_past")["id"],
+        comparison(o2, o1, "vs_voting_intention")["id"],
+    }
+    assert len(ids) == 4
+    assert comparison(o2, o1, "vs_voting_intention")["id"] == "d-vs_voting_intention-o2-o1"
+
+
 def test_view_config_sources_and_alliances():
     cfg = view_config(_request(), PRESET, ranking=None)
     assert cfg["sources"] == {
