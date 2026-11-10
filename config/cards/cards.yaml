@@ -1,0 +1,23 @@
+cards:
+  - id: distribution.support_by_caste
+    family: distribution
+    section: coalitions
+    title: Support by caste
+    scenarios: [vs_voting_intention]
+    cuts: [[], [category], [category, caste], [category, caste, gender]]
+    caste_clubbing: true
+    requires: {min_level: state}
+  - id: opinion.leaders
+    family: opinion
+    section: leadership
+    title: Leader satisfaction
+    scenarios: [pm_satisfaction, cm_satisfaction]
+    cuts: [[]]
+    requires: {min_level: state}
+  - id: gender.gap_by_zone
+    family: gender_differential
+    section: coalitions
+    title: Gender gap by zone
+    scenarios: [vs_voting_intention]
+    cuts: [[], [party_zone]]
+    requires: {min_level: ac}
