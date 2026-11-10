@@ -1,0 +1,18 @@
+# Gender differential: party scenarios. Owns gender_differentials and populations.
+top: {context_status: status, contract: provenance}
+arrays:
+  gender_differentials:
+    roles:
+      lens: [gender_differential_pp, female_support_share, male_support_share, size_of_impact_pp]
+      column: [party_id, scenario_id]
+      row: [dimensions, grouping_set_id, observation_id]
+      status: [coverage_status, impact_status]
+      detail: [female_base, male_base, female_mass, male_mass, geography_female_base, geography_male_base, impact_weight_basis, unit]
+      provenance: [state, survey_id, party_namespace, party_mapping_version]
+      ignored: {group_mask: "internal grain marker; the cut id and subtotal flags carry the same information"}
+  populations:
+    roles:
+      row: [dimensions, grouping_set_id, observation_id]
+      detail: [composition_share, impact_population_share, population_group_base, population_raw_base, population_total_base, geography_population_base, weight_basis, unit]
+      provenance: [state, survey_id]
+      ignored: {group_mask: "internal grain marker; the cut id and subtotal flags carry the same information"}

@@ -23,6 +23,9 @@ dev = ["pytest", "fakeredis"]
 [tool.setuptools.packages.find]
 include = ["matbodh_dashboard*"]
 
+[tool.setuptools.package-data]
+matbodh_dashboard = ["cards/field_maps/*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

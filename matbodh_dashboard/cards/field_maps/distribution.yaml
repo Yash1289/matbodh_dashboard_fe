@@ -1,0 +1,29 @@
+# Distribution: party scenarios. Owns rows (party outcomes), support_share comparisons
+# (including Shakti), populations.
+top: {context_status: status, contract: provenance}
+arrays:
+  rows:
+    where: {outcome_domain: [party]}
+    roles:
+      lens: [support_share, composition_share, contribution_share, scenario_composition_share, joint_share, size_of_impact_pp]
+      column: [party_id, option_id, outcome_domain, scenario_id]
+      row: [dimensions, grouping_set_id, observation_id]
+      status: [coverage_status]
+      detail: [weighted_numerator, weighted_denominator, unweighted_numerator, unweighted_base, population_group_base, population_raw_base, population_total_base, geography_population_base, impact_population_share, impact_unit, impact_weight_basis, unit]
+      provenance: [state, survey_id, party_namespace, party_mapping_version, option_namespace, option_mapping_version]
+      ignored: {group_mask: "internal grain marker; the cut id and subtotal flags carry the same information"}
+  comparisons:
+    where: {measure: [support_share]}
+    roles:
+      delta: [comparison_id, kind, measure, target, reference, target_value, reference_value, target_share, reference_share, percentage_point_difference, relative_change_pct, size_of_impact_pp, impact_pp, shaki_pp, shakti_pp]
+      column: [party_id]
+      row: [dimensions, grouping_set_id]
+      status: [coverage_status, impact_status]
+      detail: [target_base, reference_base, population_share, population_observation_id, difference_unit]
+      ignored: {group_mask: "internal grain marker; the cut id and subtotal flags carry the same information"}
+  populations:
+    roles:
+      row: [dimensions, grouping_set_id, observation_id]
+      detail: [composition_share, impact_population_share, population_group_base, population_raw_base, population_total_base, geography_population_base, weight_basis, unit]
+      provenance: [state, survey_id]
+      ignored: {group_mask: "internal grain marker; the cut id and subtotal flags carry the same information"}
