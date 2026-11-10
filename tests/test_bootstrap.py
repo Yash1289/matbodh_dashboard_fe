@@ -72,12 +72,20 @@ def test_build_service_wires_settings_redis_queue_and_catalogue(fakes):
     assert service.cache._ttl == 1234 and service.cache._redis is redis
     assert service.catalogue.states() == ("Uttar Pradesh",)
     assert service.preset.id == "uttar-pradesh.standard-v1"
-    assert "pulse.party_scoreboard" in service.templates
+    assert "distribution.support_by_caste" in service.cards
     assert service.rules.version
     # The catalogue query is read-only and the connection is closed after use.
     (client,) = clients
     assert client.closed == 1
     assert all(s["readonly"] == 1 for s in client.settings_seen)
+
+
+def test_load_card_config_reads_cards_yaml():
+    preset, cards, rules = bootstrap.load_card_config(ROOT / "config")
+    assert preset.id == "uttar-pradesh.standard-v1"
+    assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone"} <= set(cards)
+    assert cards["opinion.leaders"].family == "opinion"
+    assert rules.version
 
 
 def test_catalogue_loader_closes_the_client_on_failure(monkeypatch):

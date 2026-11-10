@@ -1,4 +1,4 @@
-"""HTTP API: catalogue, templates, planning, runs and metadata refresh.
+"""HTTP API: catalogue, cards, planning, runs and metadata refresh.
 
 The service is built on fakeredis, an inline queue and the fake engine runner
 from the service tests; the API itself must never compute survey numbers.
@@ -21,7 +21,7 @@ from matbodh_dashboard.runner.queue import InlineQueue
 from matbodh_dashboard.runner.service import CardRunService
 from tests.fixtures.catalogue_rows import DATASET_ROWS, dataset_row, make_query
 from tests.runner.test_service import (
-    PRESET, RULES_YAML, SCOREBOARD, TEMPLATES, FakeRunner,
+    ACLEVEL, CARDS, COMPARE, PRESET, RULES_YAML, TREND, VOTE, FakeRunner,
 )
 
 STATE = "Uttar Pradesh"
@@ -35,7 +35,7 @@ def parts(tmp_path):
     cache = ResultCache(fakeredis.FakeStrictRedis(), ttl_seconds=3600)
     runner = FakeRunner()
     queue = InlineQueue(runner, cache, sleep=lambda s: None)
-    service = CardRunService(load_catalogue(make_query()), PRESET, TEMPLATES,
+    service = CardRunService(load_catalogue(make_query()), PRESET, CARDS,
                              load_rules(tmp_path), cache, queue, "0.8.0")
     return service, runner
 
@@ -50,7 +50,7 @@ def client(service):
     return TestClient(create_app(service))
 
 
-def body(card=SCOREBOARD, **ctx):
+def body(card=VOTE.id, **ctx):
     context = {"state": STATE, "level": "ac", "rounds": [R1, R2], "compare_round": R1}
     context.update(ctx)
     return {"card_id": card, "context": context}
@@ -91,12 +91,16 @@ def test_unknown_state_is_404(client):
     assert client.get("/catalogue/Nowhere/surveys").status_code == 404
 
 
-def test_templates_filtered_by_section(client):
-    everything = client.get("/templates").json()
-    assert {t["id"] for t in everything} == set(TEMPLATES)
-    pulse = client.get("/templates", params={"section": "pulse"}).json()
-    assert len(pulse) == len(everything)
-    assert client.get("/templates", params={"section": "nope"}).json() == []
+def test_cards_listed_with_family_meta_and_filtered_by_section(client):
+    everything = client.get("/cards").json()
+    assert {c["id"] for c in everything} == set(CARDS)
+    vote = next(c for c in everything if c["id"] == VOTE.id)
+    assert vote["family"] == "distribution" and vote["cuts"] == [[], ["party_zone"]]
+    assert vote["meta"]["default_lens"] == "support_share"
+    assert "support_share" in [lens["id"] for lens in vote["meta"]["lenses"]]
+    assert vote["meta"]["capabilities"]["modes"] == ["standalone", "compare", "trend"]
+    assert len(client.get("/cards", params={"section": "t"}).json()) == len(everything)
+    assert client.get("/cards", params={"section": "nope"}).json() == []
 
 
 def test_plan_rejects_mixed_levels(client, parts):
@@ -108,14 +112,15 @@ def test_plan_rejects_mixed_levels(client, parts):
     assert parts[1].calls == []
 
 
-def test_plan_reports_seats_unavailable_for_state_level(client, parts):
+def test_plan_reports_geography_unavailable_for_zone_level(client, parts):
     response = client.post("/cards/plan", json=body(
         level="zone", rounds=[ZONE_R1], compare_round=None))
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True and data["errors"] == []
-    assert {u["part"] for u in data["unavailable"]} == {"seats_ac", "seats_pc"}
-    assert data["coverage_mode"] == {"vote": "independent"}
+    assert {u["part"] for u in data["unavailable"]} == {"grid"}
+    assert "party_zone" in data["unavailable"][0]["reason"]
+    assert data["coverage_mode"] == {}
     assert parts[1].calls == []  # planning makes no engine calls
 
 
@@ -125,14 +130,14 @@ def test_plan_reports_rounds_and_coverage_mode(client):
     assert data["rounds"][1]["version"] == "extrapolated"
     assert data["rounds"][0]["fallback"] is True
     assert data["rounds"][0]["seats_source"] == "metadata"
-    assert set(data["coverage_mode"]) == {"vote", "parties", "seats_ac", "seats_pc"}
+    assert data["coverage_mode"] == {"grid": "independent"}
     assert data["unavailable"] == []
 
 
 def test_unknown_card_is_404_and_bad_body_422(client):
-    assert client.post("/cards/plan", json=body(card="pulse.missing")).status_code == 404
-    assert client.post("/cards/run", json=body(card="pulse.missing")).status_code == 404
-    assert client.post("/cards/plan", json={"card_id": SCOREBOARD}).status_code == 422
+    assert client.post("/cards/plan", json=body(card="t.missing")).status_code == 404
+    assert client.post("/cards/run", json=body(card="t.missing")).status_code == 404
+    assert client.post("/cards/plan", json={"card_id": VOTE.id}).status_code == 422
 
 
 def test_run_with_invalid_context_is_422(client, parts):
@@ -149,10 +154,23 @@ def test_run_then_status_done(client):
     status = client.get(f"/runs/{run_id}")
     assert status.status_code == 200
     data = status.json()
-    assert (data["state"], data["done"], data["total"]) == ("done", 4, 4)
+    assert (data["state"], data["done"], data["total"]) == ("done", 1, 1)
     assert data["errors"] == {}
-    nda = next(r for r in data["result"]["scoreboard"] if r["series"] == "NDA")
-    assert nda["vote"]["value"] == 38.0 and nda["vote"]["delta"] == -1.5
+    result = data["result"]
+    assert result["family"] == "distribution" and result["mode"] == "standalone"
+    overall = next(cut for cut in result["cuts"] if cut["id"] == "g0")
+    nda = next(c for c in overall["cells"]
+               if c["column"].endswith(":NDA") and c["lens"] == "support_share")
+    assert nda["value"] == 38.0
+
+
+def test_compare_run_returns_engine_delta(client):
+    run_id = client.post("/cards/run", json=body(card=COMPARE.id)).json()["run_id"]
+    result = client.get(f"/runs/{run_id}").json()["result"]
+    assert result["mode"] == "compare"
+    overall = next(cut for cut in result["cuts"] if cut["id"] == "g0")
+    deltas = [d for d in overall["deltas"] if d["lens"] == "support_share"]
+    assert deltas and all(d["value"] is not None for d in deltas)
 
 
 def test_unknown_run_is_404(client):
@@ -217,18 +235,18 @@ def test_principal_header_copied_to_request_state(service):
     assert client.get("/_whoami").json() == {"principal": None}
 
 
-def test_plan_reports_not_asked_rounds(client):
-    data = client.post("/cards/plan", json=body(card="pulse.leaders")).json()
-    assert data["not_asked"] == [{"part": "cm_satisfaction", "rounds": [R1]}]
-    assert data["unavailable"] == []
+def test_plan_reports_trend_unavailable_and_not_asked_when_scenario_is_in_one_round(client):
+    data = client.post("/cards/plan", json=body(card=TREND.id)).json()
+    assert data["not_asked"] == [{"part": "grid", "rounds": [R1]}]
+    assert "at least 2" in data["unavailable"][0]["reason"]
 
 
-def test_plan_shows_template_level_requirement(client):
+def test_plan_shows_card_level_requirement(client):
     response = client.post("/cards/plan", json=body(
-        card="pulse.by_zone", level="zone", rounds=[ZONE_R1], compare_round=None))
+        card=ACLEVEL.id, level="zone", rounds=[ZONE_R1], compare_round=None))
     assert response.status_code == 200
     data = response.json()
-    assert [u["part"] for u in data["unavailable"]] == ["zone"]
+    assert [u["part"] for u in data["unavailable"]] == ["grid"]
     assert "AC-level" in data["unavailable"][0]["reason"]
 
 

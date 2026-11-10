@@ -1,12 +1,12 @@
-"""Manual, read-only smoke check: run the State Pulse scoreboard through the real engine.
+"""Manual, read-only smoke check: run one dashboard card through the real engine.
 
 Not collected by pytest (it lives outside tests/). Run it only with the product
 owner's go-ahead; it opens read-only MySQL and ClickHouse connections taken from
-ENGINE_ENV_FILE. Output is aggregates only: timings, scoreboard rows, errors.
-The preset and templates are the Uttar Pradesh standard-v1 files in config/ and
-the level is AC. Results are cached in an in-process fakeredis, so no Redis server is needed.
+ENGINE_ENV_FILE. Output is aggregates only: timings, row and cell counts, errors.
+The preset and cards are the Uttar Pradesh standard-v1 files in config/ and the
+level is AC. Results are cached in an in-process fakeredis, so no Redis server is needed.
 
-    python scripts/smoke_state_pulse.py --state "Uttar Pradesh" \
+    python scripts/smoke_card.py --card opinion.leaders --state "Uttar Pradesh" \
         --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
 """
 
@@ -27,14 +27,14 @@ from matbodh_dashboard.runner.queue import InlineQueue, Runner
 from matbodh_dashboard.runner.service import CardRunService, CardRunStatus
 from matbodh_dashboard.settings import Settings, load_settings
 
-CARD_ID = "pulse.party_scoreboard"
 POLL_LIMIT = 100
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Read-only State Pulse scoreboard smoke check against the real engine.",
+        description="Read-only card smoke check against the real engine.",
     )
+    parser.add_argument("--card", required=True, help="Card id from config/cards/cards.yaml")
     parser.add_argument("--state", required=True, help='State name, e.g. "Uttar Pradesh"')
     parser.add_argument("--rounds", nargs="+", required=True, metavar="ROUND",
                         help="Round base names, oldest first; with two or more, the "
@@ -54,14 +54,15 @@ def build_service(settings: Settings, catalogue: Catalogue, runner: Runner) -> C
 
     cache = ResultCache(fakeredis.FakeStrictRedis(), settings.cache_ttl_seconds)
     queue = InlineQueue(runner, cache)
-    preset, templates, rules = load_card_config(settings.config_dir)
-    return CardRunService(catalogue, preset, templates, rules, cache, queue, engine_version())
+    preset, cards, rules = load_card_config(settings.config_dir)
+    return CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
 
 
-def run_card(service: CardRunService, ctx: StateContext) -> tuple[str, CardRunStatus, float]:
+def run_card(service: CardRunService, card_id: str,
+             ctx: StateContext) -> tuple[str, CardRunStatus, float]:
     """Start the card and poll until it settles; returns run id, status and wall seconds."""
     began = time.perf_counter()
-    run_id = service.start(CARD_ID, ctx)
+    run_id = service.start(card_id, ctx)
     status = service.status(run_id)
     for _ in range(POLL_LIMIT):
         if status.state != "running":
@@ -72,21 +73,26 @@ def run_card(service: CardRunService, ctx: StateContext) -> tuple[str, CardRunSt
 
 def report(service: CardRunService, run_id: str, status: CardRunStatus,
            seconds: float) -> list[str]:
-    """Aggregate-only report lines: state, per-job timings, scoreboard, errors."""
+    """Aggregate-only report lines: state, payload shape, per-job timings, errors."""
     lines = [f"state={status.state} jobs={status.done}/{status.total} wall={seconds:.2f}s"]
+    result = status.result
+    if result is not None:
+        lines.append(f"family={result['family']} mode={result['mode']} "
+                     f"cuts={len(result['cuts'])} columns={len(result['columns'])} "
+                     f"hidden={result['hidden_count']}")
     if status.state == "running":
         lines.append(f"STOPPED: run still running after {POLL_LIMIT} polls; result is incomplete")
     for job in service.job_timings(run_id):
         lines.append(f"  job part={job['part']} state={job['state']} "
                      f"engine_s={_secs(job['engine_s'])} queue_wait_s={_secs(job['queue_wait_s'])}")
-    if status.result is not None:
-        lines.append("scoreboard (series: vote | seats_ac | seats_pc | gender_gap):")
-        for row in status.result["scoreboard"]:
-            cells = " | ".join(_fmt(row[k]) for k in ("vote", "seats_ac", "seats_pc", "gender_gap"))
-            flags = f" [{', '.join(row['flags'])}]" if row.get("flags") else ""
-            lines.append(f"  {row['series']}{flags}: {cells}")
-        if status.result["unavailable"]:
-            lines.append(f"unavailable: {status.result['unavailable']}")
+    if result is not None:
+        for cut in result["cuts"]:
+            lines.append(f"  cut {cut['id']}: rows={len(cut['rows'])} cells={len(cut['cells'])} "
+                         f"deltas={len(cut['deltas'])}")
+        if result["unavailable"]:
+            lines.append(f"unavailable: {result['unavailable']}")
+        if result["not_asked"]:
+            lines.append(f"not asked: {result['not_asked']}")
     for part, error in sorted(status.errors.items()):
         lines.append(f"ERROR part={part} kind={error['kind']}: {error['message']}")
     return lines
@@ -96,16 +102,13 @@ def _secs(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.2f}"
 
 
-def _fmt(cell: dict | None) -> str:
-    if cell is None:
-        return "-"
-    delta = cell.get("delta")
-    return f"{cell['value']}" + (f" ({delta:+})" if delta is not None else "")
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     settings = load_settings()
+    _, cards, _ = load_card_config(settings.config_dir)
+    if args.card not in cards:
+        print(f"INVALID: unknown card {args.card!r}; known: {', '.join(sorted(cards))}")
+        return 2
     from matbodh_dashboard.catalogue.store import clickhouse_query, load_catalogue
     from matbodh_dashboard.runner.engine import EngineRunner, build_runtime
     from matbodh_views.connections import create_clickhouse_client
@@ -123,7 +126,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     runner = EngineRunner(build_runtime(settings.engine_env_file))
     service = build_service(settings, catalogue, runner)
-    run_id, status, seconds = run_card(service, ctx)
+    run_id, status, seconds = run_card(service, args.card, ctx)
     print("\n".join(report(service, run_id, status, seconds)))
     return 0 if status.state == "done" else 1
 

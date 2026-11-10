@@ -20,6 +20,7 @@ from matbodh_dashboard.api.schemas import (
     CardRequest, MetadataRefreshed, RunStarted, StatesResponse,
 )
 from matbodh_dashboard.capability import validate_context
+from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
 from matbodh_dashboard.catalogue.store import Catalogue, CatalogueRound, DatasetVersion
 from matbodh_dashboard.runner.service import CardRunService
@@ -156,10 +157,11 @@ def create_app(
         skipped = [{"dataset_id": d, "reason": r} for d, r in catalogue.skipped]
         return {"state": state, "levels": levels, "skipped": skipped}
 
-    @app.get("/templates")
-    def templates(section: str | None = None) -> list[dict]:
-        return [t.model_dump() for t in service.templates.values()
-                if section is None or t.section == section]
+    @app.get("/cards")
+    def cards(section: str | None = None) -> list[dict]:
+        return [{**c.model_dump(), "meta": family_meta(get_family(c.family)).model_dump()}
+                for c in service.cards.values()
+                if section is None or c.section == section]
 
     @app.post("/cards/plan")
     def plan(body: CardRequest):
@@ -232,7 +234,7 @@ def create_app(
 
 
 def _require_card(service: CardRunService, card_id: str) -> None:
-    if card_id not in service.templates:
+    if card_id not in service.cards:
         raise HTTPException(404, f"unknown card {card_id!r}")
 
 

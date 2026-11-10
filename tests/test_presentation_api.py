@@ -11,7 +11,7 @@ from matbodh_dashboard.runner.cache import ResultCache
 from matbodh_dashboard.runner.queue import InlineQueue
 from matbodh_dashboard.runner.service import CardRunService
 from tests.fixtures.catalogue_rows import make_query
-from tests.runner.test_service import PRESET, RULES_YAML, TEMPLATES, FakeRunner
+from tests.runner.test_service import CARDS, PRESET, RULES_YAML, FakeRunner
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def service(tmp_path):
     return CardRunService(
         load_catalogue(make_query()),
         PRESET,
-        TEMPLATES,
+        CARDS,
         load_rules(tmp_path),
         cache,
         queue,

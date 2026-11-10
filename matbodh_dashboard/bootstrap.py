@@ -20,6 +20,7 @@ from fastapi import FastAPI
 
 from matbodh_dashboard import engine_version
 from matbodh_dashboard.api.app import create_app
+from matbodh_dashboard.cards.config import CardConfig, load_cards
 from matbodh_dashboard.catalogue.store import Catalogue, clickhouse_query, load_catalogue
 from matbodh_dashboard.presets import MethodPreset, load_preset
 from matbodh_dashboard.registry import RuleSet, load_rules
@@ -27,18 +28,17 @@ from matbodh_dashboard.runner.cache import ResultCache
 from matbodh_dashboard.runner.queue import RQQueue
 from matbodh_dashboard.runner.service import CardRunService
 from matbodh_dashboard.settings import Settings, load_settings
-from matbodh_dashboard.templates import CardTemplate, load_templates
 
-# Phase 1a serves one preset and the State Pulse templates.
+# One preset and one cards file are served.
 PRESET_FILE = "uttar-pradesh.standard-v1.yaml"
-TEMPLATES_FILE = "pulse.yaml"
+CARDS_FILE = "cards.yaml"
 
 
-def load_card_config(config_dir: Path) -> tuple[MethodPreset, dict[str, CardTemplate], RuleSet]:
-    """The method preset, card templates and presentation rules under config_dir."""
+def load_card_config(config_dir: Path) -> tuple[MethodPreset, dict[str, CardConfig], RuleSet]:
+    """The method preset, card configurations and presentation rules under config_dir."""
     return (
         load_preset(config_dir / "presets" / PRESET_FILE),
-        load_templates(config_dir / "templates" / TEMPLATES_FILE),
+        load_cards(config_dir / "cards" / CARDS_FILE),
         load_rules(config_dir / "presentation"),
     )
 
@@ -69,8 +69,8 @@ def build_service_from_settings(settings: Settings) -> CardRunService:
     cache = ResultCache(redis, settings.cache_ttl_seconds)
     queue = RQQueue(redis, cache)
     catalogue = catalogue_loader(settings)()
-    preset, templates, rules = load_card_config(settings.config_dir)
-    return CardRunService(catalogue, preset, templates, rules, cache, queue, engine_version())
+    preset, cards, rules = load_card_config(settings.config_dir)
+    return CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
 
 
 def create_production_app() -> FastAPI:
