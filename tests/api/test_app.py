@@ -288,7 +288,7 @@ def test_plan_shows_card_level_requirement(client):
 
 
 def test_catalogue_change_between_validation_and_start_is_409(service, monkeypatch):
-    def vanished(card_id, ctx):
+    def vanished(card_id, ctx, reference=None):
         raise RoundNotFound("no round '2027 VS CAPI R1' for state 'Uttar Pradesh'")
 
     monkeypatch.setattr(service, "plan", vanished)
