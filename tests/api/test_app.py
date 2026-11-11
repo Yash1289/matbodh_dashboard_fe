@@ -14,7 +14,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 
 from matbodh_dashboard.api.app import create_app
-from matbodh_dashboard.catalogue.store import load_catalogue
+from matbodh_dashboard.catalogue.store import RoundNotFound, load_catalogue
 from matbodh_dashboard.registry import load_rules
 from matbodh_dashboard.runner.cache import ResultCache
 from matbodh_dashboard.runner.queue import InlineQueue
@@ -252,7 +252,7 @@ def test_plan_shows_card_level_requirement(client):
 
 def test_catalogue_change_between_validation_and_start_is_409(service, monkeypatch):
     def vanished(card_id, ctx):
-        raise KeyError("no round '2027 VS CAPI R1' for state 'Uttar Pradesh'")
+        raise RoundNotFound("no round '2027 VS CAPI R1' for state 'Uttar Pradesh'")
 
     monkeypatch.setattr(service, "plan", vanished)
     monkeypatch.setattr(service, "start", vanished)

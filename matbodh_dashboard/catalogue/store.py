@@ -25,6 +25,10 @@ _LEVELS_SQL = (
 )
 
 
+class RoundNotFound(KeyError):
+    """The catalogue has no such round (e.g. it changed after validation)."""
+
+
 @dataclass(frozen=True)
 class DatasetVersion:
     dataset_id: str
@@ -84,7 +88,7 @@ class Catalogue:
         try:
             return self._rounds[(state, base_name)]
         except KeyError:
-            raise KeyError(f"no round {base_name!r} for state {state!r}") from None
+            raise RoundNotFound(f"no round {base_name!r} for state {state!r}") from None
 
 
 _LEVELS = ("ac", "pc", "zone", "state")

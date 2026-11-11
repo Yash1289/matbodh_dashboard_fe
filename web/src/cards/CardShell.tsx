@@ -10,7 +10,7 @@ import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
 import { payloadToGrid } from "./grid/payloadToGrid";
 import { MethodDrawer } from "./MethodDrawer";
-import { initialView, type FamilyView } from "./view";
+import { initialView, settled, type FamilyView } from "./view";
 
 interface Props {
   info: CardInfo;
@@ -44,12 +44,6 @@ const Progress = ({ children }: { children: ReactNode }) => (
     <Text size="sm">{children}</Text>
   </Stack>
 );
-
-/** A chosen cut or lens that a new payload no longer has falls back to the payload's own default. */
-function settled(view: FamilyView, payload: GridPayload): FamilyView {
-  const cut = payload.cuts.some((c) => c.id === view.cut) ? view.cut : (payload.cuts[0]?.id ?? "");
-  return cut === view.cut ? view : { ...view, cut, sort: null };
-}
 
 /** One card: runs the engine for its config, then hands the payload to its family's body. */
 export function CardShell({ info, ctx, presentationRules, order, colors }: Props) {

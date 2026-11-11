@@ -63,6 +63,26 @@ def test_duplicate_cuts_rejected():
         make(cuts=[["category", "caste"], ["caste", "category"]])
 
 
+def test_empty_cuts_rejected_but_overall_grain_allowed():
+    with pytest.raises(ValueError, match="at least one cut"):
+        make(cuts=[])
+    make(cuts=[[]])
+
+
+def test_compare_rejects_identical_endpoints():
+    same = {"round": "compare", "scenario": PARTY}
+    with pytest.raises(ValueError, match="same endpoint"):
+        make(scenarios=[], comparison={"mode": "compare", "target": same, "reference": same})
+
+
+def test_compare_rejects_duplicate_delta_measures():
+    with pytest.raises(ValueError, match="duplicate delta_measures"):
+        make(family="opinion", scenarios=[], comparison={
+            "mode": "compare", "target": {"scenario": OPINION},
+            "reference": {"round": "compare", "scenario": OPINION},
+            "delta_measures": ["net_score", "net_score"]})
+
+
 def test_filter_needs_values():
     with pytest.raises(ValueError):
         make(filters=[{"field": "party_zone", "values": []}])

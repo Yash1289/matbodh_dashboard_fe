@@ -8,6 +8,7 @@ and is counted. Round order is not a registry concern.
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -89,6 +90,11 @@ def _matches(pattern: str, value: str) -> bool:
     if pattern.endswith("*"):
         return value.startswith(pattern[:-1])
     return pattern == value
+
+
+def _natural_key(value: str) -> list[str | int]:
+    """Case-insensitive, with digit runs compared as numbers: AC 2 before AC 10."""
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", value.casefold())]
 
 
 def _dedupe(items: Iterable[str]) -> list[str]:
@@ -175,7 +181,7 @@ class RuleSet:
         known_set = set(known)
         rest = [v for v in body if v not in known_set]
         if unknown == "append_alpha":
-            rest = sorted(rest, key=str.casefold)
+            rest = sorted(rest, key=_natural_key)
         return first + known + rest + last
 
     def hidden_count(

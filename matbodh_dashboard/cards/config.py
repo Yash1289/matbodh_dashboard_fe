@@ -103,6 +103,8 @@ class CardConfig(_Strict):
         return self
 
     def _check_cuts(self) -> None:
+        if not self.cuts:
+            raise ValueError("a card needs at least one cut; use [[]] for the overall grain")
         grains = [frozenset(cut) for cut in self.cuts]
         if len(set(grains)) != len(grains):
             raise ValueError("duplicate cut: two cuts describe the same grain")
@@ -114,6 +116,8 @@ class CardConfig(_Strict):
         if comparison.mode == "compare":
             if comparison.target is None or comparison.reference is None:
                 raise ValueError("compare mode needs target and reference endpoints")
+            if comparison.target == comparison.reference:
+                raise ValueError("compare target and reference are the same endpoint")
             self.scenarios = list(dict.fromkeys(
                 [comparison.target.scenario, comparison.reference.scenario]))
             return
@@ -147,6 +151,8 @@ class CardConfig(_Strict):
             comparison.delta_measures = []
             return
         allowed = OPINION_MEASURES if self.family == "opinion" else PARTY_MEASURES
+        if len(set(comparison.delta_measures)) != len(comparison.delta_measures):
+            raise ValueError("duplicate delta_measures")
         if not comparison.delta_measures:
             comparison.delta_measures = [allowed[0]]
         bad = [m for m in comparison.delta_measures if m not in allowed]

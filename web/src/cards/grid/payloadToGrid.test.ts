@@ -118,7 +118,8 @@ describe("payloadToGrid: compare", () => {
     const grid = payloadToGrid(p, { lens: "support_share", cut: cut.id });
     expect(grid.mode).toBe("compare");
     expect(grid.cells[delta.row][delta.column].cell?.delta).toBe(delta.value);
-    expect(grid.referenceLabel).toBe("R1");
+    expect(grid.referenceLabel).toBe(p.rounds.items.find((i) => i.label === "R1")?.base_name);
+    expect(grid.referenceLabel).not.toBe("R1");
     expect(grid.cells[delta.row][delta.column].cell?.trend).toEqual([]);
   });
 

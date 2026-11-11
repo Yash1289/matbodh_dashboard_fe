@@ -22,7 +22,8 @@ from matbodh_dashboard.api.schemas import (
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
-from matbodh_dashboard.catalogue.store import Catalogue, CatalogueRound, DatasetVersion
+from matbodh_dashboard.catalogue.store import (
+    Catalogue, CatalogueRound, DatasetVersion, RoundNotFound)
 from matbodh_dashboard.runner.service import CardRunService
 
 log = logging.getLogger(__name__)
@@ -171,7 +172,7 @@ def create_app(
             return _invalid(errors)
         try:
             run_plan = service.plan(body.card_id, body.context)
-        except KeyError:
+        except RoundNotFound:
             raise _catalogue_changed() from None
         coverage_mode: dict[str, str | None] = {}
         for job in run_plan.jobs:
@@ -202,7 +203,7 @@ def create_app(
             return _invalid(errors)
         try:
             return RunStarted(run_id=service.start(body.card_id, body.context))
-        except KeyError:
+        except RoundNotFound:
             raise _catalogue_changed() from None
 
     @app.get("/runs/{run_id}")

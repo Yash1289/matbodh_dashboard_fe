@@ -31,8 +31,8 @@ describe("GridBody modes", () => {
   it("shows the value with its delta and the reference label in compare mode", () => {
     const { container } = mount(load(compareFixture));
     expect(container.querySelectorAll("[data-tone]").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Δ vs R1/)).toBeInTheDocument();
-    expect(container.querySelector('[data-tone][title*="Δ vs R1"]')).not.toBeNull();
+    expect(screen.getByText(/Δ vs 2027 VS CAPI R1/)).toBeInTheDocument();
+    expect(container.querySelector('[data-tone][title*="Δ vs 2027 VS CAPI R1"]')).not.toBeNull();
     expect(container.querySelector("[data-segment]")).toBeNull();
   });
 

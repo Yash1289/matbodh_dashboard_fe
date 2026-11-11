@@ -84,7 +84,7 @@ describe("CardShell", () => {
     mount(p);
     await screen.findByRole("table");
     expect(screen.getByTestId("card-subtitle")).toHaveTextContent(/^anchor round 2027 VS CAPI R2 · Δ vs 2027 VS CAPI R1$/);
-    expect(within(await screen.findByRole("table")).getByText(/Δ vs R1/)).toBeInTheDocument();
+    expect(within(await screen.findByRole("table")).getByText(/Δ vs 2027 VS CAPI R1/)).toBeInTheDocument();
   });
 
   it("names the reference from the card's own deltas, not the context compare round", async () => {

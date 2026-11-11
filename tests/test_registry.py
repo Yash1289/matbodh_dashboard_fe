@@ -152,6 +152,13 @@ def test_append_alpha_is_case_insensitive(tmp_path):
     assert rules.order("f", ["b", "C", "A", "a2"]) == ["A", "a2", "b", "C"]
 
 
+def test_append_alpha_orders_numbers_by_value(tmp_path):
+    text = "rules:\n  - field: f\n    order: [A]\n"
+    rules = load_rules(_write(tmp_path, g=text))
+    assert rules.order("f", ["10", "2", "100", "1"]) == ["1", "2", "10", "100"]
+    assert rules.order("f", ["AC 10", "ac 9", "AC 2"]) == ["AC 2", "ac 9", "AC 10"]
+
+
 def test_hidden_count_respects_within(tmp_path):
     text = (
         "rules:\n"

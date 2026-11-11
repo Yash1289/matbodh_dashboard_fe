@@ -85,7 +85,8 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
     ),
   });
 
-  if (caps.sort) {
+  // Sort options are payload columns; a transposed grid's columns are the rows, so there is nothing to offer.
+  if (caps.sort && !view.transposed) {
     const part: SortSpec["part"] = deltaSort ? "delta" : "value";
     const current = view.sort ? `${view.sort.dir}:${view.sort.part}:${view.sort.column}` : "";
     const options = [

@@ -25,6 +25,25 @@ export const ruleOf = (v: FamilyView): FormatRule =>
 
 export const cutLabel = (dimensions: string[]): string => (dimensions.length ? dimensions.join(" · ") : "Overall");
 
+/**
+ * Repairs a chosen view against a (possibly new) payload: a cut or lens the payload no
+ * longer has falls back to its default, and a sort, hidden column or diverging format that
+ * no longer applies is dropped. Returns the same object when nothing needs repair.
+ */
+export function settled(view: FamilyView, payload: GridPayload): FamilyView {
+  const cut = payload.cuts.some((c) => c.id === view.cut) ? view.cut : (payload.cuts[0]?.id ?? "");
+  const lens = payload.meta.lenses.some((l) => l.id === view.lens) ? view.lens : payload.meta.default_lens;
+  const keys = new Set(payload.columns.map((c) => c.key));
+  const lensUnit = payload.meta.lenses.find((l) => l.id === lens)?.unit;
+  const divergingOk = payload.mode === "compare" || lensUnit === "percentage_points";
+  const sort = cut === view.cut && !view.transposed && view.sort && keys.has(view.sort.column) ? view.sort : null;
+  const hidden = view.hidden.filter((k) => keys.has(k));
+  const format = view.format === "diverging" && !divergingOk ? "none" : view.format;
+  if (cut === view.cut && lens === view.lens && sort === view.sort
+      && hidden.length === view.hidden.length && format === view.format) return view;
+  return { ...view, cut, lens, sort, hidden, format };
+}
+
 /** The view a card starts in; a chip counts as "selected" when it differs from this. */
 export function initialView(p: GridPayload): FamilyView {
   return {

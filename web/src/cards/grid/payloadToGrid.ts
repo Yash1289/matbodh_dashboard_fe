@@ -125,7 +125,9 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
     if (delta) {
       const [targetObs] = delta.target.split(":");
       const [referenceObs, ...scenario] = delta.reference.split(":");
-      grid.referenceLabel = referenceObs !== targetObs ? labelOf(referenceObs) : scenario.join(":");
+      // Round names are series-qualified outside the table's own column heads (spec principle 7).
+      const fullName = (obs: string) => items.find((i) => i.obs_id === obs)?.base_name ?? labelOf(obs);
+      grid.referenceLabel = referenceObs !== targetObs ? fullName(referenceObs) : scenario.join(":");
     }
   }
   return grid;
