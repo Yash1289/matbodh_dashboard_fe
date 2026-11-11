@@ -11,7 +11,11 @@ def test_lens_ids_unique_per_family(name):
     assert len(ids) == len(set(ids))
 
 
-@pytest.mark.parametrize("name", sorted(FAMILIES))
+# Ranking families have one fixed metric and no lenses.
+GRID_FAMILIES = sorted(name for name, spec in FAMILIES.items() if spec.lenses)
+
+
+@pytest.mark.parametrize("name", GRID_FAMILIES)
 def test_default_lens_is_a_lens(name):
     spec = FAMILIES[name]
     assert spec.default_lens in {lens.id for lens in spec.lenses}
@@ -23,8 +27,10 @@ def test_every_lens_has_exactly_one_source(name):
     assert set(spec.lens_sources) == {lens.id for lens in spec.lenses}
 
 
-def test_the_three_families_exist():
-    assert set(FAMILIES) == {"distribution", "opinion", "gender_differential"}
+def test_all_families_exist():
+    assert set(FAMILIES) == {"distribution", "opinion", "gender_differential",
+                             "seat_ranking", "demographic_ranking"}
+    assert set(GRID_FAMILIES) == {"distribution", "opinion", "gender_differential"}
 
 
 def test_gender_differential_has_no_compare_mode():

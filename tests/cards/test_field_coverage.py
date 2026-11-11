@@ -50,13 +50,17 @@ def test_unknown_role_is_rejected():
         parse_field_map(raw)
 
 
-@pytest.mark.parametrize("family", sorted(FAMILIES))
+# Ranking families have no lenses and no field map.
+GRID_FAMILIES = sorted(name for name, spec in FAMILIES.items() if spec.lenses)
+
+
+@pytest.mark.parametrize("family", GRID_FAMILIES)
 def test_every_role_is_known(family):
     for keys in load_field_map(family).values():
         assert set(keys.values()) <= ROLES
 
 
-@pytest.mark.parametrize("family", sorted(FAMILIES))
+@pytest.mark.parametrize("family", GRID_FAMILIES)
 def test_every_lens_field_is_mapped_as_lens(family):
     field_map = load_field_map(family)
     for source in FAMILIES[family].lens_sources.values():

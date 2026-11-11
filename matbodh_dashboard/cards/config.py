@@ -12,8 +12,13 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Family = Literal["distribution", "opinion", "gender_differential"]
+Family = Literal["distribution", "opinion", "gender_differential",
+                 "seat_ranking", "demographic_ranking"]
 Mode = Literal["standalone", "compare", "trend"]
+RANKING_FAMILIES = frozenset({"seat_ranking", "demographic_ranking"})
+RankMetric = Literal["support_share", "net_score", "positive_share", "negative_share"]
+# Demographic rankings are always bounded: top_k 1..TOP_K_MAX within each partition.
+TOP_K_MAX = 5
 
 # ac_num and pc_num are seat-level; district is treated as seat-level until verified
 # (spec section 13.1). party_zone and zone are zone-only.
@@ -48,6 +53,17 @@ class ComparisonConfig(_Strict):
 
 class Requirements(_Strict):
     min_level: Literal["state", "ac"] = "state"
+
+
+class RankConfig(_Strict):
+    """What a ranking card ranks. `level` is ac|pc for seats, a profiling field otherwise."""
+
+    metric: RankMetric
+    party_id: str | None = None
+    level: str
+    partition_by: list[str] = Field(default_factory=list)
+    filters: list[FilterSpec] = Field(default_factory=list)  # seat attributes (seat ranking)
+    top_k: int | None = Field(default=None, ge=1)
 
 
 @lru_cache(maxsize=1)
@@ -87,10 +103,16 @@ class CardConfig(_Strict):
     comparison: ComparisonConfig = Field(default_factory=ComparisonConfig)
     caste_clubbing: bool = False
     requires: Requirements = Field(default_factory=Requirements)
+    rank: RankConfig | None = None
 
     @model_validator(mode="after")
     def _validate(self) -> "CardConfig":
         comparison = self.comparison
+        if self.family in RANKING_FAMILIES:
+            self._check_ranking(comparison)
+            return self
+        if self.rank is not None:
+            raise ValueError("rank applies to ranking families only")
         self._check_cuts()
         self._check_endpoints_and_scenarios(comparison)
         self._check_family(comparison)
@@ -101,6 +123,42 @@ class CardConfig(_Strict):
         if self.caste_clubbing and not any("caste" in cut for cut in self.cuts):
             raise ValueError("caste_clubbing needs caste in a cut")
         return self
+
+    def _check_ranking(self, comparison: ComparisonConfig) -> None:
+        rank = self.rank
+        if rank is None:
+            raise ValueError("a ranking card needs a rank block")
+        if self.caste_clubbing:
+            raise ValueError("caste_clubbing does not apply to ranking cards")
+        if comparison.delta_measures:
+            raise ValueError("delta_measures do not apply to ranking cards; the metric is ranked")
+        self._check_endpoints_and_scenarios(comparison)
+        primary = comparison.target.scenario if comparison.mode == "compare" else None
+        if comparison.mode == "compare":
+            comparison_kind(scenario_kind(comparison.target.scenario),
+                            scenario_kind(comparison.reference.scenario))
+        elif len(self.scenarios) != 1:
+            raise ValueError("a ranking card ranks exactly one scenario")
+        else:
+            primary = self.scenarios[0]
+        wanted = "party" if rank.metric == "support_share" else "opinion"
+        if scenario_kind(primary) != wanted:
+            raise ValueError(f"metric {rank.metric!r} does not match the {primary!r} scenario")
+        if (rank.party_id is None) == (wanted == "party"):
+            raise ValueError("party_id is required for party metrics and forbidden for opinion metrics")
+        fields = [f.field for f in rank.filters + self.filters]
+        if len(set(fields)) != len(fields):
+            raise ValueError("one filter per field")
+        if self.family == "seat_ranking":
+            if rank.level not in ("ac", "pc"):
+                raise ValueError("seat ranking level must be ac or pc")
+            if self.filters:
+                raise ValueError("seat ranking takes no respondent filters; use rank.filters for seat attributes")
+            return
+        if rank.level in rank.partition_by:
+            raise ValueError("ranking level and partition fields must be distinct")
+        if rank.top_k is None or rank.top_k > TOP_K_MAX:
+            raise ValueError(f"demographic ranking needs top_k from 1 to {TOP_K_MAX}")
 
     def _check_cuts(self) -> None:
         if not self.cuts:

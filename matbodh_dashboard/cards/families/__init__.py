@@ -26,7 +26,7 @@ class LensSource:
 @dataclass(frozen=True)
 class FamilySpec:
     name: Family
-    scenario_kind: Literal["party", "opinion"]
+    scenario_kind: Literal["party", "opinion", "any"]
     gender_differential: bool
     lenses: tuple[LensDef, ...]
     lens_sources: Mapping[str, LensSource]
@@ -46,8 +46,11 @@ def get_family(name: str) -> FamilySpec:
 
 from matbodh_dashboard.cards.families.distribution import DISTRIBUTION  # noqa: E402
 from matbodh_dashboard.cards.families.gender_differential import GENDER_DIFFERENTIAL  # noqa: E402
+from matbodh_dashboard.cards.families.demographic_ranking import DEMOGRAPHIC_RANKING  # noqa: E402
 from matbodh_dashboard.cards.families.opinion import OPINION  # noqa: E402
+from matbodh_dashboard.cards.families.seat_ranking import SEAT_RANKING  # noqa: E402
 
 FAMILIES: dict[str, FamilySpec] = {
-    spec.name: spec for spec in (DISTRIBUTION, OPINION, GENDER_DIFFERENTIAL)
+    spec.name: spec
+    for spec in (DISTRIBUTION, OPINION, GENDER_DIFFERENTIAL, SEAT_RANKING, DEMOGRAPHIC_RANKING)
 }
