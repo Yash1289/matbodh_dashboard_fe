@@ -19,9 +19,10 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from matbodh_dashboard.cards.compile import compile_card
-from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.config import RANKING_FAMILIES, CardConfig
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
+from matbodh_dashboard.cards.ranking.translate import translate_ranked
 from matbodh_dashboard.cards.translate import TranslateContext, translate_grid
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.fingerprint import fingerprint
@@ -243,7 +244,7 @@ class CardRunService:
                 entry["jobs"].append(j.job.key)
         if len(finished) < len(jobs):
             return CardRunStatus("running", len(finished), len(jobs), None, errors)
-        if jobs and not any(j.status == "done" for j in jobs):
+        if jobs and (not any(j.status == "done" for j in jobs) or _ranking_anchor_failed(run)):
             return CardRunStatus("failed", len(finished), len(jobs), None, errors)
         try:
             result = self._assemble(run)
@@ -259,6 +260,8 @@ class CardRunService:
         plan, card = run.plan, run.card
         by_name = {r.identity.base_name: r.obs_id for r in plan.rounds}
         anchor = by_name[plan.anchor]
+        if card.family in RANKING_FAMILIES:
+            anchor = _ranking_anchor(run, anchor)
         compare = by_name[plan.compare] if plan.compare else None
         done = [j.result for j in run.jobs.values() if j.status == "done"]
         context = TranslateContext(
@@ -277,8 +280,38 @@ class CardRunService:
             metadata_revision=run.revision,
             alliance_epoch=run.epoch,
         )
+        if card.family in RANKING_FAMILIES:
+            results = {_job_obs(j.job.config): j.result
+                       for j in run.jobs.values() if j.status == "done"}
+            failed = {_job_obs(j.job.config) for j in run.jobs.values() if j.status == "failed"}
+            return translate_ranked(card, results, context, failed=failed,
+                                    labels=self.seat_labels).model_dump()
         payload = translate_grid(card, get_family(card.family), done[0] if done else {}, context)
         return payload.model_dump()
+
+
+def _job_obs(config: dict) -> str:
+    """The observation a ranking job ranks: its target, or a comparison's target."""
+    ranking = config["ranking"]
+    return (ranking["target"] or config["request"]["comparisons"][0]["target"])[0]
+
+
+def _ranking_anchor(run: _Run, planned: str) -> str:
+    """The anchor among a ranking run's jobs; the latest asked round if the anchor did not ask."""
+    asked = [_job_obs(j.job.config) for j in run.jobs.values()]
+    if planned in asked:
+        return planned
+    order = [r.obs_id for r in run.plan.rounds]
+    return max(asked, key=order.index)
+
+
+def _ranking_anchor_failed(run: _Run) -> bool:
+    if run.card.family not in RANKING_FAMILIES:
+        return False
+    by_name = {r.identity.base_name: r.obs_id for r in run.plan.rounds}
+    anchor = _ranking_anchor(run, by_name[run.plan.anchor])
+    return any(j.status == "failed" and _job_obs(j.job.config) == anchor
+               for j in run.jobs.values())
 
 
 def _engine_rows(result: dict) -> int:
