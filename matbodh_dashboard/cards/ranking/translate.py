@@ -6,15 +6,19 @@ up for the same (entity, group) pairs.
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
 
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.ranking.payload import (
     AbsentSlot, RankedEntity, RankedGroup, RankedPayload, RankedValue)
 from matbodh_dashboard.cards.translate import TranslateContext, row_key
 
 _OK = {None, "available", "aligned"}
+_ENGINE_NAME_KEYS = ("seat_name", "ac_name", "pc_name", "name")  # none exists today
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -51,9 +55,32 @@ def _value_fields(row: dict) -> dict:
     }
 
 
+def _seat_labels(row: dict) -> dict[str, str | None]:
+    labels: dict[str, str | None] = {"seat_id": str(row["seat_id"])}
+    name = next((row[k] for k in _ENGINE_NAME_KEYS if row.get(k)), None)
+    if name is not None:
+        labels["name"] = str(name)
+    return labels
+
+
+def _fill_names(entities: Mapping[str, RankedEntity], provider: SeatLabelProvider,
+                state: str, level: str) -> None:
+    """Names the engine rows lacked come from the master; a failed lookup costs only names."""
+    missing = [e for e in entities.values() if "name" not in e.labels]
+    if not missing:
+        return
+    try:
+        found = provider.labels(state, level, [int(e.key) for e in missing])
+    except Exception as exc:  # noqa: BLE001 - a lookup must never fail the card
+        log.warning("seat label lookup failed: %s", type(exc).__name__)
+        return
+    for entity in missing:
+        entity.labels.update(found.get(int(entity.key), {}))
+
+
 def _read_seat(card: CardConfig, result: dict) -> _Read:
     rows = [
-        _Row(entity=str(r["seat_id"]), labels={"seat_id": str(r["seat_id"])},
+        _Row(entity=str(r["seat_id"]), labels=_seat_labels(r),
              partition=dict(r.get("partition") or {}), value=_value_fields(r),
              eligible=r.get("eligible_seat_count"))
         for r in result.get("rows") or ()
@@ -86,7 +113,8 @@ def _group_key(partition: Mapping[str, str | None]) -> str:
 
 
 def translate_ranked(card: CardConfig, results: Mapping[str, dict], ctx: TranslateContext,
-                     *, failed: Collection[str] = (), labels: object | None = None) -> RankedPayload:
+                     *, failed: Collection[str] = (),
+                     labels: SeatLabelProvider | None = None) -> RankedPayload:
     """`results` and `failed` are keyed by observation id; `ctx.anchor` names the anchor."""
     rank = card.rank
     if ctx.anchor not in results:
@@ -136,6 +164,8 @@ def translate_ranked(card: CardConfig, results: Mapping[str, dict], ctx: Transla
                           else "outside_top_k" if rank.top_k is not None else "not_ranked")
                 absent.append(AbsentSlot(entity=entity, group=gkey, round=obs, reason=reason))
 
+    if labels is not None and card.family == "seat_ranking":
+        _fill_names(entities, labels, ctx.state, rank.level)
     contracts = {obs: dict(result.get("contract") or {}) for obs, result in results.items()}
     anchor_read = parsed[ctx.anchor]
     return RankedPayload(
