@@ -158,6 +158,10 @@ def create_app(
         skipped = [{"dataset_id": d, "reason": r} for d, r in catalogue.skipped]
         return {"state": state, "levels": levels, "skipped": skipped}
 
+    @app.get("/catalogue/{state}/elections")
+    def elections(state: str) -> list[dict]:
+        return [o.model_dump() for o in service.elections.get(state, [])]
+
     @app.get("/cards")
     def cards(section: str | None = None) -> list[dict]:
         return [{**c.model_dump(), "meta": family_meta(get_family(c.family)).model_dump()}

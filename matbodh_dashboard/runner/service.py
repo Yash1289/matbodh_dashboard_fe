@@ -15,10 +15,12 @@ import logging
 import threading
 import uuid
 from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
 from matbodh_dashboard.cards.compile import compile_card
+from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorPartyProvider
 from matbodh_dashboard.cards.config import RANKING_FAMILIES, CardConfig
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
@@ -82,6 +84,8 @@ class CardRunService:
         queue: JobQueue,
         engine_version: str,
         seat_labels: SeatLabelProvider | None = None,
+        major_parties: MajorPartyProvider | None = None,
+        elections: Mapping[str, Sequence[ElectionOption]] | None = None,
     ) -> None:
         self.catalogue = catalogue
         self.preset = preset
@@ -91,6 +95,8 @@ class CardRunService:
         self.queue = queue
         self.engine_version = engine_version
         self.seat_labels = seat_labels
+        self.major_parties = major_parties
+        self.elections: Mapping[str, Sequence[ElectionOption]] = elections or {}
         self._runs: OrderedDict[str, _Run] = OrderedDict()
         self._lock = threading.RLock()
 

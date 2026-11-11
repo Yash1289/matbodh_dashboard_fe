@@ -12,7 +12,8 @@ query, connection closed after each load); engine jobs run in RQ workers
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ from fastapi import FastAPI
 
 from matbodh_dashboard import engine_version
 from matbodh_dashboard.api.app import create_app
+from matbodh_dashboard.cards.benchmark.parties import AllianceMajorParties, load_elections
 from matbodh_dashboard.cards.config import CardConfig, load_cards
 from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.catalogue.store import Catalogue, clickhouse_query, load_catalogue
@@ -84,6 +86,20 @@ def seat_snapshot_loader(settings: Settings) -> Callable[[str, str, tuple[str, .
     return load
 
 
+@contextmanager
+def alliance_session_factory(settings: Settings) -> Iterator[Any]:
+    """An engine AllianceSession over a short-lived, read-only MySQL connection."""
+    from matbodh_dash import MySQLAccess, MySQLReadAdapter
+    from matbodh_dash.alliance_runtime import AllianceSession
+    from matbodh_views.connections import create_mysql_connection
+
+    connection = create_mysql_connection(settings.engine_env_file)
+    try:
+        yield AllianceSession(MySQLAccess(MySQLReadAdapter(connection)).query)
+    finally:
+        connection.close()
+
+
 def build_service_from_settings(settings: Settings) -> CardRunService:
     redis = _redis(settings.redis_url)
     cache = ResultCache(redis, settings.cache_ttl_seconds)
@@ -93,6 +109,9 @@ def build_service_from_settings(settings: Settings) -> CardRunService:
     service = CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
     service.seat_labels = MasterSeatLabels(
         seat_snapshot_loader(settings), lambda: service.catalogue.revision)
+    service.major_parties = AllianceMajorParties(
+        lambda: alliance_session_factory(settings), cache.alliance_epoch)
+    service.elections = load_elections(settings.config_dir / "elections.yaml")
     return service
 
 

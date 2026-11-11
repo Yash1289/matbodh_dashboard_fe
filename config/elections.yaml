@@ -1,0 +1,11 @@
+# Elections a benchmark card can use as its reference, per state (the picker lists exactly these).
+# Uttar Pradesh: the ACTUAL contexts seen in the alliance table on 2026-11-12.
+# Add other states here; a listed election with no alliance mapping makes the card unavailable.
+Uttar Pradesh:
+  - {year: 2009, election_type: LS}
+  - {year: 2012, election_type: VS}
+  - {year: 2014, election_type: LS}
+  - {year: 2017, election_type: VS}
+  - {year: 2019, election_type: LS}
+  - {year: 2022, election_type: VS}
+  - {year: 2024, election_type: LS}

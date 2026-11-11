@@ -65,6 +65,15 @@ def test_states_listed(client):
     assert response.json() == {"states": [STATE]}
 
 
+def test_elections_endpoint_lists_options_for_a_state(service, client):
+    from matbodh_dashboard.cards.benchmark.parties import ElectionOption
+
+    service.elections = {STATE: [ElectionOption(year=2022, election_type="VS", label="2022 VS")]}
+    assert client.get(f"/catalogue/{STATE}/elections").json() == [
+        {"year": 2022, "election_type": "VS", "label": "2022 VS"}]
+    assert client.get("/catalogue/Nowhere/elections").json() == []
+
+
 def test_surveys_grouped_by_level_and_series(client):
     data = client.get(f"/catalogue/{STATE}/surveys").json()
     assert list(data["levels"]) == ["ac", "zone"]
