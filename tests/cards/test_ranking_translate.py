@@ -4,7 +4,7 @@ import pytest
 
 from matbodh_dashboard.cards.ranking.translate import translate_ranked
 from tests.cards.ranking_helpers import (
-    PM, load_rank_sample, ranked_ctx, seat_card, variant)
+    PM, demographic_card, load_rank_sample, ranked_ctx, seat_card, variant)
 
 ANCHOR_CTX = ranked_ctx("ranking.test", ["o2"], "o2")
 TREND_CTX = ranked_ctx("ranking.test", ["o1", "o2"], "o2")
@@ -99,3 +99,27 @@ def test_ties_keep_the_engines_rows():
     card = seat_card(rank={"metric": "net_score", "level": "ac", "top_k": 2})
     payload = translate_ranked(card, {"o2": sample}, ANCHOR_CTX)
     assert [_values(payload, e.key)["o2"].rank for e in payload.entities] == [1, 1, 1, 4]
+
+
+def test_demographic_rows():
+    sample = load_rank_sample("result_seat_rank_demograph.json")
+    payload = translate_ranked(demographic_card(), {"o2": sample}, ANCHOR_CTX)
+    assert payload.entity_kind == "demographic" and payload.unit == "percentage"
+    group = next(g for g in payload.groups if g.partition == {"ac_num": "1"})
+    assert group.entities == ["caste=Other OBC", "caste=Nishad", "caste=Gujjar"]
+    first = next(r for r in payload.ranks
+                 if r.entity == "caste=Other OBC" and r.group == group.key)
+    assert (first.rank, first.value, first.unweighted_base) == (1, 97.61311196810139, 44)
+    assert first.weighted_denominator == 0.03506076502559401
+    for g in payload.groups:
+        distinct = {r.rank for r in payload.ranks if r.group == g.key}
+        assert len(distinct) <= 3
+
+
+def test_demographic_entity_missing_from_a_later_round_is_outside_top_k():
+    sample = load_rank_sample("result_seat_rank_demograph.json")
+    results = {"o2": sample, "o1": variant(sample, drop_rows=(0,))}
+    card = demographic_card(comparison=TREND)
+    payload = translate_ranked(card, results, TREND_CTX)
+    assert [(a.entity, a.round, a.reason) for a in payload.absent] == [
+        ("caste=Other OBC", "o1", "outside_top_k")]

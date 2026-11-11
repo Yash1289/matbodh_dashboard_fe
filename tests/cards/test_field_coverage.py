@@ -65,3 +65,38 @@ def test_every_lens_field_is_mapped_as_lens(family):
     field_map = load_field_map(family)
     for source in FAMILIES[family].lens_sources.values():
         assert field_map[source.array][source.field] == "lens"
+
+
+# --- ranking samples: every engine row key is either read or explicitly ignored ---------
+RANK_ROW_KEYS_READ = {
+    "seat_id", "partition", "metric_value", "target_value", "reference_value", "target_base",
+    "reference_base", "metric_status", "rank", "eligible_seat_count", "direction", "unit",
+    "weighted_denominator", "unweighted_base", "dimensions",
+}
+RANK_ROW_KEYS_IGNORED = {
+    "pool": "JSON copy of partition",
+    "seat_rows": "audit count of respondent-seat rows",
+    "ranking_id": "one ranking per result; the card id replaces it",
+    "seat_level": "the card's rank.level",
+    "observation_id": "the round comes from the job key",
+    "survey_id": "audit identity, kept in the contract",
+    "grouping_set_id": "the operation owns grouping",
+    "group_mask": "the operation owns grouping",
+}
+SEAT_RANK_SAMPLES = ("result_rank.json", "result_rank_complex.json", "result_rank_comp.json",
+                     "result_rank_filtd.json")
+
+
+@pytest.mark.parametrize("name", [*SEAT_RANK_SAMPLES, "result_seat_rank_demograph.json"])
+def test_every_ranking_sample_key_is_read_or_ignored(name):
+    from matbodh_dashboard.cards.ranking.translate import translate_ranked
+    from tests.cards.ranking_helpers import (
+        demographic_card, ranked_ctx, seat_card)
+
+    sample = load_sample(name)
+    keys = {k for row in sample["rows"] for k in row}
+    assert keys <= RANK_ROW_KEYS_READ | set(RANK_ROW_KEYS_IGNORED), (
+        sorted(keys - RANK_ROW_KEYS_READ - set(RANK_ROW_KEYS_IGNORED)))
+    card = demographic_card() if name == "result_seat_rank_demograph.json" else seat_card()
+    payload = translate_ranked(card, {"o2": sample}, ranked_ctx("c", ["o2"], "o2"))
+    assert payload.contracts["o2"] == sample["contract"]  # the contract passes through whole

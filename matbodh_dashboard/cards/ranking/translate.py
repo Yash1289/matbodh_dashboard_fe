@@ -64,7 +64,21 @@ def _read_seat(card: CardConfig, result: dict) -> _Read:
                  first.get("unit", contract.get("unit")))
 
 
-_READERS: dict[str, Callable[[CardConfig, dict], _Read]] = {"seat_ranking": _read_seat}
+def _read_demographic(card: CardConfig, result: dict) -> _Read:
+    level, parts = card.rank.level, card.rank.partition_by
+    rows = []
+    for r in result.get("rows") or ():
+        dims = r["dimensions"]
+        rows.append(_Row(
+            entity=f"{level}={dims[level]['value']}", labels={level: dims[level]["value"]},
+            partition={p: dims[p]["value"] for p in parts},
+            value=_value_fields(r), eligible=None))
+    contract = result.get("contract") or {}
+    return _Read(rows, contract.get("direction"), contract.get("unit"))
+
+
+_READERS: dict[str, Callable[[CardConfig, dict], _Read]] = {
+    "seat_ranking": _read_seat, "demographic_ranking": _read_demographic}
 
 
 def _group_key(partition: Mapping[str, str | None]) -> str:
