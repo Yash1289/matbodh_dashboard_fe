@@ -29,7 +29,7 @@ def test_every_lens_has_exactly_one_source(name):
 
 def test_all_families_exist():
     assert set(FAMILIES) == {"distribution", "opinion", "gender_differential",
-                             "seat_ranking", "demographic_ranking"}
+                             "seat_ranking", "demographic_ranking", "seat_benchmark"}
     assert set(GRID_FAMILIES) == {"distribution", "opinion", "gender_differential"}
 
 
