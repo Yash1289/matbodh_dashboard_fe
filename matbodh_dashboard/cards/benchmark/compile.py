@@ -107,6 +107,10 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
     elif focal is not None and focal not in majors:
         unavailable.append((GRID, f"Focal party {focal!r} is not a major party in the alliance mapping "
                                   "and would be folded into Other"))
+    elif focal is not None and any(focal not in names for names in endpoint_parties.values()):
+        # The engine returns a zero for a party one endpoint does not map; margins and flips would show it.
+        unavailable.append((GRID, f"Focal party {focal!r} must be mapped for every endpoint; "
+                                  "its margins and flips would otherwise be wrong"))
     if unavailable:
         return plan()
 

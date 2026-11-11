@@ -115,12 +115,21 @@ def test_default_reference_is_the_compare_round_when_the_context_has_one():
     ({"ctx": _ctx(compare=None), "reference": BenchmarkReference(kind="compare")}, "comparison round"),
     ({"ctx": _ctx(compare=R2), "reference": BenchmarkReference(kind="compare")}, "anchor"),
     ({"card": _card(focal="INC")}, "Other"),
+    # INDI is mapped for 2022 VS only: the survey side's margins would be the engine's zero.
+    ({"card": _card(focal="INDI"),
+      "reference": BenchmarkReference(kind="election", year=2022, election_type="VS")}, "every endpoint"),
     ({"level": "zone"}, "AC- or PC-level"),
 ])
 def test_unavailable_reasons_before_any_run(kwargs, expected):
     plan = _compile(**kwargs)
     assert plan.jobs == ()
     assert any(expected in reason for _, reason in plan.unavailable), plan.unavailable
+
+
+def test_pc_level_compiles_with_the_pc_seat_level():
+    # The engine host loads the AC-to-PC membership itself, so the config only names the level.
+    (job,) = _compile(level="pc", reference=BenchmarkReference(kind="none")).jobs
+    assert job.config["benchmark"]["seat_level"] == "pc"
 
 
 def test_view_only_difference_gives_identical_job_config():
