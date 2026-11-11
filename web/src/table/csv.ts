@@ -1,6 +1,7 @@
 import type { CellGrid } from "./grid";
 
 const field = (s: string): string => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+export { field as csvField };
 const num = (n: number | null | undefined): string => (n === null || n === undefined ? "" : String(n));
 const slug = (s: string): string => s.replace(/ /g, "_");
 
