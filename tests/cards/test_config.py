@@ -175,4 +175,6 @@ def test_load_cards_rejects_duplicate_ids_and_unknown_keys(tmp_path):
 
 def test_seed_cards_load():
     cards = load_cards(ROOT / "config/cards/cards.yaml")
-    assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone"} <= set(cards)
+    assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone",
+            "ranking.ac_pm_net", "ranking.ac_bjp_support_by_zone", "ranking.pc_pm_net",
+            "ranking.castes_by_ac_support"} <= set(cards)

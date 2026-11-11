@@ -13,7 +13,10 @@ import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 
+from pathlib import Path
+
 from matbodh_dashboard.api.app import create_app
+from matbodh_dashboard.cards.config import load_cards
 from matbodh_dashboard.catalogue.store import RoundNotFound, load_catalogue
 from matbodh_dashboard.registry import load_rules
 from matbodh_dashboard.runner.cache import ResultCache
@@ -101,6 +104,23 @@ def test_cards_listed_with_family_meta_and_filtered_by_section(client):
     assert vote["meta"]["capabilities"]["modes"] == ["standalone", "compare", "trend"]
     assert len(client.get("/cards", params={"section": "t"}).json()) == len(everything)
     assert client.get("/cards", params={"section": "nope"}).json() == []
+
+
+def test_seeded_ranking_cards_are_listed_without_lenses_and_plan_as_valid(tmp_path):
+    (tmp_path / "global.yaml").write_text(RULES_YAML, encoding="utf-8")
+    cache = ResultCache(fakeredis.FakeStrictRedis(), ttl_seconds=3600)
+    seeds = load_cards(Path(__file__).resolve().parents[2] / "config/cards/cards.yaml")
+    service = CardRunService(load_catalogue(make_query()), PRESET, seeds, load_rules(tmp_path),
+                             cache, InlineQueue(FakeRunner(), cache), "0.8.0")
+    client = TestClient(create_app(service))
+    listed = {c["id"]: c for c in client.get("/cards", params={"section": "rankings"}).json()}
+    assert set(listed) == {"ranking.ac_pm_net", "ranking.ac_bjp_support_by_zone",
+                           "ranking.pc_pm_net", "ranking.castes_by_ac_support"}
+    assert listed["ranking.ac_pm_net"]["family"] == "seat_ranking"
+    assert listed["ranking.castes_by_ac_support"]["family"] == "demographic_ranking"
+    assert all(c["meta"]["lenses"] == [] for c in listed.values())
+    plan = client.post("/cards/plan", json=body(card="ranking.ac_pm_net")).json()
+    assert plan["valid"] is True and plan["unavailable"] == []
 
 
 def test_plan_rejects_mixed_levels(client, parts):
