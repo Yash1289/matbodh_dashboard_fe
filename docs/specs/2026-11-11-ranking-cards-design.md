@@ -116,6 +116,15 @@ A `RankedPayload` is long format, like the foundation `GridPayload`, and reuses 
 
 Display names and ordering of labels come from the existing presentation rules (`registry.RuleSet`); the registry's natural ordering applies where no order is configured.
 
+### 6.1 Seat labels (names from the master)
+
+Engine seat rows carry only `seat_id`, never a name (verified live on a PC ranking, 2026-11-11). Names are labels, not numbers, so the backend looks them up as small metadata, in this order per seat:
+
+1. a name the engine row itself carries (any of `seat_name`, `ac_name`, `pc_name`, `name`; none exists today), so a future engine that returns names is used with no dashboard change;
+2. otherwise a `SeatLabelProvider` lookup: `labels(state, level, seat_ids) -> {seat_id: {name, zone, ...}}`.
+
+The default provider reads the master through the engine's own `MySQLAccess.seat_snapshot` (attributes `ac_name`, `pc_name`, `zone`), read-only, cached per state, level and metadata revision, and dropped when the catalogue refreshes. The provider is injected at bootstrap, like the catalogue loader, so tests use a fake and the dashboard never owns a second master model. A seat with no lookup result shows its number with no name; it never fails the card. The name and zone enter the payload as entity `labels`, never as a number.
+
 ## 7. Frontend
 
 - Family bodies `seat_ranking` and `demographic_ranking` in the existing body registry, rendered inside `CardShell` with the same `ControlStrip` (display-only, never fetches).
@@ -139,13 +148,24 @@ Copy aggregate-only fixtures into `tests/fixtures/engine_samples`: `result_rank.
 
 ## 10. Open questions and assumptions
 
-1. **PC from AC surveys.** The engine's host layer builds the AC-to-PC membership; the dashboard is assumed not to supply a snapshot. To confirm with a live smoke on a PC card before sign-off.
-2. **Seat metadata in the payload.** Which seat attributes (district, zone, incumbent party) the engine returns per seat row beyond `seat_id` and `partition` is not shown in the samples; the ranked table shows only what the rows carry.
-3. **Demographic compare.** Allowed by the engine (comparison collections must match); the sample only shows standalone. Compare mode for demographic ranking is built to the contract but verified only by unit tests until a live run.
-4. **Card library for rankings.** Which seeded ranking cards ship (metric, level, partitions) is a product choice for plan time; the engine does not limit it.
+1. **PC from AC surveys (resolved, 2026-11-11, live).** `MySQLAccess.execute_ranking` loads the AC roster as the membership when the ranking carries `membership_snapshot: "ac_pc"`, so the dashboard supplies only that name, not a snapshot. A read-only run through the engine CLI on Uttar Pradesh, `2027 VS CAPI R2` (an AC-designed survey), `seat_level: pc`, PM net satisfaction, returned 80 PCs ranked 1–80 (`unit` percentage points, `metric_status` available). Config name for the universe snapshot is host-assigned (`pc_roster`). Other states and rounds are not verified.
+2. **Seat metadata in the payload (resolved, 2026-11-11, product owner).** Names come from the master through the label provider of §6.1, falling back to any name the engine row carries once the engine provides one. Which other attributes to show beside a seat is a display choice at plan time.
+3. **Demographic compare (resolved, 2026-11-11, product owner).** Kept in the system, built to the engine contract. The engine allows it when the comparison collections match; the only sample is standalone, so it is verified by unit tests now and by a live run later.
+4. **Card library for rankings (resolved, 2026-11-11, delegated to the engineer).** The starter set is in §12.
 5. **Heavy engine limits.** A seat ranking across many partitions is still bounded by the 100,000-row result limit; a `too_heavy` error is shown with its classified message.
 
-## 11. Acceptance criteria
+## 12. Starter cards
+
+Four seeded cards, all standalone and Uttar Pradesh scenarios already in `cards.yaml`; each can be extended to a trend with 2–4 rounds. Party ids (`BJP+` below, as in the engine samples) are checked against the preset's party identity at plan time and are not invented.
+
+| Card id | Family | Rank | Partition | `top_k` |
+|---|---|---|---|---|
+| `ranking.ac_pm_net` | seat_ranking | AC seats by PM net satisfaction (`pm_satisfaction`, `net_score`) | none (statewide) | none |
+| `ranking.ac_bjp_support_by_zone` | seat_ranking | AC seats by `BJP+` support share (`vs_voting_intention`, `support_share`) | `party_zone` | none |
+| `ranking.pc_pm_net` | seat_ranking | PC seats by PM net satisfaction, from AC surveys (verified live, §10.1) | none | none |
+| `ranking.castes_by_ac_support` | demographic_ranking | castes by `BJP+` support share within each AC | `ac_num` | 3 |
+
+## 13. Acceptance criteria
 
 - A seat ranking card for AC and for PC, and a demographic ranking card with `top_k` 1–5, render every row and contract key of the copied samples with no unmapped key.
 - `CardConfig` rejects a demographic ranking with no `top_k` or one above 5, and accepts a seat ranking with none.
