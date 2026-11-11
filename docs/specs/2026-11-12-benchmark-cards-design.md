@@ -41,7 +41,7 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 5. **Unmapped historical parties compete individually** under their own party id (`passthrough: true` on the election endpoint), as the engine guide requires. They are never merged into Others. Decision confirmed by the product owner on 2026-11-12 after the live check (§11).
 
 6. **Major parties and "Other", in every benchmark table and every view of it.** Only the major parties/alliances from the alliance mapping are shown by name; everything else is one **Other** row with its own seat count, vote share and the rest. **NOTA is always part of Other.** The Other numbers come from the engine, never from a residual computed in Python or TypeScript (a residual would also be wrong when the two endpoints treat NOTA or unanswered options differently). Decided by the product owner on 2026-11-12.
-7. **The mechanism for the Other row is not yet decided** (§13, item 1). The rule above holds either way.
+7. **Engine support.** The engine's benchmark summaries pool every displayed party not in the kept list, every unlisted party and NOTA into Other, and count a win by an unlisted party as one Other win. This is a change in `MatBodh-Dash` (`benchmarking.py`, uncommitted on 2026-11-12) that the dashboard depends on, and it is verified live (§11). The displayed list and the kept list are the same list: the major parties (§4.1).
 
 ## 4. `CardConfig`: engine part and view part
 
@@ -68,7 +68,7 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 
 The major parties are whatever the alliance table gives: the distinct canonical identities (`party_report_1`) in the mapping for the card's endpoints. Nothing about NDA, SP+, BSP or any other label is hardcoded in the dashboard; if an identity such as `INDI` is ingested into the alliance table, it is a major party and is shown by name. The one fixed rule is the product owner's: NOTA is always in Other (§3 rule 6).
 
-The engine requires the same Other grouping at both endpoints, so the list is the union of the identities from both endpoints' mappings, built once per card. An identity present in only one endpoint's mapping is shown as a dash with the reason "not in this endpoint's mapping" on the other side, never as a 0, because the engine would otherwise return a zero for it.
+The engine requires the same Other grouping at both endpoints, and by design the alliance table gives the same list for both. If the two endpoints' mappings give different lists, the card fails before running, with a reason that names the identities mapped on one side only. It never shows a 0 for a party one endpoint did not have, and it never silently drops or merges one.
 
 Live, for Uttar Pradesh (2026-11-12), as an example of what the table held that day and not as a rule: the survey mapping gave NDA, SP+, BSP; the 2022 VS mapping gave NDA, SP+, BSP and `INDI`. The queue already runs one job per fingerprint across cards and users, so no runner change is needed for sharing.
 
@@ -101,7 +101,7 @@ Live, for Uttar Pradesh (2026-11-12), as an example of what the table held that 
 
 plus the contract (endpoints and versions, roster version, units, focal party, coverage mode, competition exclusions). Display rounding is a frontend presentation concern only; values are never recomputed. `seat_results` size (2418 rows for 403 seats) is measured in the plan; if too large it is dropped from the card payload until sub-project 5 needs it.
 
-`summaries` and `comparisons` carry one `Other` row per group, built by the engine (§13, item 1); it is shown last in every table. Seat winners outside the major parties appear in `seat_results.winner` as raw party ids; a party-name lookup (party master) labels them. A failed lookup never fails the card.
+`summaries` and `comparisons` carry one `Other` row per group, built by the engine (§3 rule 7); it is shown last in every table. Seat winners outside the major parties appear in `seat_results.winner` as raw party ids; a party-name lookup (party master) labels them. A failed lookup never fails the card.
 
 ## 8. Card body and controls
 
@@ -140,6 +140,8 @@ Run through the engine's own CLI with the example configs, not through the dashb
 - **Other grouping probe, 55 s.** The same election run with an Other grouping (kept NDA, SP+, BSP, label Other) on both endpoints returned no Other row, and the three parties' 2022 vote shares summed to 93.3%. Reading `compile_benchmark`: the per-seat table is built only for the displayed contenders, and the Other grouping folds only contenders that are not in the kept list. Parties that are not displayed never reach it. The engine's own unit test passes because it lists a non-kept party (`X`) as a contender.
 - **Alliance mapping, UP (read-only):** survey NDA (5 parties), SP+ (3), BSP (1); 2022 VS SP+ (6), NDA (3), INDI (1), BSP (1). ACTUAL contexts in the alliance table for UP: 2009 LS, 2012 VS, 2014 LS, 2017 VS, 2019 LS, 2022 VS, 2024 LS.
 
+- **Other row with the engine change, 53 s (same config as the probe above).** `summaries` grew from 96 to 128 rows and `comparisons` from 48 to 64 (one Other row per group and endpoint). In all 32 endpoint-groups the named parties plus Other sum to exactly 100% of votes and to the eligible seats; the NDA, SP+ and BSP values are unchanged from before. Statewide Other: survey 1.99% votes, 0 seats; 2022 VS 6.70% votes, 4 seats (0.99%); comparison −4.71 pp votes, −4 seats. `seat_results` still holds only the three listed parties. The Other row's NOTA content was not separated out.
+
 ## 12. Not verified
 
 - The dashboard benchmark path (compile, runner, payload, UI): not built.
@@ -150,8 +152,8 @@ Run through the engine's own CLI with the example configs, not through the dashb
 
 ## 13. Decisions still to confirm
 
-1. **How the engine gives the Other row for non-displayed parties (blocks the plan).** (a) A small addition in `MatBodh-Dash`: every competing identity not in the kept list, NOTA included, folds into Other in `summaries` and `comparisons`; winners, `seat_results` and margins stay unchanged. (b) No engine change: the dashboard passes every identity in play (survey options and mapped election parties) as contenders, with only the major parties kept; this enlarges the SQL, puts the list in the fingerprint and makes `seat_results` about 300 rows per seat, so it would be dropped from the card payload.
+1. (Closed 2026-11-12: the engine change in `MatBodh-Dash` supplies the Other row; see §3 rule 7. It must be committed and released in the engine before the dashboard depends on it.)
 2. (Closed 2026-11-12: independents are not special. Whatever the alliance table maps is shown by name; see §4.1.)
 3. Whether the election picker lists all seven UP contexts or only those with results in the election master.
-4. Whether `seat_results` stays in the card payload (size); forced out under 1(b).
+4. Whether `seat_results` stays in the card payload (2418 rows for UP at AC level; measure in the plan).
 - Whether the dashboard's own engine adapter (`runner/engine.py`) can call the host benchmark loaders as-is, or needs a thin seam.
