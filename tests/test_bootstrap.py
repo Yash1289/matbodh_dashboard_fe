@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from matbodh_dashboard import bootstrap
+from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.runner.queue import RQQueue
 from matbodh_dashboard.runner.service import CardRunService
 from matbodh_dashboard.settings import Settings
@@ -78,6 +79,12 @@ def test_build_service_wires_settings_redis_queue_and_catalogue(fakes):
     (client,) = clients
     assert client.closed == 1
     assert all(s["readonly"] == 1 for s in client.settings_seen)
+
+
+def test_build_service_wires_seat_labels_to_the_catalogue_revision(fakes):
+    service = bootstrap.build_service_from_settings(SETTINGS)
+    assert isinstance(service.seat_labels, MasterSeatLabels)
+    assert service.seat_labels._revision() == service.catalogue.revision
 
 
 def test_load_card_config_reads_cards_yaml():

@@ -21,6 +21,7 @@ from typing import Literal
 from matbodh_dashboard.cards.compile import compile_card
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.cards.families import get_family
+from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.translate import TranslateContext, translate_grid
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.fingerprint import fingerprint
@@ -79,6 +80,7 @@ class CardRunService:
         cache: ResultCache,
         queue: JobQueue,
         engine_version: str,
+        seat_labels: SeatLabelProvider | None = None,
     ) -> None:
         self.catalogue = catalogue
         self.preset = preset
@@ -87,6 +89,7 @@ class CardRunService:
         self.cache = cache
         self.queue = queue
         self.engine_version = engine_version
+        self.seat_labels = seat_labels
         self._runs: OrderedDict[str, _Run] = OrderedDict()
         self._lock = threading.RLock()
 

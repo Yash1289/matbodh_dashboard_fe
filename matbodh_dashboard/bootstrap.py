@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from matbodh_dashboard import engine_version
 from matbodh_dashboard.api.app import create_app
 from matbodh_dashboard.cards.config import CardConfig, load_cards
+from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.catalogue.store import Catalogue, clickhouse_query, load_catalogue
 from matbodh_dashboard.presets import MethodPreset, load_preset
 from matbodh_dashboard.registry import RuleSet, load_rules
@@ -64,13 +65,35 @@ def catalogue_loader(settings: Settings) -> Callable[[], Catalogue]:
     return load
 
 
+def seat_snapshot_loader(settings: Settings) -> Callable[[str, str, tuple[str, ...]], Any]:
+    """Seat master snapshots over a short-lived, read-only MySQL connection.
+
+    Only called on a label-cache miss (once per state, level and catalogue revision).
+    """
+
+    def load(state: str, level: str, attributes: tuple[str, ...]) -> Any:
+        from matbodh_dash import MySQLAccess, MySQLReadAdapter
+        from matbodh_views.connections import create_mysql_connection
+
+        connection = create_mysql_connection(settings.engine_env_file)
+        try:
+            return MySQLAccess(MySQLReadAdapter(connection)).seat_snapshot(state, level, attributes)
+        finally:
+            connection.close()
+
+    return load
+
+
 def build_service_from_settings(settings: Settings) -> CardRunService:
     redis = _redis(settings.redis_url)
     cache = ResultCache(redis, settings.cache_ttl_seconds)
     queue = RQQueue(redis, cache)
     catalogue = catalogue_loader(settings)()
     preset, cards, rules = load_card_config(settings.config_dir)
-    return CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
+    service = CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
+    service.seat_labels = MasterSeatLabels(
+        seat_snapshot_loader(settings), lambda: service.catalogue.revision)
+    return service
 
 
 def create_production_app() -> FastAPI:
