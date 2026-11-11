@@ -76,7 +76,10 @@ rq worker engine --with-scheduler --url "$DASHBOARD_REDIS_URL"
 `scripts/smoke_card.py` runs one card from `config/cards/cards.yaml` through the real
 engine and `CardRunService` synchronously (`InlineQueue`) and prints the payload shape
 (family, mode, cuts, columns), per-job timings, per-cut row, cell and delta counts, and
-any errors. A card compiles to a single engine job, `grid`.
+any errors. A grid card compiles to a single engine job, `grid`; a ranking card is one
+job (`rank`), or one job per round in a trend (`rank:<obs_id>`). For a ranking card the
+report prints entity, rank, absent-slot and group counts, and the run also exercises the
+real seat-name lookup from the MySQL master.
 
 Prerequisites:
 
@@ -118,6 +121,30 @@ python scripts/measure_payload.py        # payload sizes for the two largest sam
 
 `GET /cards` lists the cards with each family's lenses and capabilities, and the browser
 renders them with `web/src/cards/CardShell.tsx` on the cards page (`/`).
+
+### Ranking cards
+
+Two more families, `seat_ranking` (AC or PC seats) and `demographic_ranking` (groups of
+a profiling field inside a partition), show engine rankings; the spec is
+`docs/specs/2026-11-11-ranking-cards-design.md` and the plan `docs/plans/2026-11-11-ranking-cards.md`.
+A card carries a `rank` block (`metric`, `party_id`, `level`, `partition_by`, `top_k`);
+demographic ranking requires `top_k` 1 to 5 (`TOP_K_MAX` in `cards/config.py`), seat
+ranking has no cap. A standalone or compare card is one engine job; a trend runs one job
+per round (`matbodh_dashboard/cards/ranking/compile.py`) and
+`cards/ranking/translate.py` merges the results into a long-format `RankedPayload`: the
+anchor round decides the rows, later rounds are looked up, and a missing slot is a dash
+with a reason (`outside_top_k`, `not_ranked`, `round_failed`), never a zero. A failed
+non-anchor round gives a partial card; a failed anchor round fails it. The engine owns
+every rank and number.
+
+Seat names are not in engine rows. `cards/ranking/labels.py` looks them up from the
+master (read-only MySQL, cached per state, level and catalogue revision) unless the
+engine row carries a name itself; a failed lookup costs only the names. The browser
+renders ranking cards with `web/src/cards/ranking/RankingCard.tsx`.
+
+Ranking fixtures for the frontend come from the real ranking samples; the earlier round
+of the trend fixture is a synthetic variant (only R2 ranking samples exist) and its
+contract says `synthetic_later_round`.
 
 Measured payload sizes (`measure_payload.py`, standalone mode, first scenario, latest
 observation; "rows" are payload rows, not engine rows):

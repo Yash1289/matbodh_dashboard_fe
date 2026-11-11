@@ -18,8 +18,9 @@ import time
 from collections.abc import Sequence
 
 from matbodh_dashboard import engine_version
-from matbodh_dashboard.bootstrap import load_card_config
+from matbodh_dashboard.bootstrap import load_card_config, seat_snapshot_loader
 from matbodh_dashboard.capability import validate_context
+from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.runner.cache import ResultCache
@@ -76,7 +77,12 @@ def report(service: CardRunService, run_id: str, status: CardRunStatus,
     """Aggregate-only report lines: state, payload shape, per-job timings, errors."""
     lines = [f"state={status.state} jobs={status.done}/{status.total} wall={seconds:.2f}s"]
     result = status.result
-    if result is not None:
+    ranked = result is not None and result.get("kind") == "ranked"
+    if ranked:
+        lines.append(f"family={result['family']} mode={result['mode']} "
+                     f"entities={len(result['entities'])} ranks={len(result['ranks'])} "
+                     f"absent={len(result['absent'])} groups={len(result['groups'])}")
+    elif result is not None:
         lines.append(f"family={result['family']} mode={result['mode']} "
                      f"cuts={len(result['cuts'])} columns={len(result['columns'])} "
                      f"hidden={result['hidden_count']}")
@@ -86,7 +92,7 @@ def report(service: CardRunService, run_id: str, status: CardRunStatus,
         lines.append(f"  job part={job['part']} state={job['state']} "
                      f"engine_s={_secs(job['engine_s'])} queue_wait_s={_secs(job['queue_wait_s'])}")
     if result is not None:
-        for cut in result["cuts"]:
+        for cut in () if ranked else result["cuts"]:
             lines.append(f"  cut {cut['id']}: rows={len(cut['rows'])} cells={len(cut['cells'])} "
                          f"deltas={len(cut['deltas'])}")
         if result["unavailable"]:
@@ -126,6 +132,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     runner = EngineRunner(build_runtime(settings.engine_env_file))
     service = build_service(settings, catalogue, runner)
+    # The real master lookup, so a ranking card's seat names are part of the live check.
+    service.seat_labels = MasterSeatLabels(
+        seat_snapshot_loader(settings), lambda: service.catalogue.revision)
     run_id, status, seconds = run_card(service, args.card, ctx)
     print("\n".join(report(service, run_id, status, seconds)))
     return 0 if status.state == "done" else 1

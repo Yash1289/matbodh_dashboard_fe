@@ -6,6 +6,7 @@
 | **Project** | `matbodh-dashboard` |
 | **Sub-project** | 3 of 6; absorbs the former sub-project 2 (runner fan-out), see §2.2 |
 | **Builds on** | `2026-11-10-card-foundation-and-grid-family-design.md` (CardConfig, CardShell, ControlStrip, PipeCell, runner, cache) |
+| **Plan** | `docs/plans/2026-11-11-ranking-cards.md` |
 | **Engine contract source** | `MatBodh-Dash` 0.8.0: `docs/guides/seat-ranking.md`, `docs/guides/demographic-ranking.md`, `docs/usage.md` ("Seat ranking", "Demographic ranking"), `sample-output/result_rank*.json`, `sample-output/result_seat_rank_demograph.json` |
 
 ---
@@ -95,6 +96,7 @@ Validation (all at the boundary, reusing the foundation's scenario-kind and comp
 
 - **Seat ranking without `top_k`**: every round returns the full seat list, so a missing anchor seat in a later round means the engine did not rank it (suppressed, not in the roster). The slot is a dash with reason `not_ranked` and the engine's `metric_status`.
 - **With `top_k` (seat or demographic)**: an anchor entity absent from a later round's top-k has reason `outside_top_k`. This is not missing data and not a failure; the rank there is unknown, not zero.
+- **A later round whose job failed**: every anchor entity has reason `round_failed` for that round; the card is `partial` and Refresh re-runs only that round.
 - **Ties** keep the engine's rows: top-k includes ties, so a partition can have more than `top_k` rows. The cap limits the requested k, not the row count.
 
 ### 5.4 Engine behaviour the card must surface
@@ -111,7 +113,7 @@ A `RankedPayload` is long format, like the foundation `GridPayload`, and reuses 
 - `groups`: one per partition value (`{}` when statewide), each with `eligible_count` per round (seat only, from `eligible_seat_count`).
 - `entities`: key and labels. Seat: `seat_id` and, when the engine supplies it, the partition values. Demographic: the named dimensions of each row.
 - `ranks` (long): `entity`, `group`, `round`, `rank`, `value` (engine `metric_value`), `target_value`, `reference_value`, `target_base`, `reference_base`, `weighted_denominator`, `unweighted_base`, `status` (engine `metric_status`), and `flags`.
-- `absent` (long): `entity`, `group`, `round`, `reason` (`outside_top_k` | `not_ranked`), derived from absence in a round's result, never from arithmetic.
+- `absent` (long): `entity`, `group`, `round`, `reason` (`outside_top_k` | `not_ranked` | `round_failed`), derived from absence in a round's result or from a failed round's job, never from arithmetic.
 - `contracts`: the engine contract per job (ranking id, direction, tie policy, coverage, observations, master versions) for the method drawer.
 
 Display names and ordering of labels come from the existing presentation rules (`registry.RuleSet`); the registry's natural ordering applies where no order is configured.
@@ -156,14 +158,14 @@ Copy aggregate-only fixtures into `tests/fixtures/engine_samples`: `result_rank.
 
 ## 12. Starter cards
 
-Four seeded cards, all standalone and Uttar Pradesh scenarios already in `cards.yaml`; each can be extended to a trend with 2–4 rounds. Party ids (`BJP+` below, as in the engine samples) are checked against the preset's party identity at plan time and are not invented.
+Four seeded cards, all standalone and Uttar Pradesh scenarios already in `cards.yaml`; each can be extended to a trend with 2–4 rounds. The party id is `NDA`: the preset's canonical alliance id (`keep: [NDA, SP+, BSP]`) and the one `docs/usage.md` documents for ranking (the engine samples use `BJP+`; the live check confirms which the engine accepts). It is not invented.
 
 | Card id | Family | Rank | Partition | `top_k` |
 |---|---|---|---|---|
 | `ranking.ac_pm_net` | seat_ranking | AC seats by PM net satisfaction (`pm_satisfaction`, `net_score`) | none (statewide) | none |
-| `ranking.ac_bjp_support_by_zone` | seat_ranking | AC seats by `BJP+` support share (`vs_voting_intention`, `support_share`) | `party_zone` | none |
+| `ranking.ac_bjp_support_by_zone` | seat_ranking | AC seats by `NDA` support share (`vs_voting_intention`, `support_share`) | `party_zone` | none |
 | `ranking.pc_pm_net` | seat_ranking | PC seats by PM net satisfaction, from AC surveys (verified live, §10.1) | none | none |
-| `ranking.castes_by_ac_support` | demographic_ranking | castes by `BJP+` support share within each AC | `ac_num` | 3 |
+| `ranking.castes_by_ac_support` | demographic_ranking | castes by `NDA` support share within each AC | `ac_num` | 3 |
 
 ## 13. Acceptance criteria
 

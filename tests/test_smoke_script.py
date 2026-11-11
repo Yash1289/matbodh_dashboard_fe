@@ -108,3 +108,16 @@ def test_single_round_has_no_compare_round():
     assert smoke.build_context(STATE, [R2]).compare_round is None
     ctx = smoke.build_context(STATE, [R1, R2])
     assert ctx.compare_round == R1 and ctx.rounds == [R1, R2]
+
+
+def test_report_handles_a_ranking_card():
+    from tests.runner.test_service_ranking import RankRunner
+
+    service = smoke.build_service(_settings(), catalogue(), RankRunner())
+    ctx = StateContext(state=STATE, level="ac", rounds=[R1, R2], compare_round=R1)
+    run_id, status, seconds = smoke.run_card(service, "ranking.ac_pm_net", ctx)
+    assert status.state == "done" and status.errors == {}
+    lines = smoke.report(service, run_id, status, seconds)
+    assert "family=seat_ranking mode=standalone" in lines[1]
+    assert "entities=3 ranks=3 absent=0 groups=1" in lines[1]
+    assert sum(line.startswith("  job part=grid") for line in lines) == 1

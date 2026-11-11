@@ -17,7 +17,7 @@ const infoOf = (p: Json) => ({
 });
 
 /** Serves the cards API from the fixture payloads; `calls` records every API request. */
-async function serve(page: Page): Promise<string[]> {
+async function serve(page: Page, payloads: Record<string, Json> = PAYLOADS): Promise<string[]> {
   const calls: string[] = [];
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -27,10 +27,10 @@ async function serve(page: Page): Promise<string[]> {
     const body = request.postDataJSON?.() as { card_id?: string } | null;
     if (path === "/catalogue/states") return json(fx("states"));
     if (path.endsWith("/surveys")) return json(fx("surveys"));
-    if (path === "/cards") return json(Object.values(PAYLOADS).map(infoOf));
+    if (path === "/cards") return json(Object.values(payloads).map(infoOf));
     if (path === "/cards/plan") {
-      // The context bar plans the seeded lead card, which is not one of the three on the page.
-      const p = PAYLOADS[body!.card_id!] ?? STANDALONE;
+      // The context bar plans the seeded lead card, which is not one of the cards on the page.
+      const p = payloads[body!.card_id!] ?? STANDALONE;
       return json({
         valid: true, errors: [], unavailable: [], not_asked: [], coverage_mode: { grid: "independent" },
         rounds: p.rounds.items.map(({ cycle: _c, series: _s, ...rest }: Json) => rest),
@@ -39,7 +39,7 @@ async function serve(page: Page): Promise<string[]> {
     if (path === "/cards/run") return json({ run_id: body!.card_id });
     if (path.startsWith("/runs/")) {
       const id = decodeURIComponent(path.replace("/runs/", ""));
-      return json({ state: "done", done: 1, total: 1, result: PAYLOADS[id], errors: {} });
+      return json({ state: "done", done: 1, total: 1, result: payloads[id], errors: {} });
     }
     return json({ detail: "not found" }, 404);
   });
@@ -97,7 +97,7 @@ test("the cards journey", async ({ page }) => {
   // Compare: the value with its engine delta, and the reference round named once.
   const compare = card(page, COMPARE);
   await expect(compare.locator("[data-tone]").first()).toBeVisible();
-  await expect(compare.getByRole("table").getByText(/Δ vs R1/)).toBeVisible();
+  await expect(compare.getByRole("table").getByText(/Δ vs 2027 VS CAPI R1/)).toBeVisible();
 
   expect(calls.length).toBe(requestsAfterLoad);
 
@@ -120,4 +120,31 @@ test("the cards journey", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(chip).toBeFocused();
+});
+
+const SEAT_TREND = fx("cards/ranked_seat_trend");
+const DEMOGRAPHIC = fx("cards/ranked_demographic_standalone");
+const RANKED_PAYLOADS: Record<string, Json> = Object.fromEntries(
+  [SEAT_TREND, DEMOGRAPHIC].map((p) => [p.card_id, p]));
+
+test("the ranking cards journey", async ({ page }) => {
+  const calls = await serve(page, RANKED_PAYLOADS);
+  await page.goto(CONTEXT);
+
+  await expect(page.getByRole("table")).toHaveCount(2);
+  const seat = card(page, SEAT_TREND);
+  await expect(seat.locator("[data-segment]").first()).toBeVisible();
+  await expect(card(page, DEMOGRAPHIC).getByText("ac_num: 1", { exact: true })).toBeVisible();
+  const requestsAfterLoad = calls.length;
+
+  // Keyboard: Enter opens the Sort chip, a later round's rank reorders the rows, Escape returns focus.
+  const sort = seat.getByRole("button", { name: /^Sort/ });
+  await sort.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("dialog").getByRole("combobox", { name: "Sort" }).selectOption("o1:rank:asc");
+  await page.keyboard.press("Escape");
+  await expect(sort).toBeFocused();
+  await expect(seat.locator("tbody th").first()).not.toContainText("Seat 128");
+
+  expect(calls.length).toBe(requestsAfterLoad); // no request after any control change
 });
