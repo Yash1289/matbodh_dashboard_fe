@@ -68,7 +68,7 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 
 The major parties are whatever the alliance table gives: the distinct canonical identities (`party_report_1`) in the mapping for the card's endpoints. Nothing about NDA, SP+, BSP or any other label is hardcoded in the dashboard; if an identity such as `INDI` is ingested into the alliance table, it is a major party and is shown by name. The one fixed rule is the product owner's: NOTA is always in Other (§3 rule 6).
 
-The engine requires the same Other grouping at both endpoints, and by design the alliance table gives the same list for both. If the two endpoints' mappings give different lists, the card fails before running, with a reason that names the identities mapped on one side only. It never shows a 0 for a party one endpoint did not have, and it never silently drops or merges one.
+The engine requires the same Other grouping at both endpoints, so the displayed list is the **superset**: the union of the identities in both endpoints' mappings, built once per card. Where an identity is missing from one endpoint's mapping (for example `INDI`, mapped for 2022 VS but not for the survey), the engine returns a 0 for it on that side. The dashboard knows each endpoint's mapping from the alliance table, so it replaces that side's values, and every delta that involves it, with a dash and the reason "not in this endpoint's mapping". It never shows that 0. The Other row is unaffected: a kept party is excluded from Other on both sides, and the named parties plus Other still sum to 100% of votes. Decided by the product owner on 2026-11-12, replacing an earlier "fail when the lists differ" rule.
 
 Live, for Uttar Pradesh (2026-11-12), as an example of what the table held that day and not as a rule: the survey mapping gave NDA, SP+, BSP; the 2022 VS mapping gave NDA, SP+, BSP and `INDI`. The queue already runs one job per fingerprint across cards and users, so no runner change is needed for sharing.
 
@@ -149,6 +149,15 @@ Run through the engine's own CLI with the example configs, not through the dashb
 - PC-level benchmark live; states other than UP; other election years/types.
 - Production ClickHouse performance beyond the two runs above; `EXPLAIN`.
 - The cause of the NDA/BJP+ small vote-share difference against the sample.
+
+## 12.1 Deferred (handled later, not in this build)
+
+Other at seat level. The engine's Other is a summary row only; `seat_results` holds the listed parties alone. Any seat-level view (the investigation drawer, sub-project 5) must handle:
+
+1. Per-seat vote shares of the listed parties do not reach 100%; group totals live in `summaries` only, and no view rebuilds them from seat rows.
+2. A seat won by a party outside the major list carries its raw party id or an unlisted label in `winner` (seen live: a 32-character hex id and `INDI`), while `summaries` counts it as an Other win. A display rule is needed to show such a winner as "Other", with the party name looked up.
+3. The `won` flags on the listed rows are all 0 on such a seat, so Other wins are not countable from seat rows; counts come from `summaries`.
+4. The focal margin is measured against the strongest eligible competitor, listed or not, and `seat_results` has no runner-up field, so the opponent is visible only through `winner`.
 
 ## 13. Decisions still to confirm
 
