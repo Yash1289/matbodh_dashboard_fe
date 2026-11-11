@@ -13,9 +13,11 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Family = Literal["distribution", "opinion", "gender_differential",
-                 "seat_ranking", "demographic_ranking"]
+                 "seat_ranking", "demographic_ranking", "seat_benchmark"]
 Mode = Literal["standalone", "compare", "trend"]
 RANKING_FAMILIES = frozenset({"seat_ranking", "demographic_ranking"})
+BENCHMARK_FAMILIES = frozenset({"seat_benchmark"})
+BenchmarkTable = Literal["comparison", "summary", "margin_buckets", "flips"]
 RankMetric = Literal["support_share", "net_score", "positive_share", "negative_share"]
 # Demographic rankings are always bounded: top_k 1..TOP_K_MAX within each partition.
 TOP_K_MAX = 5
@@ -66,6 +68,27 @@ class RankConfig(_Strict):
     top_k: int | None = Field(default=None, ge=1)
 
 
+class BenchmarkConfig(_Strict):
+    """The engine part of a benchmark card: everything here changes the engine run."""
+
+    focal_party: str | None = None
+    grouping_sets: list[list[str]] = Field(default_factory=lambda: [[]])
+
+    @model_validator(mode="after")
+    def _check(self) -> "BenchmarkConfig":
+        sets = [tuple(gs) for gs in self.grouping_sets]
+        if not sets or len(set(sets)) != len(sets) or any(len(set(gs)) != len(gs) for gs in sets):
+            raise ValueError("grouping_sets must be nonempty with no duplicate set or attribute; "
+                             "use [[]] for the overall grain (duplicate grouping)")
+        return self
+
+
+class BenchmarkViewConfig(_Strict):
+    """The display part of a benchmark card: never part of the engine config or its fingerprint."""
+
+    table: BenchmarkTable | None = None
+
+
 @lru_cache(maxsize=1)
 def _scenario_catalogue():
     from matbodh_dash.catalog import default_scenarios
@@ -104,10 +127,17 @@ class CardConfig(_Strict):
     caste_clubbing: bool = False
     requires: Requirements = Field(default_factory=Requirements)
     rank: RankConfig | None = None
+    benchmark: BenchmarkConfig | None = None
+    view: BenchmarkViewConfig | None = None
 
     @model_validator(mode="after")
     def _validate(self) -> "CardConfig":
         comparison = self.comparison
+        if self.family in BENCHMARK_FAMILIES:
+            self._check_benchmark(comparison)
+            return self
+        if self.benchmark is not None or self.view is not None:
+            raise ValueError("benchmark and view apply to benchmark families only")
         if self.family in RANKING_FAMILIES:
             self._check_ranking(comparison)
             return self
@@ -123,6 +153,18 @@ class CardConfig(_Strict):
         if self.caste_clubbing and not any("caste" in cut for cut in self.cuts):
             raise ValueError("caste_clubbing needs caste in a cut")
         return self
+
+    def _check_benchmark(self, comparison: ComparisonConfig) -> None:
+        if self.benchmark is None:
+            raise ValueError("a benchmark card needs a benchmark block")
+        if self.rank is not None or self.caste_clubbing or comparison.delta_measures or self.filters:
+            raise ValueError("a benchmark card takes no rank, caste_clubbing, delta_measures or filters")
+        if comparison.mode != "standalone" or comparison.target or comparison.reference:
+            raise ValueError("benchmark cards are standalone: the reference is chosen on the card")
+        if len(self.scenarios) != 1:
+            raise ValueError("a benchmark card uses exactly one scenario")
+        if scenario_kind(self.scenarios[0]) != "party":
+            raise ValueError("a benchmark card needs a party scenario")
 
     def _check_ranking(self, comparison: ComparisonConfig) -> None:
         rank = self.rank

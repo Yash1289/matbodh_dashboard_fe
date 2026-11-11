@@ -48,9 +48,11 @@ from matbodh_dashboard.cards.families.distribution import DISTRIBUTION  # noqa: 
 from matbodh_dashboard.cards.families.gender_differential import GENDER_DIFFERENTIAL  # noqa: E402
 from matbodh_dashboard.cards.families.demographic_ranking import DEMOGRAPHIC_RANKING  # noqa: E402
 from matbodh_dashboard.cards.families.opinion import OPINION  # noqa: E402
+from matbodh_dashboard.cards.families.seat_benchmark import SEAT_BENCHMARK  # noqa: E402
 from matbodh_dashboard.cards.families.seat_ranking import SEAT_RANKING  # noqa: E402
 
 FAMILIES: dict[str, FamilySpec] = {
     spec.name: spec
-    for spec in (DISTRIBUTION, OPINION, GENDER_DIFFERENTIAL, SEAT_RANKING, DEMOGRAPHIC_RANKING)
+    for spec in (DISTRIBUTION, OPINION, GENDER_DIFFERENTIAL, SEAT_RANKING, DEMOGRAPHIC_RANKING,
+                 SEAT_BENCHMARK)
 }
