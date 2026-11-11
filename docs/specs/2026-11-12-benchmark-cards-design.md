@@ -40,6 +40,9 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 4. **Alliance mapping is reused.** Historical party identity comes from the existing alliance table (ACTUAL contexts, `party_report_1`); nothing is re-sorted by hand.
 5. **Unmapped historical parties compete individually** under their own party id (`passthrough: true` on the election endpoint), as the engine guide requires. They are never merged into Others. Decision confirmed by the product owner on 2026-11-12 after the live check (§11).
 
+6. **Major parties and "Other", in every benchmark table and every view of it.** Only the major parties/alliances from the alliance mapping are shown by name; everything else is one **Other** row with its own seat count, vote share and the rest. **NOTA is always part of Other.** The Other numbers come from the engine, never from a residual computed in Python or TypeScript (a residual would also be wrong when the two endpoints treat NOTA or unanswered options differently). Decided by the product owner on 2026-11-12.
+7. **The mechanism for the Other row is not yet decided** (§13, item 1). The rule above holds either way.
+
 ## 4. `CardConfig`: engine part and view part
 
 ```yaml
@@ -48,9 +51,9 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
   section: benchmarks
   title: UP seats, NDA vs reference
   benchmark:                 # engine part: feeds the fingerprint
-    contenders: [NDA, SP+, BSP]
-    focal_party: NDA
+    focal_party: NDA         # must be one of the major parties
     grouping_sets: [[], [party_zone]]
+    # major parties are not listed here: they come from the alliance mapping (§4.1)
   view:                      # display part: never fingerprinted
     table: comparison        # comparison | summary | margin_buckets | flips
 ```
@@ -58,8 +61,12 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 - Everything under `benchmark` (plus seat level from the context, target, reference) is the engine part. Changing any of it is a new engine job.
 - `view` holds the opening table and display defaults (sort, density). It is not part of the engine config handed to the compiler, so the fingerprint cannot depend on it.
 - Default opening table when `view.table` is omitted: `comparison` if a reference exists, otherwise `summary`.
-- Validation: `contenders` non-empty; `focal_party` must be a canonical identity available in the preset (`preset.keep`) or the card is unavailable (a party absent from `keep` would read as 0); `view.table` must be one of the four.
-- **Fingerprint tests (required).** Two configs differing only in `view` give identical job fingerprints; a config differing in `contenders`, `focal_party` or `grouping_sets` gives a different one. The queue already runs one job per fingerprint across cards and users, so no runner change is needed for sharing.
+- Validation: `focal_party` must be one of the major parties or the card is unavailable (a party folded into Other would read as 0); `view.table` must be one of the four.
+- **Fingerprint tests (required).** Two configs differing only in `view` give identical job fingerprints; a config differing in `focal_party`, `grouping_sets` or the major-party list gives a different one.
+
+### 4.1 Which parties are "major"
+
+The major parties are the distinct canonical identities (`party_report_1`) that the state's alliance mapping gives for the card's endpoints, so no list is kept by hand. The engine requires the same Other grouping at both endpoints, so the list is built once per card and used for both. Live, for Uttar Pradesh (2026-11-12): the survey mapping gives NDA, SP+, BSP; the 2022 VS mapping gives NDA, SP+, BSP and `INDI` (independents, present in the election mapping only). A small explicit `always_other` list (default: `NOTA`) and any identity named there are never shown by name. Whether `INDI` is shown or folded into Other is open (§13, item 2). The queue already runs one job per fingerprint across cards and users, so no runner change is needed for sharing.
 
 ## 5. Endpoints and the reference picker
 
@@ -70,7 +77,7 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 
 ## 6. Compile and run
 
-- A benchmark compile step builds the engine's `SeatBenchmark` through the host loaders (`seat_benchmark`, `election_benchmark`) with `contenders`, `focal_party`, `grouping_sets` and `competition_excluded` left at the engine default (`NOTA`).
+- A benchmark compile step builds the engine's `SeatBenchmark` through the host loaders (`seat_benchmark`, `election_benchmark`) with the major parties (§4.1) as the displayed identities and the Other grouping (§3 rule 6), `focal_party`, `grouping_sets`, and `competition_excluded` left at the engine default (`NOTA`: it cannot win a seat, keeps its votes in the denominator and is shown inside Other).
 - Election endpoint party policy: alliance mapping for the chosen year/type, with `passthrough: true` (§3 rule 5).
 - PC level needs the full AC-to-PC membership; the host loader builds it. Missing membership makes the card unavailable with the engine's reason.
 - The runner executes one job with `kind: "benchmark"`, cached per fingerprint like any job. The plan step reports unavailability before any run: focal party not in `keep`, election with no alliance context or no results, PC without membership.
@@ -90,7 +97,7 @@ One card family, `seat_benchmark`, that compares a survey round against nothing,
 
 plus the contract (endpoints and versions, roster version, units, focal party, coverage mode, competition exclusions). Display rounding is a frontend presentation concern only; values are never recomputed. `seat_results` size (2418 rows for 403 seats) is measured in the plan; if too large it is dropped from the card payload until sub-project 5 needs it.
 
-Unlisted winners appear in `seat_results.winner` as raw party ids; a party-name lookup (party master) labels them. A failed lookup never fails the card.
+`summaries` and `comparisons` carry one `Other` row per group, built by the engine (§13, item 1); it is shown last in every table. Seat winners outside the major parties appear in `seat_results.winner` as raw party ids; a party-name lookup (party master) labels them. A failed lookup never fails the card.
 
 ## 8. Card body and controls
 
@@ -99,7 +106,7 @@ Unlisted winners appear in `seat_results.winner` as raw party ids; a party-name 
 - **Seat summary:** per endpoint, group and party: seats won, seat share, vote share, eligible seats.
 - **Margin buckets / Flips:** the engine bins (0 to <5, 5 to <10, 10+, ahead or behind; winning both, gain, loss, losing both) with the eligible-seat denominator.
 - **Controls:** reference picker (starts a run), Sort, Search, Density, Details, the usual overflow menu (method drawer, CSV export, Refresh). CSV exports the table on screen.
-- **Footer:** coverage mode, source and mapping versions, roster version, a note when displayed seat shares sum to less than 100% (an unlisted party won seats), and "Not asked in ..." where applicable.
+- **Footer:** coverage mode, source and mapping versions, roster version, a note saying what Other contains (every party outside the major list, and NOTA), and "Not asked in ..." where applicable.
 
 ## 9. Errors and states
 
@@ -112,7 +119,7 @@ Unlisted winners appear in `seat_results.winner` as raw party ids; a party-name 
 Run `python -m unittest discover -s tests -v` / `pytest` and `npx vitest run`, `npm run typecheck`, `npm run build`, `npm run e2e`.
 
 - **Real-sample numerical fixture:** `result_benchmark_past_election.json`. Assert exact values, for example NDA/BJP+ all seats 42.07 vs 44.77 vote share, −2.69 pp, 154 vs 243 seats, −89. A wrong implementation (averaged zone shares, deltas recomputed from rounded numbers, summed subtotals across grouping sets) fails these.
-- **A fixture built to distinguish wrong readings:** a party with vote share and zero seats (a real zero, not missing); a seat in coverage but not common (a dash with a reason); an unlisted winner so displayed seat shares sum below 100%; a group with no eligible seats.
+- **A fixture built to distinguish wrong readings:** a party with vote share and zero seats (a real zero, not missing); a seat in coverage but not common (a dash with a reason); a seat won by a party outside the major list (counted in Other, and the named parties plus Other sum to the eligible seats and to 100% of votes); NOTA votes inside Other; a group with no eligible seats.
 - **Backend:** compile for each reference kind (none, compare round, election) at AC and PC levels; plan-time unavailability reasons; fingerprint tests (§4); the runner executes, caches and shares a `kind: "benchmark"` job across two cards with different `view`.
 - **Engine loader test (automated):** run the compiled spec through the engine's real loader and compile offline (as the ranking minor 8 hand check did), so a malformed spec fails in CI.
 - **Frontend:** default table rule; hidden tables; display chips never fetch; the reference picker starts exactly one run; a copied card with a different `view` renders from the same payload.
@@ -126,6 +133,9 @@ Run through the engine's own CLI with the example configs, not through the dashb
 - **Survey R2 vs 2022 VS, with `passthrough: false` (the example's setting): fails** in the engine with "Unmapped historical party IDs" (about 300 raw party ids). The ACTUAL alliance mapping covers alliance members only.
 - **Same run with `passthrough: true`, 53 s: completes.** 403 of 403 seats covered; NDA 273, SP+ 125, BSP 1 seats in the 2022 reference; flips sum to 403 (22 gain, 108 losing both, 141 loss, 132 winning both). The 2022 totals were not checked against an external source.
 
+- **Other grouping probe, 55 s.** The same election run with an Other grouping (kept NDA, SP+, BSP, label Other) on both endpoints returned no Other row, and the three parties' 2022 vote shares summed to 93.3%. Reading `compile_benchmark`: the per-seat table is built only for the displayed contenders, and the Other grouping folds only contenders that are not in the kept list. Parties that are not displayed never reach it. The engine's own unit test passes because it lists a non-kept party (`X`) as a contender.
+- **Alliance mapping, UP (read-only):** survey NDA (5 parties), SP+ (3), BSP (1); 2022 VS SP+ (6), NDA (3), INDI (1), BSP (1). ACTUAL contexts in the alliance table for UP: 2009 LS, 2012 VS, 2014 LS, 2017 VS, 2019 LS, 2022 VS, 2024 LS.
+
 ## 12. Not verified
 
 - The dashboard benchmark path (compile, runner, payload, UI): not built.
@@ -134,8 +144,10 @@ Run through the engine's own CLI with the example configs, not through the dashb
 - Production ClickHouse performance beyond the two runs above; `EXPLAIN`.
 - The cause of the NDA/BJP+ small vote-share difference against the sample.
 
-## 13. Decisions still to confirm during planning
+## 13. Decisions still to confirm
 
-- Canonical focal and contender identity names in `cards.yaml` against the preset (`NDA`, `SP+`, `BSP` were used live).
-- Whether `seat_results` stays in the card payload (size).
+1. **How the engine gives the Other row for non-displayed parties (blocks the plan).** (a) A small addition in `MatBodh-Dash`: every competing identity not in the kept list, NOTA included, folds into Other in `summaries` and `comparisons`; winners, `seat_results` and margins stay unchanged. (b) No engine change: the dashboard passes every identity in play (survey options and mapped election parties) as contenders, with only the major parties kept; this enlarges the SQL, puts the list in the fingerprint and makes `seat_results` about 300 rows per seat, so it would be dropped from the card payload.
+2. Whether independents (`INDI`) are shown by name or folded into Other.
+3. Whether the election picker lists all seven UP contexts or only those with results in the election master.
+4. Whether `seat_results` stays in the card payload (size); forced out under 1(b).
 - Whether the dashboard's own engine adapter (`runner/engine.py`) can call the host benchmark loaders as-is, or needs a thin seam.
