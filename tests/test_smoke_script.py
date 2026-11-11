@@ -110,6 +110,31 @@ def test_single_round_has_no_compare_round():
     assert ctx.compare_round == R1 and ctx.rounds == [R1, R2]
 
 
+def test_parse_reference():
+    assert smoke.parse_reference(None) is None
+    assert smoke.parse_reference("none").kind == "none"
+    assert smoke.parse_reference("compare").kind == "compare"
+    election = smoke.parse_reference("election:2022:VS")
+    assert (election.kind, election.year, election.election_type) == ("election", 2022, "VS")
+
+
+def test_report_handles_a_benchmark_card():
+    from tests.cards.test_benchmark_compile import FakeParties
+    from tests.runner.test_service_benchmark import BenchRunner
+
+    service = smoke.build_service(_settings(), catalogue(), BenchRunner())
+    service.major_parties = FakeParties()
+    ctx = StateContext(state=STATE, level="ac", rounds=[R1, R2], compare_round=R1)
+    run_id, status, seconds = smoke.run_card(service, "benchmark.up_zone_nda", ctx,
+                                             smoke.parse_reference("election:2022:VS"))
+    assert status.state == "done", status.errors
+    lines = smoke.report(service, run_id, status, seconds)
+    assert lines[0].startswith("state=done jobs=1/1")
+    assert lines[1].startswith("family=seat_benchmark reference=2022 VS")
+    assert "default=comparison" in lines[1] and "other_rows=" in lines[1] and "dashes=0" in lines[1]
+    assert any(line.startswith("sums: ") and "min=100.0000" in line for line in lines)
+
+
 def test_report_handles_a_ranking_card():
     from tests.runner.test_service_ranking import RankRunner
 

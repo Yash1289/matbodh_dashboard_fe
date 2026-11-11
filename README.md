@@ -102,6 +102,8 @@ Prerequisites:
 - Timings are for information, not acceptance thresholds. This check has not been run
   against a live database as part of the card foundation work.
 - Exit code 0 only when the run state is `done`.
+- Benchmark cards take `--reference none|compare|election:YEAR:TYPE` and also use the real alliance
+  lookup; the report lists table sizes, Other rows, dashes and the per-group vote-share sums.
 
 ## Cards
 
@@ -154,6 +156,39 @@ other states and rounds are unverified.
 Ranking fixtures for the frontend come from the real ranking samples; the earlier round
 of the trend fixture is a synthetic variant (only R2 ranking samples exist) and its
 contract says `synthetic_later_round`.
+
+### Benchmark cards
+
+The `seat_benchmark` family compares the anchor survey round with nothing, another survey round
+or an actual election, seat by seat and by group (spec `docs/specs/2026-11-12-benchmark-cards-design.md`,
+plan `docs/plans/2026-11-12-benchmark-cards.md`). One card is one engine job
+(`cards/benchmark/compile.py`); the payload (`cards/benchmark/payload.py`, built by
+`translate.py`) carries four tables, Comparison, Seat summary, Margin buckets and Flips, and
+`web/src/cards/benchmark/BenchmarkCard.tsx` lets the user choose one. The chooser is display-only;
+the reference picker (none, the context's compare round, or an election from `config/elections.yaml`)
+is the only control that re-runs the engine. The engine owns every number.
+
+- **Major parties come from the alliance table**, per run and cached for the session
+  (`cards/benchmark/parties.py`); nothing is hardcoded and `preset.keep` is not used. The displayed
+  list is the union of both endpoints' mappings. Every other party, and NOTA, is the engine's
+  single **Other** row (this needs the engine's Other-in-summaries change, `MatBodh-Dash` cb0af39).
+  A party missing from one endpoint's mapping (for example `INDI`, mapped for 2022 VS but not for the
+  survey) is a dash with a reason on that side, never the engine's zero.
+- **A copied card that changes only `view`** shares one engine run: the engine config has no card
+  id and no view, so the fingerprint is identical (`config/cards/cards.yaml` has two such cards).
+- Election endpoints use `passthrough: true`, so unmapped historical parties compete individually.
+  An election with no alliance context, or a focal party outside the majors, makes the card
+  unavailable with a reason before any run.
+- `seat_results` and `coverage` are not in the card payload yet (sub-project 5, the investigation
+  drawer, needs them). Deferred seat-level Other items are listed in spec section 12.1.
+
+Live check (2026-11-12, Uttar Pradesh, R1 and R2, read-only, through `scripts/smoke_card.py`, VPN,
+product-owner invited): `benchmark.up_zone_nda` ended `done` with 1 job for each reference. Against
+the 2022 VS election: 50.8 s, parties BSP, INDI, NDA, SP+, 32 Other rows, 32 dashes (INDI on the survey
+side), named parties plus Other summing to 100.0000% in all 32 endpoint-groups. Against the compare
+round R1: 39.9 s, no dashes, 32 groups all 100.0000%. With no reference: 13.6 s, only the Seat summary
+and Margin buckets tables, 16 groups all 100.0000%. Timings are information only. Not verified: the
+browser against a live API, PC level, other states or elections, and the engine's NOTA share of Other.
 
 Measured payload sizes (`measure_payload.py`, standalone mode, first scenario, latest
 observation; "rows" are payload rows, not engine rows):

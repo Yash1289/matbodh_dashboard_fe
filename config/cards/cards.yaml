@@ -51,3 +51,22 @@ cards:
     scenarios: [vs_voting_intention]
     rank: {metric: support_share, party_id: NDA, level: caste, partition_by: [ac_num], top_k: 3}
     requires: {min_level: ac}
+  # Benchmarks: the major parties come from the alliance table, the rest is one Other row, and the
+  # reference (none, compare round or an election) is chosen on the card. A copy of a card that
+  # changes only `view` shows another table of the same cached engine run.
+  - id: benchmark.up_zone_nda
+    family: seat_benchmark
+    section: benchmarks
+    title: Seats by zone, NDA against the reference
+    scenarios: [vs_voting_intention]
+    benchmark: {focal_party: NDA, grouping_sets: [[], [party_zone]]}
+    view: {table: comparison}
+    requires: {min_level: ac}
+  - id: benchmark.up_zone_nda_flips
+    family: seat_benchmark
+    section: benchmarks
+    title: Seat flips by zone, NDA against the reference
+    scenarios: [vs_voting_intention]
+    benchmark: {focal_party: NDA, grouping_sets: [[], [party_zone]]}
+    view: {table: flips}
+    requires: {min_level: ac}
