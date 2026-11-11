@@ -1,5 +1,9 @@
 import { vi } from "vitest";
-import type { CardInfo, GridPayload, PlanResponse, RunStatus } from "../api/types";
+import { isRankedPayload } from "../api/types";
+import type { CardInfo, CardPayload, FamilyMeta, GridPayload, PlanResponse, RankedPayload, RunStatus } from "../api/types";
+import rankedDemographic from "./fixtures/cards/ranked_demographic_standalone.json";
+import rankedSeatStandalone from "./fixtures/cards/ranked_seat_standalone.json";
+import rankedSeatTrend from "./fixtures/cards/ranked_seat_trend.json";
 import distributionCompare from "./fixtures/cards/distribution_compare.json";
 import distributionStandalone from "./fixtures/cards/distribution_standalone.json";
 import distributionTrend from "./fixtures/cards/distribution_trend.json";
@@ -19,21 +23,36 @@ export const PAYLOADS = {
   genderStandalone: () => payloadOf(genderStandalone),
 };
 
-export const infoFor = (p: GridPayload, over: Partial<CardInfo> = {}): CardInfo => ({
-  id: p.card_id, family: p.family, section: "cards", title: `Card ${p.card_id}`, scenarios: [], cuts: [], filters: [],
-  comparison: { mode: p.mode, target: null, reference: null, delta_measures: [] },
-  caste_clubbing: false, requires: { min_level: "state" }, meta: p.meta, ...over,
+export const rankedOf = (fixture: unknown): RankedPayload => structuredClone(fixture) as RankedPayload;
+
+export const RANKED = {
+  seatStandalone: () => rankedOf(rankedSeatStandalone),
+  seatTrend: () => rankedOf(rankedSeatTrend),
+  demographic: () => rankedOf(rankedDemographic),
+};
+
+// Ranking payloads carry no lenses; the card list sends an empty family meta for them.
+const rankedMeta = (p: RankedPayload): FamilyMeta => ({
+  family: p.family, lenses: [], default_lens: "",
+  capabilities: { modes: ["standalone", "compare", "trend"], transpose: false, sort: true, details: true },
 });
 
-export const doneRun = (p: GridPayload): RunStatus => ({ state: "done", done: 1, total: 1, result: p, errors: {} });
+export const infoFor = (p: CardPayload, over: Partial<CardInfo> = {}): CardInfo => ({
+  id: p.card_id, family: p.family, section: "cards", title: `Card ${p.card_id}`, scenarios: [], cuts: [], filters: [],
+  comparison: { mode: p.mode, target: null, reference: null, delta_measures: [] },
+  caste_clubbing: false, requires: { min_level: "state" },
+  meta: isRankedPayload(p) ? rankedMeta(p) : p.meta, ...over,
+});
 
-export const planFor = (p: GridPayload, unavailable: PlanResponse["unavailable"] = []): PlanResponse => ({
+export const doneRun = (p: CardPayload): RunStatus => ({ state: "done", done: 1, total: 1, result: p, errors: {} });
+
+export const planFor = (p: CardPayload, unavailable: PlanResponse["unavailable"] = []): PlanResponse => ({
   valid: true, errors: [], unavailable, not_asked: [], coverage_mode: { grid: "independent" },
   rounds: p.rounds.items.map(({ cycle: _cycle, series: _series, ...rest }) => rest),
 });
 
 export interface CardApiOptions {
-  payloads: GridPayload[];
+  payloads: CardPayload[];
   /** Per-card overrides: the plan's unavailable list, or a custom run status. */
   unavailable?: Record<string, PlanResponse["unavailable"]>;
   runs?: Record<string, RunStatus>;

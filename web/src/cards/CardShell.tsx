@@ -29,7 +29,7 @@ function errorText(e: RunError): string {
   return e.message;
 }
 
-function downloadCsv(name: string, text: string) {
+export function downloadCsv(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
   const a = document.createElement("a");
   a.href = url;
