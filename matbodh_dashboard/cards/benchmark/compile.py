@@ -24,20 +24,33 @@ def default_reference(ctx: StateContext) -> BenchmarkReference:
     return BenchmarkReference(kind="compare" if ctx.compare_round else "none")
 
 
-def benchmark_endpoint_parties(ctx: StateContext, preset: MethodPreset, reference: BenchmarkReference,
+def benchmark_endpoint_parties(state: str, preset: MethodPreset, reference: BenchmarkReference,
                                parties: MajorPartyProvider) -> dict[str, frozenset[str]]:
     """The alliance-mapped identities of each endpoint: `target`, plus `reference` when there is one.
 
     A compare-round reference is a survey of the same state, so it shares the survey mapping.
     """
-    survey = parties.identities(ctx.state, preset.alliance_reporting_type)
+    survey = parties.identities(state, preset.alliance_reporting_type)
     out = {"target": survey}
     if reference.kind == "compare":
         out["reference"] = survey
     elif reference.kind == "election":
-        out["reference"] = parties.identities(ctx.state, preset.alliance_reporting_type,
+        out["reference"] = parties.identities(state, preset.alliance_reporting_type,
                                               year=reference.year, election_type=reference.election_type)
     return out
+
+
+def endpoint_parties_of(job_config: Mapping, state: str, preset: MethodPreset,
+                        parties: MajorPartyProvider) -> dict[str, frozenset[str]]:
+    """The same sets, recovered from a compiled job config (the runner has no context)."""
+    ref = job_config["benchmark"]["reference"]
+    if ref is None:
+        reference = BenchmarkReference(kind="none")
+    elif ref["source"] == "election":
+        reference = BenchmarkReference(kind="election", **ref["context"])
+    else:
+        reference = BenchmarkReference(kind="compare")
+    return benchmark_endpoint_parties(state, preset, reference, parties)
 
 
 def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
@@ -83,7 +96,7 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         return plan()
 
     try:
-        endpoint_parties = benchmark_endpoint_parties(ctx, preset, ref, parties)
+        endpoint_parties = benchmark_endpoint_parties(ctx.state, preset, ref, parties)
     except ValueError as exc:  # the engine's verdict, e.g. no alliance context for that election
         unavailable.append((GRID, f"Alliance mapping: {exc}"))
         return plan()
@@ -114,7 +127,8 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
     request = build_request(state=ctx.state, rounds=[r for r in rounds if r.obs_id in wanted],
                             scenarios=[scenario], grouping_sets=[], preset=preset, keep=majors)
     benchmark = {
-        "id": config.id, "seat_level": ctx.level,
+        # Not the card id: cards that differ only in their view must share one fingerprint.
+        "id": "benchmark", "seat_level": ctx.level,
         "target": {"source": "survey", "id": "target", "observation": target.obs_id,
                    "scenario": scenario},
         "reference": reference_endpoint,

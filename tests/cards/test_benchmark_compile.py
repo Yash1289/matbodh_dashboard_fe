@@ -66,7 +66,7 @@ def test_survey_vs_survey_job_config_matches_the_engine_example_shape():
     (job,) = plan.jobs
     assert (job.key, job.kind, job.part) == ("benchmark", "benchmark", "grid")
     assert job.config["benchmark"] == {
-        "id": "benchmark.test", "seat_level": "ac",
+        "id": "benchmark", "seat_level": "ac",
         "target": {"source": "survey", "id": "target", "observation": "o2", "scenario": VS},
         "reference": {"source": "survey", "id": "reference", "observation": "o1", "scenario": VS},
         "contenders": MAJORS, "focal_party": "NDA", "grouping_sets": [[], ["party_zone"]],
@@ -125,8 +125,5 @@ def test_unavailable_reasons_before_any_run(kwargs, expected):
 
 def test_view_only_difference_gives_identical_job_config():
     a = _compile(card=_card(table="comparison"))
-    b = _compile(card=_card(table="flips", id="benchmark.copy"))
-    ca, cb = dict(a.jobs[0].config), dict(b.jobs[0].config)
-    ca["benchmark"] = {k: v for k, v in ca["benchmark"].items() if k != "id"}
-    cb["benchmark"] = {k: v for k, v in cb["benchmark"].items() if k != "id"}
-    assert ca == cb
+    b = _compile(card=_card(table="flips", id="benchmark.copy"))  # another card id and view
+    assert a.jobs[0].config == b.jobs[0].config  # so the runner shares one fingerprint

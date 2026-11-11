@@ -21,8 +21,10 @@ from typing import Literal
 
 from matbodh_dashboard.cards.compile import compile_card
 from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorPartyProvider
+from matbodh_dashboard.cards.benchmark.compile import endpoint_parties_of
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
-from matbodh_dashboard.cards.config import RANKING_FAMILIES, CardConfig
+from matbodh_dashboard.cards.benchmark.translate import translate_benchmark
+from matbodh_dashboard.cards.config import BENCHMARK_FAMILIES, RANKING_FAMILIES, CardConfig
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.ranking.translate import translate_ranked
@@ -42,7 +44,7 @@ log = logging.getLogger(__name__)
 RunState = Literal["running", "done", "partial", "failed"]
 MAX_RUNS = 1000  # run handles kept in memory; the oldest are forgotten first
 
-_ENGINE_ARRAYS = ("rows", "scores", "gender_differentials")
+_ENGINE_ARRAYS = ("rows", "scores", "gender_differentials", "summaries", "comparisons")
 
 
 @dataclass(frozen=True)
@@ -72,7 +74,6 @@ class _Run:
     revision: int
     epoch: int
     jobs: dict[str, _Job] = field(default_factory=dict)
-    reference: BenchmarkReference | None = None
 
 
 class CardRunService:
@@ -119,8 +120,7 @@ class CardRunService:
             catalogue = self.catalogue
             plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
                                 parties=self.major_parties, elections=self.elections)
-            run = _Run(card_id, card, plan, catalogue.revision, self.cache.alliance_epoch(),
-                       reference=reference)
+            run = _Run(card_id, card, plan, catalogue.revision, self.cache.alliance_epoch())
             run.jobs = {j.key: _Job(j) for j in plan.jobs}
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
@@ -293,6 +293,10 @@ class CardRunService:
             metadata_revision=run.revision,
             alliance_epoch=run.epoch,
         )
+        if card.family in BENCHMARK_FAMILIES:
+            job = run.jobs["benchmark"]
+            parties = endpoint_parties_of(job.job.config, plan.state, self.preset, self.major_parties)
+            return translate_benchmark(card, job.result, job.job.config, parties, context).model_dump()
         if card.family in RANKING_FAMILIES:
             results = {_job_obs(j.job.config): j.result
                        for j in run.jobs.values() if j.status == "done"}
