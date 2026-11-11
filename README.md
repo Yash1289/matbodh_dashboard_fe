@@ -142,6 +142,15 @@ master (read-only MySQL, cached per state, level and catalogue revision) unless 
 engine row carries a name itself; a failed lookup costs only the names. The browser
 renders ranking cards with `web/src/cards/ranking/RankingCard.tsx`.
 
+Live check (2026-11-11, Uttar Pradesh, R1 and R2, read-only, product-owner approved): the four
+seeded cards all ended `done` with `party_id: NDA` accepted by the engine. AC PM net
+satisfaction 403 seats (4.7 s engine); NDA support by zone 403 seats in 15 partitions
+(3.5 s); PC PM net satisfaction from the AC survey 80 PCs (6.8 s); castes by AC support
+1213 ranks over 403 ACs, at most 3 per AC (3.1 s). A trend over R1 and R2 ran 2 jobs
+(806 ranks, no absent slots) and a compare ran 1 job (29.5 s), both with all 403 seat
+names resolved from the master and no zero-valued rank. Timings are information only;
+other states and rounds are unverified.
+
 Ranking fixtures for the frontend come from the real ranking samples; the earlier round
 of the trend fixture is a synthetic variant (only R2 ranking samples exist) and its
 contract says `synthetic_later_round`.
