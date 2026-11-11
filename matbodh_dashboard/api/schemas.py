@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
+from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.context import StateContext
 
 
@@ -14,6 +15,8 @@ class CardRequest(BaseModel):
 
     card_id: str
     context: StateContext
+    # Benchmark cards only: what the anchor survey is compared with. Other cards ignore it.
+    reference: BenchmarkReference | None = None
 
 
 class StatesResponse(BaseModel):

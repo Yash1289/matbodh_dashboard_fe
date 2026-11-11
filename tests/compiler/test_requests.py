@@ -66,6 +66,11 @@ def test_common_sets_reference_to_latest_round():
     assert _request(coverage_mode="common")["reference_observation"] == "o2"
 
 
+def test_keep_overrides_the_preset_keep_list():
+    other = _request(keep=["INDI", "NDA"])["parties"]["other_grouping"]
+    assert other == {"keep": ["INDI", "NDA"], "label": "Other"}
+
+
 def test_no_other_grouping():
     assert _request(other_grouping=False)["parties"]["other_grouping"] is None
 

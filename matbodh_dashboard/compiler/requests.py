@@ -63,6 +63,7 @@ def build_request(
     filters: Sequence[dict] = (),
     caste_clubbing: dict | None = None,
     reference_observation: str | None = None,
+    keep: Sequence[str] | None = None,
 ) -> dict:
     if not rounds:
         raise ValueError("at least one resolved round is required")
@@ -89,7 +90,7 @@ def build_request(
             "passthrough": preset.passthrough,
             "options": [],
             "other_grouping": (
-                {"keep": list(preset.keep), "label": preset.other_label}
+                {"keep": list(preset.keep if keep is None else keep), "label": preset.other_label}
                 if other_grouping
                 else None
             ),

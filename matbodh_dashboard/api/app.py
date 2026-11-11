@@ -175,7 +175,7 @@ def create_app(
         if errors:
             return _invalid(errors)
         try:
-            run_plan = service.plan(body.card_id, body.context)
+            run_plan = service.plan(body.card_id, body.context, body.reference)
         except RoundNotFound:
             raise _catalogue_changed() from None
         coverage_mode: dict[str, str | None] = {}
@@ -206,7 +206,7 @@ def create_app(
         if errors:
             return _invalid(errors)
         try:
-            return RunStarted(run_id=service.start(body.card_id, body.context))
+            return RunStarted(run_id=service.start(body.card_id, body.context, body.reference))
         except RoundNotFound:
             raise _catalogue_changed() from None
 

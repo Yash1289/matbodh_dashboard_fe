@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from matbodh_dashboard.capability import resolve_anchor, template_blockers
 from matbodh_dashboard.cards.config import (
+    BENCHMARK_FAMILIES,
     RANKING_FAMILIES,
     SEAT_DIMENSIONS,
     CardConfig,
@@ -121,7 +122,13 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
 
 
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
-                 preset: MethodPreset) -> RunPlan:
+                 preset: MethodPreset, *, reference=None, parties=None, elections=None) -> RunPlan:
+    if config.family in BENCHMARK_FAMILIES:
+        # Lazy: the benchmark compiler reuses this module's round helpers.
+        from matbodh_dashboard.cards.benchmark.compile import compile_benchmark_card
+
+        return compile_benchmark_card(config, ctx, catalogue, preset, reference=reference,
+                                      parties=parties, elections=elections)
     if config.family in RANKING_FAMILIES:
         # Lazy: the ranking compiler reuses this module's round selection.
         from matbodh_dashboard.cards.ranking.compile import compile_ranking_card

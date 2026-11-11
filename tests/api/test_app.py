@@ -65,6 +65,14 @@ def test_states_listed(client):
     assert response.json() == {"states": [STATE]}
 
 
+def test_plan_body_validates_an_optional_benchmark_reference(client):
+    payload = body()
+    payload["reference"] = {"kind": "election", "year": 2022}  # election_type missing
+    assert client.post("/cards/plan", json=payload).status_code == 422
+    payload["reference"] = {"kind": "none"}
+    assert client.post("/cards/plan", json=payload).status_code == 200
+
+
 def test_elections_endpoint_lists_options_for_a_state(service, client):
     from matbodh_dashboard.cards.benchmark.parties import ElectionOption
 

@@ -21,6 +21,7 @@ from typing import Literal
 
 from matbodh_dashboard.cards.compile import compile_card
 from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorPartyProvider
+from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.config import RANKING_FAMILIES, CardConfig
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
@@ -71,6 +72,7 @@ class _Run:
     revision: int
     epoch: int
     jobs: dict[str, _Job] = field(default_factory=dict)
+    reference: BenchmarkReference | None = None
 
 
 class CardRunService:
@@ -102,18 +104,23 @@ class CardRunService:
 
     # -- public API -------------------------------------------------------
 
-    def plan(self, card_id: str, ctx: StateContext) -> RunPlan:
-        return compile_card(self._card(card_id), ctx, self.catalogue, self.preset)
+    def plan(self, card_id: str, ctx: StateContext,
+             reference: BenchmarkReference | None = None) -> RunPlan:
+        return compile_card(self._card(card_id), ctx, self.catalogue, self.preset,
+                            reference=reference, parties=self.major_parties, elections=self.elections)
 
-    def start(self, card_id: str, ctx: StateContext) -> str:
+    def start(self, card_id: str, ctx: StateContext,
+              reference: BenchmarkReference | None = None) -> str:
         card = self._card(card_id)
         run_id = uuid.uuid4().hex
         with self._lock:
             # One snapshot: a concurrent refresh_metadata cannot mix an old plan
             # with a new revision or epoch.
             catalogue = self.catalogue
-            plan = compile_card(card, ctx, catalogue, self.preset)
-            run = _Run(card_id, card, plan, catalogue.revision, self.cache.alliance_epoch())
+            plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
+                                parties=self.major_parties, elections=self.elections)
+            run = _Run(card_id, card, plan, catalogue.revision, self.cache.alliance_epoch(),
+                       reference=reference)
             run.jobs = {j.key: _Job(j) for j in plan.jobs}
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
