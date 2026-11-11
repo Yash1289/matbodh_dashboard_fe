@@ -31,8 +31,9 @@ def demographic_card(**overrides) -> CardConfig:
 
 
 def ranked_ctx(card_id: str, obs_ids: list[str], anchor: str) -> TranslateContext:
-    items = [{"obs_id": o, "label": o, "base_name": f"2027 VS CAPI {o}", "cycle": "2027 VS",
-              "series": "CAPI", "round": int(o[1:]), "dataset_id": f"2027 VS CAPI {o}",
+    items = [{"obs_id": o, "label": f"R{o[1:]}", "base_name": f"2027 VS CAPI R{o[1:]}",
+              "cycle": "2027 VS", "series": "CAPI", "round": int(o[1:]),
+              "dataset_id": f"2027 VS CAPI R{o[1:]}",
               "version": "normal", "fallback": False, "seats": 403, "borrowed": 0,
               "seats_source": "metadata"} for o in obs_ids]
     groups = [{"cycle": "2027 VS", "series": "CAPI", "obs_ids": obs_ids}]

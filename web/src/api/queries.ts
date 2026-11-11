@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiGet, getRun, planCard, startRun } from "./client";
-import type { CardInfo, GridPayload, RunStatus, StateContext, SurveysResponse } from "./types";
+import type { CardInfo, CardPayload, GridPayload, RunStatus, StateContext, SurveysResponse } from "./types";
 
 const POLL_MS = 1500;
 
@@ -39,10 +39,11 @@ export const useCardPlan = (cardId: string, ctx: StateContext | null) =>
     enabled: ctx !== null,
   });
 
-export interface CardRun {
+/** `P` is the payload type the card's family returns; grid cards are the default. */
+export interface CardRun<P extends CardPayload = GridPayload> {
   status: RunStatus | null;
-  current: GridPayload | null;
-  previous: GridPayload | null;
+  current: P | null;
+  previous: P | null;
   isStale: boolean;
   error: ApiError | null;
   refresh(): void;
@@ -60,12 +61,14 @@ interface Attempt {
 const asApiError = (e: unknown) =>
   e instanceof ApiError ? e : new ApiError(0, [], e instanceof Error ? e.message : String(e));
 
-export function useCardRun(cardId: string, ctx: StateContext | null, enabled: boolean): CardRun {
+export function useCardRun<P extends CardPayload = GridPayload>(
+  cardId: string, ctx: StateContext | null, enabled: boolean,
+): CardRun<P> {
   // Context identity by value, so an equal ctx object never restarts the run.
   const key = enabled && ctx !== null ? JSON.stringify([cardId, ctx]) : null;
   const seq = useRef(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
-  const [last, setLast] = useState<{ key: string; result: GridPayload } | null>(null);
+  const [last, setLast] = useState<{ key: string; result: P } | null>(null);
 
   const start = useCallback((k: string, restarts: number) => {
     const mine = ++seq.current;
@@ -101,7 +104,9 @@ export function useCardRun(cardId: string, ctx: StateContext | null, enabled: bo
   }, [restartPending, active, start]);
 
   const status = active !== null && poll.data !== undefined ? poll.data : null;
-  const current = status !== null && (status.state === "done" || status.state === "partial") ? status.result : null;
+  // The service returns the payload type of the card's family; the caller names it with `P`.
+  const current = (status !== null && (status.state === "done" || status.state === "partial")
+    ? status.result : null) as P | null;
   useEffect(() => {
     if (active !== null && current !== null) setLast({ key: active.key, result: current });
   }, [active, current]);

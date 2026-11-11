@@ -95,12 +95,52 @@ def build_payload(name: str) -> dict:
     return payload_from_result(load_sample(sample), name, fields, anchor, compare)
 
 
+RANKED_FIXTURES = ("ranked_seat_standalone", "ranked_seat_trend", "ranked_demographic_standalone")
+
+
+class _FixtureLabels:
+    """Synthetic seat names so the frontend tests exercise the label path; not master data."""
+
+    def labels(self, state, level, seat_ids):
+        return {i: {"name": f"Seat {i}", "zone": "Fixture zone"} for i in seat_ids}
+
+
+def build_ranked_payload(name: str) -> dict:
+    """Translate ranking samples with the real translator.
+
+    The trend fixture's earlier round is a synthetic variant of the R2 sample (only R2
+    ranking samples exist); its contract says so.
+    """
+    from matbodh_dashboard.cards.ranking.translate import translate_ranked
+    from tests.cards.ranking_helpers import demographic_card, ranked_ctx, seat_card, variant
+
+    card_id = f"fixture.{name}"
+    labels = None
+    if name == "ranked_demographic_standalone":
+        card = demographic_card(id=card_id)
+        results, obs = {"o2": load_sample("result_seat_rank_demograph.json")}, ["o2"]
+    else:
+        sample = load_sample("result_rank.json")
+        labels = _FixtureLabels()
+        if name == "ranked_seat_trend":
+            card = seat_card(id=card_id, comparison={"mode": "trend"})
+            later = variant(sample, drop_seats=("128",))
+            later["contract"] = {"synthetic_later_round": True}
+            results, obs = {"o2": sample, "o1": later}, ["o1", "o2"]
+        else:
+            card, results, obs = seat_card(id=card_id), {"o2": sample}, ["o2"]
+    return translate_ranked(card, results, ranked_ctx(card_id, obs, "o2"),
+                            labels=labels).model_dump()
+
+
 def export_fixtures(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
-    for name in FIXTURES:
+    builders = [(n, build_payload) for n in FIXTURES] + [(n, build_ranked_payload)
+                                                          for n in RANKED_FIXTURES]
+    for name, build in builders:
         path = out_dir / f"{name}.json"
-        path.write_text(json.dumps(build_payload(name), ensure_ascii=False, sort_keys=True,
+        path.write_text(json.dumps(build(name), ensure_ascii=False, sort_keys=True,
                                    separators=(",", ":")), encoding="utf-8")
         paths.append(path)
     return paths

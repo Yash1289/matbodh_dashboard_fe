@@ -2,7 +2,7 @@ import { Alert, Button, Drawer, Group, Skeleton, Stack, Text, Title } from "@man
 import { useElementSize } from "@mantine/hooks";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../api/queries";
-import type { CardInfo, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
+import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
 import { tokens } from "../theme";
 import { CardFooter } from "./CardFooter";
@@ -71,7 +71,7 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
   );
 
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
-  const Body = FAMILY_BODIES[info.family];
+  const Body = FAMILY_BODIES[info.family as GridFamily]; // CardsPage routes ranking families to RankingCard
   const bodyOf = (p: GridPayload, v: FamilyView) => (
     <Body payload={p} view={v} onView={onView} rules={presentationRules} order={order} colors={colors} />
   );

@@ -4,7 +4,8 @@ import planScoreboard from "../test/fixtures/plan_scoreboard.json";
 import runRunning from "../test/fixtures/run_running.json";
 import surveys from "../test/fixtures/surveys.json";
 import { PAYLOADS, doneRun } from "../test/cardApi";
-import type { PlanResponse, RunStatus, SurveysResponse } from "./types";
+import rankedTrend from "../test/fixtures/cards/ranked_seat_trend.json";
+import { isRankedPayload, type CardPayload, type PlanResponse, type RunStatus, type SurveysResponse } from "./types";
 
 // JSON imports widen string-literal unions to `string`, so cast through
 // helpers; the shape is still asserted at runtime below.
@@ -32,6 +33,17 @@ describe("fixtures match the API types", () => {
       expect(asRun(doneRun(p)).result?.rounds.items.length).toBeGreaterThan(0);
     }
     expect(asRun(runRunning).result).toBeNull();
+  });
+
+  it("ranked payloads are told from grid payloads", () => {
+    const ranked = rankedTrend as unknown as CardPayload;
+    expect(isRankedPayload(ranked)).toBe(true);
+    if (isRankedPayload(ranked)) {
+      expect(ranked.mode).toBe("trend");
+      expect(ranked.entities.length).toBeGreaterThan(0);
+      expect(ranked.absent.map((a) => a.reason)).toEqual(["not_ranked"]);
+    }
+    expect(isRankedPayload(PAYLOADS.distributionStandalone())).toBe(false);
   });
 
   it("surveys", () => {

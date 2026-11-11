@@ -28,12 +28,30 @@ def exported(tmp_path_factory):
     return {p.name: json.loads(p.read_text(encoding="utf-8")) for p in paths}
 
 
+RANKED = {"ranked_seat_standalone.json", "ranked_seat_trend.json",
+          "ranked_demographic_standalone.json"}
+
+
 def test_export_writes_one_fixture_per_mode_and_family(exported):
-    assert set(exported) == EXPECTED
+    assert set(exported) == EXPECTED | RANKED
+
+
+def test_ranked_fixtures_validate_and_label_the_synthetic_round(exported):
+    from matbodh_dashboard.cards.ranking.payload import RankedPayload
+
+    for name in RANKED:
+        payload = RankedPayload.model_validate(exported[name])
+        assert payload.ranks and payload.entities, name
+    trend = RankedPayload.model_validate(exported["ranked_seat_trend.json"])
+    assert trend.contracts["o1"] == {"synthetic_later_round": True}
+    assert [(a.entity, a.round, a.reason) for a in trend.absent] == [("128", "o1", "not_ranked")]
+    assert any("name" in e.labels for e in trend.entities)  # names exercise the label path
 
 
 def test_every_fixture_is_a_valid_grid_payload(exported):
     for name, payload in exported.items():
+        if name in RANKED:
+            continue
         GridPayload.model_validate(payload)
         assert payload["cuts"] and payload["columns"], name
 

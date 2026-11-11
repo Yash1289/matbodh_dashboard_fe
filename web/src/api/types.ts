@@ -51,7 +51,7 @@ export interface RunStatus {
   state: "running" | "done" | "partial" | "failed";
   done: number;
   total: number;
-  result: GridPayload | null;
+  result: CardPayload | null;
   errors: Record<string, RunError>;
 }
 
@@ -91,7 +91,9 @@ export interface PresentationRules {
 }
 
 // --- Card payload: mirrors matbodh_dashboard/cards/payload.py -------------------------
-export type Family = "distribution" | "opinion" | "gender_differential";
+export type GridFamily = "distribution" | "opinion" | "gender_differential";
+export type RankingFamily = "seat_ranking" | "demographic_ranking";
+export type Family = GridFamily | RankingFamily;
 export type CardMode = "standalone" | "compare" | "trend";
 export type LensUnit = "percentage" | "percentage_points";
 
@@ -148,6 +150,72 @@ export interface GridPayload {
   alliance_epoch: number;
 }
 
+// --- Ranked payload: mirrors matbodh_dashboard/cards/ranking/payload.py -----------------
+export type AbsentReason = "outside_top_k" | "not_ranked" | "round_failed";
+export interface RankedEntity { key: string; labels: Record<string, string | null> }
+export interface RankedGroup {
+  key: string;
+  partition: Record<string, string | null>;
+  entities: string[]; // entity keys in display order (anchor rank, then engine order)
+  eligible_count: Record<string, number | null>; // by observation id
+}
+export interface RankedValue {
+  entity: string;
+  group: string;
+  round: string;
+  rank: number | null;
+  value: number | null;
+  target_value: number | null;
+  reference_value: number | null;
+  target_base: number | null;
+  reference_base: number | null;
+  weighted_denominator: number | null;
+  unweighted_base: number | null;
+  status: string;
+  flags: string[];
+}
+export interface AbsentSlot { entity: string; group: string; round: string; reason: AbsentReason }
+export interface RankedPayload {
+  kind: "ranked";
+  family: RankingFamily;
+  card_id: string;
+  mode: CardMode;
+  state: string;
+  rounds: RoundsBlock;
+  entity_kind: "seat" | "demographic";
+  level: string;
+  partition_by: string[];
+  top_k: number | null;
+  direction: string | null;
+  unit: string | null;
+  groups: RankedGroup[];
+  entities: RankedEntity[];
+  ranks: RankedValue[];
+  absent: AbsentSlot[];
+  unavailable: PartReason[];
+  not_asked: NotAsked[];
+  coverage: { job: string; part: string; coverage: Record<string, unknown> | string }[];
+  contracts: Record<string, Record<string, unknown>>;
+  rules_version: string | number;
+  engine_version: string;
+  metadata_revision: number;
+  alliance_epoch: number;
+}
+
+/** What /runs returns for any card: a grid or a ranking. */
+export type CardPayload = GridPayload | RankedPayload;
+export const isRankedPayload = (p: CardPayload): p is RankedPayload => "kind" in p && p.kind === "ranked";
+export const isRankingFamily = (f: Family): f is RankingFamily => f === "seat_ranking" || f === "demographic_ranking";
+
+export interface RankInfo {
+  metric: string;
+  party_id: string | null;
+  level: string;
+  partition_by: string[];
+  filters: CardFilterConfig[];
+  top_k: number | null;
+}
+
 export interface CardFilterConfig { field: string; operator: "in" | "not_in"; values: string[] }
 export interface CardInfo {
   id: string;
@@ -161,4 +229,5 @@ export interface CardInfo {
   caste_clubbing: boolean;
   requires: { min_level: "state" | "ac" };
   meta: FamilyMeta;
+  rank?: RankInfo | null; // ranking families only
 }
