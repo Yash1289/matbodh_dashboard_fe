@@ -36,8 +36,8 @@ Each card has two separate layers:
 | # | Sub-project |
 |---|---|
 | 1 | **This spec**: foundation + Distribution, Opinion, Gender differential |
-| 2 | Runner fan-out: one engine job per round (needed by ranking and benchmark; `AnalysisResult` already accepts many rounds in one request, so this spec does not need it) |
-| 3 | Seat ranking and demographic ranking cards |
+| 2 | ~~Runner fan-out~~ folded into sub-project 3 (2026-11-11): analysis cards need none; only ranking and benchmark results hold one operation per job |
+| 3 | Seat ranking and demographic ranking cards, with the per-round job merge: `2026-11-11-ranking-cards-design.md` |
 | 4 | Benchmark card |
 | 5 | Relationship (transition) card and selection wrapper, including the investigation drawer |
 | 6 | Configure modal (sentence builder) and live option lists |
