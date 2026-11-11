@@ -103,3 +103,10 @@ def test_ranking_families_are_registered():
     assert spec.lenses == ()
     assert family_meta(spec).family == "seat_ranking"
     assert get_family("demographic_ranking").lenses == ()
+
+
+def test_demographic_ranking_rejects_seat_attribute_filters():
+    # The engine forbids ranking.filters for demographic ranking; respondent filters
+    # belong on the card (final review).
+    with pytest.raises(ValueError, match=r"rank\.filters"):
+        demographic({"filters": [{"field": "ac_type", "values": ["Battleground"]}]})

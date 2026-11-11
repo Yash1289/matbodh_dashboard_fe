@@ -112,3 +112,12 @@ def test_a_seat_label_provider_names_the_seats(rules, cache):
     service.seat_labels = Names()
     status = service.status(service.start(STANDALONE.id, ctx()))
     assert [e["labels"]["name"] for e in status.result["entities"]] == ["Seat 1", "Seat 2", "Seat 3"]
+
+
+def test_the_anchors_error_message_comes_first_and_every_failed_job_is_listed(rules, cache):
+    runner = RankRunner({"o1": [ValueError("round one problem")], "o2": [ValueError("anchor problem")]})
+    service = service_with(rules, cache, runner)
+    status = service.status(service.start(TREND.id, ctx()))
+    assert status.state == "failed" and status.result is None
+    assert status.errors["grid"]["message"] == "anchor problem"
+    assert sorted(status.errors["grid"]["jobs"]) == ["rank:o1", "rank:o2"]

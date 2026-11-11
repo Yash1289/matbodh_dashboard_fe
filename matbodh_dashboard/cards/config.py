@@ -155,6 +155,9 @@ class CardConfig(_Strict):
             if self.filters:
                 raise ValueError("seat ranking takes no respondent filters; use rank.filters for seat attributes")
             return
+        if rank.filters:
+            raise ValueError("demographic ranking takes respondent filters on the card, "
+                             "not in rank.filters")
         if rank.level in rank.partition_by:
             raise ValueError("ranking level and partition fields must be distinct")
         if rank.top_k is None or rank.top_k > TOP_K_MAX:

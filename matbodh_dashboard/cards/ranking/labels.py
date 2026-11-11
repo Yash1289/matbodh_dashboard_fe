@@ -5,6 +5,7 @@ are looked up as small metadata; a name the engine row itself carries always win
 """
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Sequence
 from typing import Any, Literal, Protocol
 
@@ -24,17 +25,29 @@ class MasterSeatLabels:
     """
 
     def __init__(self, snapshot: Callable[[str, str, tuple[str, ...]], Any],
-                 revision: Callable[[], int]) -> None:
+                 revision: Callable[[], int], *,
+                 clock: Callable[[], float] = time.monotonic, failure_ttl: float = 60.0) -> None:
         self._snapshot = snapshot
         self._revision = revision
+        self._clock = clock
+        self._failure_ttl = failure_ttl
         self._cache: dict[tuple[str, str, int], dict[int, dict[str, str]]] = {}
+        self._failed: dict[tuple[str, str, int], tuple[float, Exception]] = {}
 
     def labels(self, state: str, level: Level, seat_ids: Sequence[int]) -> dict[int, dict[str, str]]:
         revision = self._revision()
         key = (state, level, revision)
         if key not in self._cache:
+            failed = self._failed.get(key)
+            if failed is not None and self._clock() - failed[0] < self._failure_ttl:
+                # An unreachable master costs one slow attempt per interval, not one per render.
+                raise failed[1]
             self._cache = {k: v for k, v in self._cache.items() if k[2] == revision}
-            self._cache[key] = self._load(state, level)
+            try:
+                self._cache[key] = self._load(state, level)
+            except Exception as exc:
+                self._failed = {key: (self._clock(), exc)}
+                raise
         table = self._cache[key]
         return {i: table[i] for i in seat_ids if i in table}
 

@@ -232,7 +232,7 @@ class CardRunService:
         jobs = list(run.jobs.values())
         finished = [j for j in jobs if j.status in ("done", "failed")]
         errors: dict[str, dict] = {}
-        for j in jobs:
+        for j in _anchor_first(run, jobs):
             if j.status == "failed" and j.error is not None:
                 kind = j.error["kind"]
                 entry = errors.setdefault(j.job.part, {
@@ -303,6 +303,15 @@ def _ranking_anchor(run: _Run, planned: str) -> str:
         return planned
     order = [r.obs_id for r in run.plan.rounds]
     return max(asked, key=order.index)
+
+
+def _anchor_first(run: _Run, jobs: list[_Job]) -> list[_Job]:
+    """Failed ranking jobs share one error entry; the anchor's message, which fails the card, leads."""
+    if run.card.family not in RANKING_FAMILIES:
+        return jobs
+    by_name = {r.identity.base_name: r.obs_id for r in run.plan.rounds}
+    anchor = _ranking_anchor(run, by_name[run.plan.anchor])
+    return sorted(jobs, key=lambda j: _job_obs(j.job.config) != anchor)
 
 
 def _ranking_anchor_failed(run: _Run) -> bool:

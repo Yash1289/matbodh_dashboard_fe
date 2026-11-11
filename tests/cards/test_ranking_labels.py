@@ -102,3 +102,23 @@ def test_master_labels_cache_follows_the_revision():
     revision[0] = 2
     labels.labels("UP", "ac", [1])
     assert len(calls) == 2
+
+
+def test_a_failed_master_lookup_is_not_retried_on_every_call():
+    import pytest
+
+    calls, now = [], [0.0]
+
+    def load(state, level, attrs):
+        calls.append(1)
+        raise RuntimeError("mysql down")
+
+    labels = MasterSeatLabels(load, lambda: 1, clock=lambda: now[0], failure_ttl=60)
+    for _ in range(3):
+        with pytest.raises(RuntimeError):
+            labels.labels("UP", "ac", [1])
+    assert len(calls) == 1  # the outage costs one slow attempt, not one per card render
+    now[0] = 61.0
+    with pytest.raises(RuntimeError):
+        labels.labels("UP", "ac", [1])
+    assert len(calls) == 2

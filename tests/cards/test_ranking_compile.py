@@ -137,3 +137,24 @@ def test_seeded_pc_card_is_available_on_a_pc_designed_survey():
     card = load_cards(ROOT / "config/cards/cards.yaml")["ranking.pc_pm_net"]
     plan = _compile(card, level="pc")
     assert plan.unavailable == () and [j.key for j in plan.jobs] == ["rank"]
+
+
+def test_party_outside_the_preset_keep_list_is_unavailable_not_silently_zero():
+    # Parties outside `keep` fold into Other, so the engine would rank the focal party at 0
+    # in every seat; the card must say so instead (final review).
+    card = _demographic(rank={"metric": "support_share", "party_id": "BJP+", "level": "caste",
+                              "partition_by": ["ac_num"], "top_k": 3})
+    plan = _compile(card)
+    assert plan.jobs == ()
+    assert any("BJP+" in reason and "NDA" in reason for _, reason in plan.unavailable)
+
+
+def test_compare_over_rounds_with_different_seat_coverage_uses_common_coverage():
+    # R1 covers 380 ACs, R3 403: the grid compare already switches to common coverage, and
+    # the engine's ranking raises on mismatched coverage otherwise (final review).
+    card = _seat(scenarios=[], comparison={
+        "mode": "compare", "target": {"scenario": PM},
+        "reference": {"round": "compare", "scenario": PM}})
+    (job,) = _compile(card).jobs
+    request = job.config["request"]
+    assert request["coverage_mode"] == "common" and request["reference_observation"] == "o1"

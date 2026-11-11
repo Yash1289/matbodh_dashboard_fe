@@ -7,8 +7,9 @@ from __future__ import annotations
 
 from matbodh_dashboard.capability import capabilities, resolve_anchor, template_blockers
 from matbodh_dashboard.cards.compile import GRID, _select, _Selection
-from matbodh_dashboard.cards.config import CardConfig, comparison_kind, scenario_kind
+from matbodh_dashboard.cards.config import SEAT_DIMENSIONS, CardConfig, comparison_kind, scenario_kind
 from matbodh_dashboard.catalogue.store import Catalogue
+from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
 from matbodh_dashboard.compiler.rounds import ResolvedRound, resolve_rounds
@@ -66,6 +67,10 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
     if not demographic and rank.level not in capabilities(ctx.level).seat_levels:
         unavailable.append((GRID, f"{rank.level.upper()}-level ranking is not available for "
                                   f"{ctx.level.upper()}-level surveys"))
+    if rank.party_id is not None and rank.party_id not in preset.keep:
+        # Parties outside `keep` fold into Other, so the engine would rank this one at zero everywhere.
+        unavailable.append((GRID, f"Party {rank.party_id!r} is not a party this preset keeps "
+                                  f"separate ({', '.join(preset.keep)})"))
     if unavailable:
         return plan()
 
@@ -84,13 +89,20 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
     mode = config.comparison.mode
     scenario = config.scenarios[0] if mode != "compare" else None
     respondent_filters = _filters(config.filters) if demographic else []
+    # Round arithmetic needs the same seats in both rounds, as for grid compare cards.
+    geographic = not demographic or any(f in SEAT_DIMENSIONS for f in rank.partition_by)
+    coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
+                                version_mode=ctx.version_mode)
+                if mode == "compare" else "independent")
+    reference_observation = (selection.reference.obs_id
+                             if coverage == "common" and selection.reference else None)
 
     def job(key: str, used: list[ResolvedRound], round_: ResolvedRound | None,
             comparisons: list[dict], comparison_id: str | None) -> EngineJob:
         request = build_request(
             state=ctx.state, rounds=used, scenarios=list(config.scenarios), grouping_sets=[],
-            preset=preset, comparisons=comparisons, coverage_mode="independent",
-            filters=respondent_filters)
+            preset=preset, comparisons=comparisons, coverage_mode=coverage,
+            filters=respondent_filters, reference_observation=reference_observation)
         survey_level = used[0].dataset.level
         ranking = _ranking(config, round_, scenario, comparison_id, survey_level)
         return EngineJob(key, "analysis", GRID, view_config(request, preset, ranking=ranking))
