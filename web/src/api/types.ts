@@ -93,7 +93,8 @@ export interface PresentationRules {
 // --- Card payload: mirrors matbodh_dashboard/cards/payload.py -------------------------
 export type GridFamily = "distribution" | "opinion" | "gender_differential";
 export type RankingFamily = "seat_ranking" | "demographic_ranking";
-export type Family = GridFamily | RankingFamily;
+export type BenchmarkFamily = "seat_benchmark";
+export type Family = GridFamily | RankingFamily | BenchmarkFamily;
 export type CardMode = "standalone" | "compare" | "trend";
 export type LensUnit = "percentage" | "percentage_points";
 
@@ -202,8 +203,68 @@ export interface RankedPayload {
   alliance_epoch: number;
 }
 
-/** What /runs returns for any card: a grid or a ranking. */
-export type CardPayload = GridPayload | RankedPayload;
+// --- Benchmark payload: mirrors matbodh_dashboard/cards/benchmark/payload.py ---------------
+export type BenchmarkTable = "comparison" | "summary" | "margin_buckets" | "flips";
+export type BenchmarkSide = "target" | "reference";
+export interface BenchmarkGroup { set_id: string; dimensions: Record<string, string> }
+export interface BenchmarkSummaryRow {
+  endpoint: BenchmarkSide;
+  group: BenchmarkGroup;
+  party: string;
+  eligible_seats: number;
+  seats: number | null;
+  seat_share: number | null;
+  vote_share: number | null;
+  support_mass: number | null;
+  support_base: number | null;
+  absent: "not_in_endpoint_mapping" | null;
+}
+export interface BenchmarkComparisonRow {
+  group: BenchmarkGroup;
+  party: string;
+  eligible_seats: number;
+  target_vote_share: number | null;
+  reference_vote_share: number | null;
+  vote_share_delta_pp: number | null;
+  target_seats: number | null;
+  reference_seats: number | null;
+  seat_delta: number | null;
+  seat_share_delta_pp: number | null;
+  absent_sides: BenchmarkSide[];
+}
+export interface BenchmarkBucketRow { endpoint: BenchmarkSide; group: BenchmarkGroup; bucket: string; seats: number; eligible_seats: number }
+export interface BenchmarkFlipRow { group: BenchmarkGroup; bucket: string; seats: number; eligible_seats: number }
+export interface BenchmarkReference { kind: "none" | "compare" | "election"; year?: number; election_type?: "LS" | "VS" }
+export interface ElectionOption { year: number; election_type: "LS" | "VS"; label: string }
+export interface BenchmarkPayload {
+  kind: "benchmark";
+  family: BenchmarkFamily;
+  card_id: string;
+  state: string;
+  rounds: RoundsBlock;
+  reference: { kind: BenchmarkReference["kind"]; label: string | null };
+  focal_party: string | null;
+  parties: string[]; // the major parties; Other is separate
+  other_label: string;
+  endpoint_parties: Record<string, string[]>;
+  tables_available: BenchmarkTable[];
+  default_table: BenchmarkTable;
+  comparisons: BenchmarkComparisonRow[];
+  summaries: BenchmarkSummaryRow[];
+  margin_buckets: BenchmarkBucketRow[];
+  flips: BenchmarkFlipRow[];
+  contract: Record<string, unknown>;
+  unavailable: PartReason[];
+  rules_version: string | number;
+  engine_version: string;
+  metadata_revision: number;
+  alliance_epoch: number;
+}
+
+/** What /runs returns for any card: a grid, a ranking or a benchmark. */
+export type CardPayload = GridPayload | RankedPayload | BenchmarkPayload;
+export const isBenchmarkPayload = (p: CardPayload): p is BenchmarkPayload => "kind" in p && p.kind === "benchmark";
+export const isBenchmarkFamily = (f: Family): f is BenchmarkFamily => f === "seat_benchmark";
 export const isRankedPayload = (p: CardPayload): p is RankedPayload => "kind" in p && p.kind === "ranked";
 export const isRankingFamily = (f: Family): f is RankingFamily => f === "seat_ranking" || f === "demographic_ranking";
 
@@ -230,4 +291,5 @@ export interface CardInfo {
   requires: { min_level: "state" | "ac" };
   meta: FamilyMeta;
   rank?: RankInfo | null; // ranking families only
+  view?: { table: BenchmarkTable | null } | null; // benchmark family only
 }

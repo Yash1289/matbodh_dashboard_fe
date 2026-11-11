@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiGet, getRun, planCard, startRun } from "./client";
-import type { CardInfo, CardPayload, GridPayload, RunStatus, StateContext, SurveysResponse } from "./types";
+import type {
+  BenchmarkReference, CardInfo, CardPayload, ElectionOption, GridPayload, RunStatus, StateContext, SurveysResponse,
+} from "./types";
 
 const POLL_MS = 1500;
 
@@ -32,10 +34,19 @@ export const useCards = (section?: string) =>
     staleTime: Infinity,
   });
 
-export const useCardPlan = (cardId: string, ctx: StateContext | null) =>
+/** The elections a benchmark card's reference picker lists for a state. */
+export const useElections = (state: string | null) =>
   useQuery({
-    queryKey: ["plan", cardId, ctx],
-    queryFn: () => planCard(cardId, ctx as StateContext),
+    queryKey: ["elections", state],
+    queryFn: () => apiGet<ElectionOption[]>(`/catalogue/${encodeURIComponent(state ?? "")}/elections`),
+    enabled: state !== null,
+    staleTime: 5 * 60_000,
+  });
+
+export const useCardPlan = (cardId: string, ctx: StateContext | null, reference: BenchmarkReference | null = null) =>
+  useQuery({
+    queryKey: ["plan", cardId, ctx, reference],
+    queryFn: () => planCard(cardId, ctx as StateContext, reference),
     enabled: ctx !== null,
   });
 
@@ -62,10 +73,10 @@ const asApiError = (e: unknown) =>
   e instanceof ApiError ? e : new ApiError(0, [], e instanceof Error ? e.message : String(e));
 
 export function useCardRun<P extends CardPayload = GridPayload>(
-  cardId: string, ctx: StateContext | null, enabled: boolean,
+  cardId: string, ctx: StateContext | null, enabled: boolean, reference: BenchmarkReference | null = null,
 ): CardRun<P> {
   // Context identity by value, so an equal ctx object never restarts the run.
-  const key = enabled && ctx !== null ? JSON.stringify([cardId, ctx]) : null;
+  const key = enabled && ctx !== null ? JSON.stringify([cardId, ctx, reference]) : null;
   const seq = useRef(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [last, setLast] = useState<{ key: string; result: P } | null>(null);
@@ -73,10 +84,10 @@ export function useCardRun<P extends CardPayload = GridPayload>(
   const start = useCallback((k: string, restarts: number) => {
     const mine = ++seq.current;
     setAttempt({ key: k, seq: mine, runId: null, restarts, error: null });
-    const [id, c] = JSON.parse(k) as [string, StateContext];
+    const [id, c, ref] = JSON.parse(k) as [string, StateContext, BenchmarkReference | null];
     const settle = (patch: Partial<Attempt>) =>
       setAttempt((a) => (a?.seq === mine ? { ...a, ...patch } : a));
-    startRun(id, c).then((runId) => settle({ runId }), (e: unknown) => settle({ error: asApiError(e) }));
+    startRun(id, c, ref).then((runId) => settle({ runId }), (e: unknown) => settle({ error: asApiError(e) }));
   }, []);
 
   useEffect(() => {
@@ -112,7 +123,7 @@ export function useCardRun<P extends CardPayload = GridPayload>(
   }, [active, current]);
 
   // From the context, not `enabled`: the previous result stays visible while a new plan is pending.
-  const ctxKey = ctx !== null ? JSON.stringify([cardId, ctx]) : null;
+  const ctxKey = ctx !== null ? JSON.stringify([cardId, ctx, reference]) : null;
   const previous = ctxKey !== null && current === null && last !== null && last.key !== ctxKey ? last.result : null;
   return {
     status,

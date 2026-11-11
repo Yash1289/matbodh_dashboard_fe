@@ -1,6 +1,7 @@
 import { Skeleton, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { useCards } from "../api/queries";
-import { isRankingFamily, type StateContext } from "../api/types";
+import { isBenchmarkFamily, isRankingFamily, type StateContext } from "../api/types";
+import { BenchmarkCard } from "../cards/benchmark/BenchmarkCard";
 import { CardShell } from "../cards/CardShell";
 import { RankingCard } from "../cards/ranking/RankingCard";
 import { useDashboardContext } from "../context/urlContext";
@@ -14,9 +15,11 @@ function CardsList({ ctx }: { ctx: StateContext }) {
     if (cards.data.length === 0) return <Text>No cards are available.</Text>;
     return (
       <SimpleGrid cols={1} spacing={tokens.layout.gap}>
-        {cards.data.map((c) => (isRankingFamily(c.family)
-          ? <RankingCard key={c.id} info={c} ctx={ctx} />
-          : <CardShell key={c.id} info={c} ctx={ctx} />))}
+        {cards.data.map((c) => (isBenchmarkFamily(c.family)
+          ? <BenchmarkCard key={c.id} info={c} ctx={ctx} />
+          : isRankingFamily(c.family)
+            ? <RankingCard key={c.id} info={c} ctx={ctx} />
+            : <CardShell key={c.id} info={c} ctx={ctx} />))}
       </SimpleGrid>
     );
   })();

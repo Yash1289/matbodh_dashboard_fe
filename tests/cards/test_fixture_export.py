@@ -33,7 +33,16 @@ RANKED = {"ranked_seat_standalone.json", "ranked_seat_trend.json",
 
 
 def test_export_writes_one_fixture_per_mode_and_family(exported):
-    assert set(exported) == EXPECTED | RANKED
+    assert set(exported) == EXPECTED | RANKED | {"benchmark_survey_vs_2022.json"}
+
+
+def test_benchmark_fixture_validates_and_keeps_engine_values(exported):
+    from matbodh_dashboard.cards.benchmark.payload import BenchmarkPayload
+
+    payload = BenchmarkPayload.model_validate(exported["benchmark_survey_vs_2022.json"])
+    nda = next(r for r in payload.comparisons if r.group.set_id == "g0" and r.party == "NDA")
+    assert (nda.target_seats, nda.reference_seats, nda.seat_delta) == (154, 273, -119)
+    assert payload.reference == {"kind": "election", "label": "2022 VS"}
 
 
 def test_ranked_fixtures_validate_and_label_the_synthetic_round(exported):
@@ -50,7 +59,7 @@ def test_ranked_fixtures_validate_and_label_the_synthetic_round(exported):
 
 def test_every_fixture_is_a_valid_grid_payload(exported):
     for name, payload in exported.items():
-        if name in RANKED:
+        if name in RANKED or name.startswith("benchmark_"):
             continue
         GridPayload.model_validate(payload)
         assert payload["cuts"] and payload["columns"], name
@@ -58,6 +67,8 @@ def test_every_fixture_is_a_valid_grid_payload(exported):
 
 def test_modes_match_the_file_names(exported):
     for name, payload in exported.items():
+        if name.startswith("benchmark_"):  # a benchmark has tables, not a card mode
+            continue
         assert name.endswith(f"_{payload['mode']}.json"), name
 
 

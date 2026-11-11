@@ -133,11 +133,41 @@ def build_ranked_payload(name: str) -> dict:
                             labels=labels).model_dump()
 
 
+BENCHMARK_FIXTURES = ("benchmark_survey_vs_2022",)
+
+
+def build_benchmark_payload(name: str) -> dict:
+    """The live UP result (survey R2 vs the 2022 VS election, Other rows) through the real translator."""
+    from matbodh_dashboard.cards.benchmark.translate import translate_benchmark
+    from matbodh_dashboard.cards.config import CardConfig
+    from tests.cards.benchmark_helpers import (
+        FIXTURE_ENDPOINT_IDS, FIXTURE_MAJORS, load_benchmark_sample)
+    from tests.cards.ranking_helpers import ranked_ctx
+
+    card_id = f"fixture.{name}"
+    card = CardConfig.model_validate({
+        "id": card_id, "family": "seat_benchmark", "section": "benchmarks", "title": "T",
+        "scenarios": ["vs_voting_intention"], "view": {"table": "comparison"},
+        "benchmark": {"focal_party": "NDA", "grouping_sets": [[], ["party_zone"]]}})
+    job = {"request": {"parties": {"other_grouping": {"keep": list(FIXTURE_MAJORS), "label": "Other"}}},
+           "benchmark": {
+               "contenders": list(FIXTURE_MAJORS), "focal_party": "NDA",
+               "target": {"source": "survey", "id": FIXTURE_ENDPOINT_IDS["target"],
+                          "observation": "o2", "scenario": "vs_voting_intention"},
+               "reference": {"source": "election", "id": FIXTURE_ENDPOINT_IDS["reference"],
+                             "context": {"year": 2022, "election_type": "VS"}}}}
+    majors = frozenset(FIXTURE_MAJORS)
+    return translate_benchmark(card, load_benchmark_sample(), job,
+                               {"target": majors, "reference": majors},
+                               ranked_ctx(card_id, ["o2"], "o2")).model_dump()
+
+
 def export_fixtures(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
-    builders = [(n, build_payload) for n in FIXTURES] + [(n, build_ranked_payload)
-                                                          for n in RANKED_FIXTURES]
+    builders = ([(n, build_payload) for n in FIXTURES] + [(n, build_ranked_payload)
+                                                           for n in RANKED_FIXTURES]
+                + [(n, build_benchmark_payload) for n in BENCHMARK_FIXTURES])
     for name, build in builders:
         path = out_dir / f"{name}.json"
         path.write_text(json.dumps(build(name), ensure_ascii=False, sort_keys=True,

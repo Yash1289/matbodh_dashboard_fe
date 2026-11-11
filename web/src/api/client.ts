@@ -1,4 +1,4 @@
-import type { PlanResponse, RunStatus, StateContext } from "./types";
+import type { BenchmarkReference, PlanResponse, RunStatus, StateContext } from "./types";
 
 const BASE = "/api";
 const HEADERS = { "X-Dashboard-User": "anonymous" };
@@ -43,11 +43,17 @@ export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
     body: JSON.stringify(body),
   });
 
-export const planCard = (cardId: string, ctx: StateContext): Promise<PlanResponse> =>
-  apiPost<PlanResponse>("/cards/plan", { card_id: cardId, context: ctx });
+// `reference` only exists for benchmark cards; it is left out of the body when absent.
+const cardBody = (cardId: string, ctx: StateContext, reference?: BenchmarkReference | null) =>
+  ({ card_id: cardId, context: ctx, ...(reference ? { reference } : {}) });
 
-export const startRun = async (cardId: string, ctx: StateContext): Promise<string> =>
-  (await apiPost<{ run_id: string }>("/cards/run", { card_id: cardId, context: ctx })).run_id;
+export const planCard = (cardId: string, ctx: StateContext, reference?: BenchmarkReference | null): Promise<PlanResponse> =>
+  apiPost<PlanResponse>("/cards/plan", cardBody(cardId, ctx, reference));
+
+export const startRun = async (
+  cardId: string, ctx: StateContext, reference?: BenchmarkReference | null,
+): Promise<string> =>
+  (await apiPost<{ run_id: string }>("/cards/run", cardBody(cardId, ctx, reference))).run_id;
 
 export const getRun = (runId: string): Promise<RunStatus> =>
   apiGet<RunStatus>(`/runs/${encodeURIComponent(runId)}`);
