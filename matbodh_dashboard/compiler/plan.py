@@ -19,7 +19,7 @@ from matbodh_dashboard.compiler.rounds import ResolvedRound
 @dataclass(frozen=True)
 class EngineJob:
     key: str
-    kind: Literal["analysis", "benchmark"]
+    kind: Literal["analysis", "benchmark", "relationship"]
     part: str  # "grid" for the card families
     config: dict
 

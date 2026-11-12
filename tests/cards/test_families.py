@@ -85,3 +85,9 @@ def test_payload_rejects_unknown_fields():
     with pytest.raises(ValidationError):
         CellValue(row="r", column="c", round=None, lens="support_share", value=1.0,
                   status="available", surprise=True)
+
+
+def test_relationship_family_is_registered_without_lenses():
+    spec = get_family("relationship")
+    assert spec.lenses == () and spec.default_lens == ""
+    assert family_meta(spec).capabilities.modes == ["standalone", "trend"]

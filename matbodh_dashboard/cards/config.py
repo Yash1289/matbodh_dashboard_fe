@@ -13,11 +13,14 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Family = Literal["distribution", "opinion", "gender_differential",
-                 "seat_ranking", "demographic_ranking", "seat_benchmark"]
+                 "seat_ranking", "demographic_ranking", "seat_benchmark", "relationship"]
 Mode = Literal["standalone", "compare", "trend"]
 RANKING_FAMILIES = frozenset({"seat_ranking", "demographic_ranking"})
 BENCHMARK_FAMILIES = frozenset({"seat_benchmark"})
+RELATIONSHIP_FAMILIES = frozenset({"relationship"})
 BenchmarkTable = Literal["comparison", "summary", "margin_buckets", "flips"]
+RelationshipTable = Literal["summary", "matrix"]
+RecalledStatus = Literal["Did Not Vote", "Do Not Remember"]
 RankMetric = Literal["support_share", "net_score", "positive_share", "negative_share"]
 # Demographic rankings are always bounded: top_k 1..TOP_K_MAX within each partition.
 TOP_K_MAX = 5
@@ -89,6 +92,25 @@ class BenchmarkViewConfig(_Strict):
     table: BenchmarkTable | None = None
 
 
+class RelationshipConfig(_Strict):
+    """The engine part of a relationship card: everything here changes the engine run.
+
+    The joint weight is always the base weight (spec section 2.2); the focal party must be an
+    alliance identity, checked at compile time against the alliance table.
+    """
+
+    origin: str
+    destination: str
+    focal_party: str | None = None
+    include_recalled: dict[Literal["origin", "destination"], list[RecalledStatus]] = Field(default_factory=dict)
+
+
+class RelationshipViewConfig(_Strict):
+    """The display part of a relationship card: never part of the engine config or its fingerprint."""
+
+    table: RelationshipTable | None = None
+
+
 @lru_cache(maxsize=1)
 def _scenario_catalogue():
     from matbodh_dash.catalog import default_scenarios
@@ -128,11 +150,26 @@ class CardConfig(_Strict):
     requires: Requirements = Field(default_factory=Requirements)
     rank: RankConfig | None = None
     benchmark: BenchmarkConfig | None = None
-    view: BenchmarkViewConfig | None = None
+    relationship: RelationshipConfig | None = None
+    view: BenchmarkViewConfig | RelationshipViewConfig | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _view_class_by_family(cls, data):
+        """`view` means a different thing per family; pick its class before validation."""
+        if isinstance(data, dict) and isinstance(data.get("view"), dict):
+            view_class = RelationshipViewConfig if data.get("family") in RELATIONSHIP_FAMILIES else BenchmarkViewConfig
+            return {**data, "view": view_class.model_validate(data["view"])}
+        return data
 
     @model_validator(mode="after")
     def _validate(self) -> "CardConfig":
         comparison = self.comparison
+        if self.family in RELATIONSHIP_FAMILIES:
+            self._check_relationship(comparison)
+            return self
+        if self.relationship is not None:
+            raise ValueError("relationship applies to relationship cards only")
         if self.family in BENCHMARK_FAMILIES:
             self._check_benchmark(comparison)
             return self
@@ -153,6 +190,28 @@ class CardConfig(_Strict):
         if self.caste_clubbing and not any("caste" in cut for cut in self.cuts):
             raise ValueError("caste_clubbing needs caste in a cut")
         return self
+
+    def _check_relationship(self, comparison: ComparisonConfig) -> None:
+        rel = self.relationship
+        if rel is None:
+            raise ValueError("a relationship card needs a relationship block")
+        if (self.scenarios or self.rank is not None or self.benchmark is not None or self.caste_clubbing
+                or self.filters or comparison != ComparisonConfig()):
+            raise ValueError("a relationship card takes no scenarios, comparison, caste_clubbing, filters, "
+                             "rank or benchmark; its two scenarios are in the relationship block")
+        if self.view is not None and not isinstance(self.view, RelationshipViewConfig):
+            raise ValueError("a relationship card's view must be a relationship view (summary or matrix)")
+        if rel.origin == rel.destination:
+            raise ValueError("relationship origin and destination must differ")
+        for scenario in (rel.origin, rel.destination):
+            if scenario_kind(scenario) != "party":
+                raise ValueError(f"relationship scenario {scenario!r} must be a party scenario")
+        catalogue = _scenario_catalogue()
+        for endpoint, statuses in rel.include_recalled.items():
+            if statuses and catalogue[getattr(rel, endpoint)].role != "recalled_vote":
+                raise ValueError(f"include_recalled applies to a recalled endpoint; "
+                                 f"{getattr(rel, endpoint)!r} is not recalled")
+        self._check_cuts()
 
     def _check_benchmark(self, comparison: ComparisonConfig) -> None:
         if self.benchmark is None:
