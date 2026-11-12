@@ -85,3 +85,6 @@ export function summaryRows(p: RelationshipPayload, view: RelationshipView): Sum
         .map((s) => [s.round, s])),
     }));
 }
+
+export const roundLabel = (p: RelationshipPayload, obs: string): string =>
+  p.rounds.items.find((i) => i.obs_id === obs)?.label ?? obs;
