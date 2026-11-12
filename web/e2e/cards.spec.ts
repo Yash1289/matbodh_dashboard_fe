@@ -134,7 +134,7 @@ test("the ranking cards journey", async ({ page }) => {
   await expect(page.getByRole("table")).toHaveCount(2);
   const seat = card(page, SEAT_TREND);
   await expect(seat.locator("[data-segment]").first()).toBeVisible();
-  await expect(card(page, DEMOGRAPHIC).getByText("ac_num: 1", { exact: true })).toBeVisible();
+  await expect(card(page, DEMOGRAPHIC).getByText("AC 1", { exact: true })).toBeVisible();
   const requestsAfterLoad = calls.length;
 
   // Keyboard: Enter opens the Sort chip, a later round's rank reorders the rows, Escape returns focus.

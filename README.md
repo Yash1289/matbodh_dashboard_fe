@@ -190,6 +190,32 @@ round R1: 39.9 s, no dashes, 32 groups all 100.0000%. With no reference: 13.6 s,
 and Margin buckets tables, 16 groups all 100.0000%. Timings are information only. Not verified: the
 browser against a live API, PC level, other states or elections, and the engine's NOTA share of Other.
 
+### Relationship cards
+
+The `relationship` family shows how respondents answered two party questions of the same survey
+row, for example the recalled vote (`vs_past`) against the current choice (`vs_voting_intention`)
+(spec `docs/specs/2026-11-12-relationship-cards-design.md`, plan `docs/plans/2026-11-12-relationship-cards.md`).
+One card is one engine job (`cards/relationship/compile.py`, base joint weight only); the payload
+(`cards/relationship/payload.py`, built by `translate.py`) feeds two display tables chosen on the card
+(`web/src/cards/relationship/RelationshipCard.tsx`): **Flow summary** (net flow, retention, gained and lost
+population share, acquisition; with a focal party) and **Matrix** (origin to destination pairs of the major
+parties: origin, destination and joint share, size of impact). Every chip is display-only; the engine owns every number.
+
+- **Major parties only.** They come from the alliance table (the benchmark's provider). The focal party in the
+  card config must be one of them, otherwise the card is unavailable with a reason. Shares keep the engine's
+  bases, which include smaller parties, so a matrix row does not add to 100 over the major destinations only.
+- **A major-by-major cell the engine returned no row for** is a dash reading "no respondents moved"; it is never a zero.
+- **Gender `Other` is never shown**, in any table: `config/presentation/global.yaml` has
+  `field: gender, hidden: [Other]`, applied by the presentation rules (the grid cards' single gender cut and the
+  relationship translator both read it).
+- **No cross-round comparison.** Each round is its own matrix (`cross_round_pairing: false`); a trend shows each
+  round's values side by side as pipes, never deltas.
+- Explicit party options are not used: they close the engine's answer set and fail in ClickHouse with a division by
+  zero (spec section 10).
+- Scenario-donor joint weights and `weights.external` are deferred (spec section 12).
+
+Live check: see spec section 10 (it records what was run and when).
+
 Measured payload sizes (`measure_payload.py`, standalone mode, first scenario, latest
 observation; "rows" are payload rows, not engine rows):
 
