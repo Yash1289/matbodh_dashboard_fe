@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CONTEXT_QUERY, PAYLOADS, RANKED, stubCardApi } from "../test/cardApi";
+import { CONTEXT_QUERY, PAYLOADS, RANKED, RELATIONSHIP, stubCardApi } from "../test/cardApi";
 import { renderWithProviders } from "../test/render";
 import { CardsPage } from "./CardsPage";
 
@@ -26,6 +26,14 @@ describe("CardsPage", () => {
     // Rank pipes (data-segment) exist only in the ranking card's table.
     expect(screen.getByTestId(`card:${ranked.card_id}`).querySelector("[data-segment]")).not.toBeNull();
     expect(screen.getByTestId(`card:${grid.card_id}`).querySelector("[data-segment]")).toBeNull();
+  });
+
+  it("routes relationship cards to the relationship card", async () => {
+    const rel = RELATIONSHIP.transition();
+    stubCardApi({ payloads: [rel] });
+    renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
+    expect(await screen.findByRole("heading", { name: `Card ${rel.card_id}` })).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: /Flow summary/ })).toBeInTheDocument();
   });
 
   it("shows nothing and requests nothing without a context", () => {

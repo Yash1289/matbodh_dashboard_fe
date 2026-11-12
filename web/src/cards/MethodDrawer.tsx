@@ -1,4 +1,5 @@
 import { Code, Stack, Text, Title } from "@mantine/core";
+import { RelationshipMethod } from "./relationship/RelationshipMethod";
 import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload, type CardPayload, type PlanResponse, type RunError } from "../api/types";
 
 interface Props {
@@ -23,6 +24,7 @@ export function MethodDrawer({ payload, plan, errors }: Props) {
       ))}
       {modes.length > 0 && <Title order={5}>Coverage mode</Title>}
       {modes.map(([part, mode]) => <Text key={part} size="sm">{part}: {mode ?? "—"}</Text>)}
+      {payload && isRelationshipPayload(payload) && <RelationshipMethod payload={payload} />}
       {payload && (
         <>
           <Title order={5}>Contract</Title>

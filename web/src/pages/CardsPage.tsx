@@ -1,9 +1,10 @@
 import { Skeleton, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { useCards } from "../api/queries";
-import { isBenchmarkFamily, isRankingFamily, type StateContext } from "../api/types";
+import { isBenchmarkFamily, isRankingFamily, isRelationshipFamily, type StateContext } from "../api/types";
 import { BenchmarkCard } from "../cards/benchmark/BenchmarkCard";
 import { CardShell } from "../cards/CardShell";
 import { RankingCard } from "../cards/ranking/RankingCard";
+import { RelationshipCard } from "../cards/relationship/RelationshipCard";
 import { useDashboardContext } from "../context/urlContext";
 import { tokens } from "../theme";
 
@@ -17,7 +18,9 @@ function CardsList({ ctx }: { ctx: StateContext }) {
       <SimpleGrid cols={1} spacing={tokens.layout.gap}>
         {cards.data.map((c) => (isBenchmarkFamily(c.family)
           ? <BenchmarkCard key={c.id} info={c} ctx={ctx} />
-          : isRankingFamily(c.family)
+          : isRelationshipFamily(c.family)
+            ? <RelationshipCard key={c.id} info={c} ctx={ctx} />
+            : isRankingFamily(c.family)
             ? <RankingCard key={c.id} info={c} ctx={ctx} />
             : <CardShell key={c.id} info={c} ctx={ctx} />))}
       </SimpleGrid>
