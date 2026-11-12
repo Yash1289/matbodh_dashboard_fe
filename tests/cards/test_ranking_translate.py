@@ -123,3 +123,10 @@ def test_demographic_entity_missing_from_a_later_round_is_outside_top_k():
     payload = translate_ranked(card, results, TREND_CTX)
     assert [(a.entity, a.round, a.reason) for a in payload.absent] == [
         ("caste=Other OBC", "o1", "outside_top_k")]
+
+
+def test_numeric_partitions_are_ordered_by_number_not_text():
+    sample = load_rank_sample("result_seat_rank_demograph.json")
+    payload = translate_ranked(demographic_card(), {"o2": sample}, ANCHOR_CTX)
+    numbers = [int(g.partition["ac_num"]) for g in payload.groups]
+    assert len(numbers) > 10 and numbers == sorted(numbers)

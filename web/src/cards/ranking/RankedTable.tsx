@@ -1,4 +1,4 @@
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Text } from "@mantine/core";
 import { Fragment, useMemo, useState } from "react";
 import type { AbsentReason, RankedPayload, Unit } from "../../api/types";
 import { formatValue } from "../../cells/format";
@@ -32,6 +32,10 @@ function Pipe({ slots, text }: { slots: RankedSlot[]; text: (slot: RankedSlot) =
   );
 }
 
+/** `ac_num: 12` reads "AC 12"; other dimensions keep their value with a spaced name. */
+const partitionText = (name: string, value: string | null): string =>
+  name.endsWith("_num") ? `${name.slice(0, -4).toUpperCase()} ${value ?? "—"}` : `${name.replace(/_/g, " ")}: ${value ?? "—"}`;
+
 interface Props { payload: RankedPayload; view: RankedView }
 
 /** Ranked rows grouped by partition; every number is the engine's, absent slots say why. */
@@ -41,7 +45,11 @@ export function RankedTable({ payload, view }: Props) {
   const unit = unitOf(payload);
   const labelOf = (obs: string) => payload.rounds.items.find((i) => i.obs_id === obs)?.label ?? obs;
   const all = useMemo(() => model.groups.flatMap((g) => g.rows), [model]);
-  const ties = useMemo(() => tieKeys(all, payload.rounds.anchor), [all, payload.rounds.anchor]);
+  // Ties are a property of the ranking, not of the rows a search leaves visible.
+  const ties = useMemo(
+    () => tieKeys(rankedRows(payload, { ...view, search: "" }).groups.flatMap((g) => g.rows), payload.rounds.anchor),
+    [payload, view],
+  );
   const bases = useMemo(
     () => new Map(payload.ranks.map((r) => [`${r.group}\u0000${r.entity}\u0000${r.round}`, r.unweighted_base ?? r.target_base])),
     [payload.ranks],
@@ -59,13 +67,13 @@ export function RankedTable({ payload, view }: Props) {
     const eligible = view.showDetails ? Object.values(group.eligible_count).find((n) => n !== null) : undefined;
     const header = partitioned && (
       <tr key={`g:${group.key}`}>
-        <th colSpan={3} scope="colgroup" style={{ ...cell, fontWeight: 600, background: "var(--mb-surface-alt, transparent)" }}>
-          {Object.entries(group.partition).map(([k, v]) => `${k}: ${v ?? "—"}`).join(" · ")}
+        <th colSpan={3} scope="rowgroup" style={{ ...cell, fontWeight: 600, background: "var(--mb-surface-alt, transparent)" }}>
+          {Object.entries(group.partition).map(([k, v]) => partitionText(k, v)).join(" · ")}
           {eligible !== undefined && ` · ${eligible} ranked`}
         </th>
       </tr>
     );
-    return [header, ...visible.map((row) => {
+    const rowsOut = visible.map((row) => {
       const labels = row.entity.labels;
       const rankText = (slot: RankedSlot) => {
         if (slot.kind === "absent") {
@@ -99,8 +107,14 @@ export function RankedTable({ payload, view }: Props) {
           <td style={cell}><Pipe slots={row.slots} text={valueText} /></td>
         </tr>
       );
-    })];
+    });
+    return [<tbody key={group.key}>{header}{rowsOut}</tbody>];
   });
+
+  if (model.groups.length === 0) {
+    const needle = view.search.trim();
+    return <Text size="sm" role="status">{needle === "" ? "The engine returned no ranked rows." : `No rows match “${needle}”.`}</Text>;
+  }
 
   return (
     <div>
@@ -116,7 +130,7 @@ export function RankedTable({ payload, view }: Props) {
             <th scope="col" style={cell}>Value{model.rounds.length > 1 ? ` (${model.rounds.map(labelOf).join(" | ")})` : ""}</th>
           </tr>
         </thead>
-        <tbody>{body}</tbody>
+        {body}
       </table>
       {all.length > shown && (
         <Group justify="center" mt="xs">

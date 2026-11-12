@@ -112,6 +112,17 @@ def _group_key(partition: Mapping[str, str | None]) -> str:
     return row_key([(name, value, False) for name, value in partition.items()])
 
 
+def _natural(partition: Mapping[str, str | None]) -> list[tuple]:
+    """Numbers sort as numbers (AC 2 before AC 10); text sorts as text; a NULL goes last."""
+    out = []
+    for value in partition.values():
+        try:
+            out.append((0, float(value), ""))
+        except (TypeError, ValueError):
+            out.append((2, 0.0, "") if value is None else (1, 0.0, value))
+    return out
+
+
 def translate_ranked(card: CardConfig, results: Mapping[str, dict], ctx: TranslateContext,
                      *, failed: Collection[str] = (),
                      labels: SeatLabelProvider | None = None) -> RankedPayload:
@@ -143,7 +154,7 @@ def translate_ranked(card: CardConfig, results: Mapping[str, dict], ctx: Transla
     groups: list[RankedGroup] = []
     ranks: list[RankedValue] = []
     absent: list[AbsentSlot] = []
-    for gkey in sorted(partitions):
+    for gkey in sorted(partitions, key=lambda g: (_natural(partitions[g]), g)):
         ordered = sorted(by_group[gkey], key=lambda p: (p[1].value["rank"] is None,
                                                          p[1].value["rank"] or 0, p[0]))
         keys = [row.entity for _, row in ordered]

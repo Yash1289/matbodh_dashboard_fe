@@ -121,7 +121,8 @@ describe("RankingCard", () => {
     stubCardApi({ payloads: [p] });
     mount(p);
     await screen.findByRole("table");
-    expect(screen.getByText("ac_num: 1")).toBeInTheDocument();
+    expect(screen.getByText("AC 1")).toBeInTheDocument();
+    expect(screen.queryByText(/ac_num/)).toBeNull();
     expect(screen.getAllByRole("rowheader", { name: /Other OBC/ }).length).toBeGreaterThan(0);
   });
 
@@ -144,5 +145,36 @@ describe("RankingCard", () => {
     mount(p);
     expect(await screen.findByText(/AC-level ranking is not available/)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("table")).toBeNull());
+  });
+
+  it("says so when the engine returned no ranked rows", async () => {
+    const p = RANKED.demographic();
+    p.groups = []; p.entities = []; p.ranks = []; p.absent = [];
+    stubCardApi({ payloads: [p] });
+    mount(p);
+    expect(await screen.findByText("The engine returned no ranked rows.")).toBeInTheDocument();
+  });
+
+  it("says so when a search matches nothing", async () => {
+    const p = RANKED.seatTrend();
+    stubCardApi({ payloads: [p] });
+    mount(p);
+    await screen.findByRole("table");
+    await userEvent.click(screen.getByRole("button", { name: /Search/ }));
+    await userEvent.type(await screen.findByLabelText("Search rows"), "zzzz");
+    expect(screen.getByText(/No rows match/)).toBeInTheDocument();
+  });
+
+  it("keeps the tie marker when a search hides the tied row", async () => {
+    const p = RANKED.seatStandalone();
+    const [a, b] = p.groups[0].entities;
+    p.ranks = p.ranks.map((r) => (r.entity === a || r.entity === b ? { ...r, rank: 1 } : r));
+    stubCardApi({ payloads: [p] });
+    mount(p);
+    await screen.findByRole("table");
+    const name = p.entities.find((e) => e.key === a)!.labels.name ?? `${p.entities.find((e) => e.key === a)!.labels.seat_id}`;
+    await userEvent.click(screen.getByRole("button", { name: /Search/ }));
+    await userEvent.type(await screen.findByLabelText("Search rows"), name);
+    expect(screen.getAllByLabelText(/rank 1 \(tied\)/).length).toBeGreaterThan(0);
   });
 });
