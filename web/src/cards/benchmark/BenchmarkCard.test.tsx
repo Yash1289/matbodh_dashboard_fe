@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { BenchmarkPayload, StateContext } from "../../api/types";
+import type { BenchmarkPayload, RunStatus, StateContext } from "../../api/types";
 import { BENCHMARK, infoFor, stubCardApi } from "../../test/cardApi";
 import { renderWithProviders } from "../../test/render";
 import { BenchmarkCard } from "./BenchmarkCard";
@@ -119,5 +120,52 @@ describe("BenchmarkCard", () => {
     mount(BENCHMARK.surveyVs2022());
     await screen.findByRole("table", { name: /Comparison/ });
     expect(screen.getByTestId("card-footer")).toHaveTextContent(/Other: every party outside the major list, and NOTA/);
+  });
+
+  it("clears the old subtitle, chips and method text while a new run is in progress", async () => {
+    const p = BENCHMARK.surveyVs2022();
+    const runs: Record<string, RunStatus> = {};
+    stubCardApi({ payloads: [p], elections: ELECTIONS, runs });
+    renderWithProviders(<BenchmarkCard info={infoFor(p)} ctx={CTX} />);
+    await screen.findByRole("table", { name: /Comparison/ });
+    expect(screen.getByTestId("card-subtitle")).toBeInTheDocument();
+    runs[p.card_id] = { state: "running", done: 0, total: 1, result: null, errors: {} };
+    await userEvent.click(screen.getByRole("button", { name: /Reference/ }));
+    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "none");
+    expect(await screen.findByText(/Running the benchmark/)).toBeInTheDocument();
+    expect(screen.queryByTestId("card-subtitle")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Search/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "⋯" })).toBeNull();
+  });
+
+  it("falls back to the default reference when the chosen compare round is dropped", async () => {
+    const p = BENCHMARK.surveyVs2022();
+    const f = stubCardApi({ payloads: [p], elections: ELECTIONS });
+    const Harness = () => {
+      const [ctx, setCtx] = useState<StateContext>(CTX);
+      return (
+        <>
+          <button onClick={() => setCtx({ ...CTX, compare_round: null })}>drop compare</button>
+          <BenchmarkCard info={infoFor(p)} ctx={ctx} />
+        </>
+      );
+    };
+    renderWithProviders(<Harness />);
+    await screen.findByRole("table", { name: /Comparison/ });
+    await userEvent.click(screen.getByRole("button", { name: /Reference/ }));
+    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "election:2022:VS");
+    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "compare");
+    await userEvent.click(screen.getByRole("button", { name: "drop compare" }));
+    await waitFor(() => expect(runPosts(f).length).toBe(4)); // default, election, compare, then the fallback
+    expect(runPosts(f)[3].reference ?? null).toBeNull(); // not {kind: "compare"} for a round that is gone
+  });
+
+  it("says so in words when a search matches nothing", async () => {
+    mount(BENCHMARK.surveyVs2022());
+    await screen.findByRole("table", { name: /Comparison/ });
+    await userEvent.click(screen.getByRole("button", { name: /Search/ }));
+    await userEvent.type(await screen.findByLabelText("Search rows"), "zzzz");
+    expect(await screen.findByText(/No rows match/)).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
   });
 });

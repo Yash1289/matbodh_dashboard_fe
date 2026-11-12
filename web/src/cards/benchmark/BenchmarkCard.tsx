@@ -38,14 +38,25 @@ const fromPicker = (v: string): BenchmarkReference => {
  */
 export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
   const elections = useElections(ctx.state);
-  // null = the card's default: the context's compare round when it has one, else no reference.
-  const [reference, setReference] = useState<BenchmarkReference | null>(null);
+  const referenceOptions = [
+    { value: "none", label: "No reference" },
+    ...(ctx.compare_round ? [{ value: "compare", label: `Compare round (${ctx.compare_round})` }] : []),
+    ...(elections.data ?? []).map((e) => ({ value: `election:${e.year}:${e.election_type}`, label: e.label })),
+  ];
+  // The user's choice; null = the card's default (the context's compare round when it has one, else none).
+  const [chosenReference, setReference] = useState<BenchmarkReference | null>(null);
+  // A choice the context no longer offers (compare round dropped, another state) falls back to the default.
+  // Election options are not known until the list loads, so an election choice is kept until then.
+  const offered = chosenReference === null || referenceOptions.some((o) => o.value === pickerValue(chosenReference))
+    || (chosenReference.kind === "election" && elections.data === undefined);
+  const reference = offered ? chosenReference : null;
   const plan = useCardPlan(info.id, ctx, reference);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
   const run = useCardRun<BenchmarkPayload>(info.id, ctx, plan.isSuccess && !blocked, reference);
   const status = run.status;
   const errored = plan.isError || run.error !== null || status?.state === "failed";
-  const shown = blocked || errored ? null : run.current ?? run.previous;
+  // Never the previous run's payload: its reference, subtitle and method text would describe the old choice.
+  const shown = blocked || errored ? null : run.current;
 
   const [chosen, setChosen] = useState<Partial<BenchmarkView>>({});
   const [methodOpen, setMethodOpen] = useState(false);
@@ -56,11 +67,6 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
   }, [chosen, shown]);
 
   const effective = reference ?? { kind: ctx.compare_round ? "compare" : "none" } as BenchmarkReference;
-  const referenceOptions = [
-    { value: "none", label: "No reference" },
-    ...(ctx.compare_round ? [{ value: "compare", label: `Compare round (${ctx.compare_round})` }] : []),
-    ...(elections.data ?? []).map((e) => ({ value: `election:${e.year}:${e.election_type}`, label: e.label })),
-  ];
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
 
   let body: ReactNode;
@@ -119,7 +125,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
               <PopoverChip label="Table ▾" selected={false}>
                 <NativeSelect size="xs" aria-label="Table" value={view.table}
                   data={shown.tables_available.map((t: BenchmarkTable) => ({ value: t, label: TABLE_LABELS[t] }))}
-                  onChange={(e) => setChosen((c) => ({ ...c, table: e.currentTarget.value as BenchmarkTable }))} />
+                  onChange={(e) => { const table = e.currentTarget.value as BenchmarkTable; setChosen((c) => ({ ...c, table })); }} />
               </PopoverChip>
             )}
             <PopoverChip label="Reference ▾" selected={reference !== null}>
@@ -133,7 +139,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
               <>
                 <PopoverChip label="Search ▾" selected={view.search !== ""}>
                   <TextInput size="xs" aria-label="Search rows" placeholder="Search groups or parties" value={view.search}
-                    onChange={(e) => setChosen((c) => ({ ...c, search: e.currentTarget.value }))} />
+                    onChange={(e) => { const search = e.currentTarget.value; setChosen((c) => ({ ...c, search })); }} />
                 </PopoverChip>
                 <Menu position="bottom-end">
                   <Menu.Target>

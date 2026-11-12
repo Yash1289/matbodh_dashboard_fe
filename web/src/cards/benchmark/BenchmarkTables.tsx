@@ -39,9 +39,10 @@ function Cell({ text, absent }: { text: string | null; absent: boolean }) {
   );
 }
 
-function Grid<T>({ caption, heads, groups, row }: {
-  caption: string; heads: string[]; groups: GroupRows<T>[]; row: (r: T, i: number) => ReactNode;
+function Grid<T>({ caption, heads, groups, row, search }: {
+  caption: string; heads: string[]; groups: GroupRows<T>[]; row: (r: T, i: number) => ReactNode; search: string;
 }) {
+  if (groups.length === 0) return <Text size="sm" role="status">{`No rows match “${search.trim()}”.`}</Text>;
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
       <caption style={{ textAlign: "left", color: "var(--mb-muted)", paddingBottom: 6 }}>{caption}</caption>
@@ -77,7 +78,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
   if (view.table === "comparison") {
     const groups = groupedRows(p.comparisons, parties, other, view.search);
     return (
-      <Grid caption={`Comparison · ${t} vs ${r}`} groups={groups}
+      <Grid search={view.search} caption={`Comparison · ${t} vs ${r}`} groups={groups}
         heads={["Party", `${t} vote share`, `${r} vote share`, "Δ vote share", `${t} seats`, `${r} seats`, "Δ seats"]}
         row={(x, i) => (
           <tr key={i}>
@@ -95,7 +96,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
   if (view.table === "summary") {
     const groups = groupedRows(p.summaries, parties, other, view.search);
     return (
-      <Grid caption="Seat summary" groups={groups}
+      <Grid search={view.search} caption="Seat summary" groups={groups}
         heads={["Party", "Round", "Seats won", "Seat share", "Vote share", "Eligible seats"]}
         row={(x, i) => (
           <tr key={i}>
@@ -112,7 +113,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
   if (view.table === "margin_buckets") {
     const groups = groupedRows(p.margin_buckets, parties, other, view.search);
     return (
-      <Grid caption={`Margin buckets · ${p.focal_party ?? ""}`} groups={groups}
+      <Grid search={view.search} caption={`Margin buckets · ${p.focal_party ?? ""}`} groups={groups}
         heads={["Margin", "Round", "Seats", "Eligible seats"]}
         row={(x, i) => (
           <tr key={i}><Head>{bucketLabel(x.bucket)}</Head><td style={cell}>{side(x.endpoint)}</td>
@@ -122,7 +123,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
   }
   const groups = groupedRows(p.flips, parties, other, view.search);
   return (
-    <Grid caption={`Flips · ${p.focal_party ?? ""} · ${t} vs ${r}`} groups={groups}
+    <Grid search={view.search} caption={`Flips · ${p.focal_party ?? ""} · ${t} vs ${r}`} groups={groups}
       heads={["Outcome", "Seats", "Eligible seats"]}
       row={(x, i) => (
         <tr key={i}><Head>{bucketLabel(x.bucket)}</Head><td style={cell}>{x.seats}</td><td style={cell}>{x.eligible_seats}</td></tr>
