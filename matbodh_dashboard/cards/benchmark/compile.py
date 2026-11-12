@@ -5,10 +5,12 @@ survey or election reference, and the major parties taken from the alliance mapp
 """
 from __future__ import annotations
 
+import logging
+
 from collections.abc import Mapping, Sequence
 
 from matbodh_dashboard.capability import resolve_anchor, template_blockers
-from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorPartyProvider
+from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, ElectionOption, MajorPartyProvider
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.compile import GRID, _by_base_name, _endpoint_round
 from matbodh_dashboard.cards.config import CardConfig
@@ -18,6 +20,8 @@ from matbodh_dashboard.compiler.requests import build_request, view_config
 from matbodh_dashboard.compiler.rounds import resolve_rounds
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import MethodPreset
+
+log = logging.getLogger(__name__)
 
 
 def default_reference(ctx: StateContext) -> BenchmarkReference:
@@ -100,10 +104,17 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
     except ValueError as exc:  # the engine's verdict, e.g. no alliance context for that election
         unavailable.append((GRID, f"Alliance mapping: {exc}"))
         return plan()
+    except AllianceUnavailable:  # the cause may carry hosts or settings: log it, do not show it
+        log.warning("alliance mapping unavailable for %s", ctx.state, exc_info=True)
+        unavailable.append((GRID, "The alliance mapping could not be loaded; try again shortly"))
+        return plan()
     majors = sorted(frozenset().union(*endpoint_parties.values()))
     focal = config.benchmark.focal_party
     if not majors:
         unavailable.append((GRID, "The alliance mapping gives no parties"))
+    elif preset.other_label in majors:
+        unavailable.append((GRID, f"A major party is named {preset.other_label!r}, the label of the Other row; "
+                                  "the two could not be told apart"))
     elif focal is not None and focal not in majors:
         unavailable.append((GRID, f"Focal party {focal!r} is not a major party in the alliance mapping "
                                   "and would be folded into Other"))

@@ -583,3 +583,61 @@ def test_worker_logs_type_and_fingerprint_only(cache, monkeypatch, caplog):
     assert "hunter2" not in caplog.text
     assert "fp-infra" in caplog.text and "ConnectionError" in caplog.text
     assert "hunter2" not in json.dumps(cache.error("fp-infra"))
+
+
+# -- benchmark runs: alliance lookups -------------------------------------------------------
+
+BENCH = card(id="t.bench", family="seat_benchmark", section="b", title="B",
+             benchmark={"focal_party": "NDA", "grouping_sets": [[]]}, cuts=[], scenarios=[VS])
+
+
+class _Majors:
+    def __init__(self, service_ref):
+        self.service_ref, self.down, self.held_lock = service_ref, False, []
+
+    def identities(self, state, reporting_type, *, year=None, election_type=None):
+        from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable
+        self.held_lock.append(self.service_ref[0]._lock._is_owned())
+        if self.down:
+            raise AllianceUnavailable("mysql down")
+        return frozenset({"NDA", "SP+", "BSP"})
+
+
+def _bench_service(rules, cache, monkeypatch):
+    from matbodh_dashboard.runner import service as svc
+    seen = {}
+
+    class Payload:
+        def model_dump(self):
+            return {"kind": "benchmark"}
+
+    def fake_translate(card, result, config, parties, context):
+        seen["parties"] = parties
+        return Payload()
+
+    monkeypatch.setattr(svc, "translate_benchmark", fake_translate)
+    ref: list = [None]
+    majors = _Majors(ref)
+    runner = FakeRunner()
+    queue = InlineQueue(runner, cache, sleep=lambda s: None)
+    service = CardRunService(catalogue(), PRESET, {BENCH.id: BENCH}, rules, cache, queue, "0.8.0",
+                             major_parties=majors)
+    ref[0] = service
+    return service, majors, seen
+
+
+def test_benchmark_endpoint_sets_are_fixed_at_start_so_a_later_lookup_failure_cannot_break_status(
+        rules, cache, monkeypatch):
+    service, majors, seen = _bench_service(rules, cache, monkeypatch)
+    run_id = service.start(BENCH.id, ctx())
+    majors.down = True  # the table goes away between start and assembly
+    status = service.status(run_id)
+    assert status.state == "done", status.errors
+    assert seen["parties"] == {"target": frozenset({"NDA", "SP+", "BSP"}),
+                               "reference": frozenset({"NDA", "SP+", "BSP"})}
+
+
+def test_alliance_lookups_do_not_hold_the_service_lock(rules, cache, monkeypatch):
+    service, majors, _ = _bench_service(rules, cache, monkeypatch)
+    service.start(BENCH.id, ctx())
+    assert majors.held_lock and not any(majors.held_lock)

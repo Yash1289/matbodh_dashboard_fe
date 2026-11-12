@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, ExitStack
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -17,12 +17,18 @@ from pydantic import BaseModel, ConfigDict
 ElectionType = Literal["LS", "VS"]
 
 
+class AllianceUnavailable(Exception):
+    """The alliance table could not be read (connection or setup problem), as opposed to
+    the engine's ValueError verdict that a context does not exist. The cause is not client-safe."""
+
+
 class MajorPartyProvider(Protocol):
     def identities(self, state: str, reporting_type: str, *, year: int | None = None,
                    election_type: ElectionType | None = None) -> frozenset[str]:
         """Canonical identities in the alliance mapping for a survey (no year) or an actual election.
 
-        Raises ValueError with the engine's message when no single state-level context exists.
+        Raises ValueError with the engine's message when no single state-level context exists,
+        and AllianceUnavailable when the table could not be read at all.
         """
 
 
@@ -44,9 +50,18 @@ class AllianceMajorParties:
         with self._lock:
             if key not in self._cache:
                 self._cache = {k: v for k, v in self._cache.items() if k[4] == epoch}
-                with self._factory() as session:
-                    identity = session.identity(state, reporting_type=reporting_type, year=year,
-                                                election_type=election_type)
+                with ExitStack() as stack:
+                    try:
+                        session = stack.enter_context(self._factory())
+                    except Exception as exc:  # connection or missing setting: not a verdict on the mapping
+                        raise AllianceUnavailable(str(exc)) from exc
+                    try:
+                        identity = session.identity(state, reporting_type=reporting_type, year=year,
+                                                    election_type=election_type)
+                    except ValueError:
+                        raise
+                    except Exception as exc:
+                        raise AllianceUnavailable(str(exc)) from exc
                 self._cache[key] = frozenset(identity.mapping.values())
             return self._cache[key]
 

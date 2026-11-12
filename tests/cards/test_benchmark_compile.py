@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from matbodh_dashboard.cards.benchmark.parties import ElectionOption
+from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, ElectionOption
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.compile import compile_card
 from matbodh_dashboard.cards.config import CardConfig
@@ -124,6 +124,31 @@ def test_unavailable_reasons_before_any_run(kwargs, expected):
     plan = _compile(**kwargs)
     assert plan.jobs == ()
     assert any(expected in reason for _, reason in plan.unavailable), plan.unavailable
+
+
+class _Down:
+    def identities(self, *a, **k):
+        raise AllianceUnavailable("connection to 10.0.0.5 refused")
+
+
+class _OtherNamed:
+    """An alliance mapping that happens to contain the label the engine uses for the Other row."""
+
+    def identities(self, *a, **k):
+        return frozenset({"NDA", "SP+", PRESET.other_label})
+
+
+def test_an_unreachable_alliance_table_is_unavailable_without_the_raw_error():
+    plan = _compile(parties=_Down())
+    assert plan.jobs == ()
+    (_, reason), = plan.unavailable
+    assert "could not be loaded" in reason and "10.0.0.5" not in reason
+
+
+def test_a_major_party_named_like_the_other_row_is_refused():
+    plan = _compile(card=_card(focal=None), parties=_OtherNamed())
+    assert plan.jobs == ()
+    assert any(PRESET.other_label in reason and "Other" in reason for _, reason in plan.unavailable)
 
 
 def test_pc_level_compiles_with_the_pc_seat_level():

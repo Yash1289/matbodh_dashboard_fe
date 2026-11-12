@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from matbodh_dashboard.cards.benchmark.parties import (
-    AllianceMajorParties, ElectionOption, load_elections,
+    AllianceMajorParties, AllianceUnavailable, ElectionOption, load_elections,
 )
 
 
@@ -54,6 +54,33 @@ def test_result_is_cached_per_epoch_and_refetched_after_epoch_bump():
 def test_no_alliance_context_raises_the_engines_message():
     with pytest.raises(ValueError, match="Expected one state-level alliance context"):
         provider([], [1], fail=True).identities("UP", "MatBodh", year=1999, election_type="LS")
+
+
+def test_connection_failure_is_unavailable_not_cached_and_refetched():
+    calls: list = []
+    state = {"down": True}
+
+    @contextmanager
+    def factory():
+        if state["down"]:
+            raise ConnectionError("mysql unreachable")
+        yield FakeSession(calls)
+
+    p = AllianceMajorParties(factory, lambda: 1)
+    with pytest.raises(AllianceUnavailable):
+        p.identities("UP", "MatBodh")
+    state["down"] = False
+    assert p.identities("UP", "MatBodh") == frozenset({"NDA", "SP+"})
+
+
+def test_missing_setting_while_connecting_is_unavailable_not_the_engines_verdict():
+    @contextmanager
+    def factory():
+        raise ValueError("MYSQL_HOST is not set")
+        yield
+
+    with pytest.raises(AllianceUnavailable):
+        AllianceMajorParties(factory, lambda: 1).identities("UP", "MatBodh")
 
 
 def test_load_elections_reads_options_with_labels(tmp_path):

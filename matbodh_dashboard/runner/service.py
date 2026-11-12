@@ -74,6 +74,8 @@ class _Run:
     revision: int
     epoch: int
     jobs: dict[str, _Job] = field(default_factory=dict)
+    # Benchmark only: the alliance-mapped identities per endpoint, fixed when the run starts.
+    endpoint_parties: dict[str, frozenset[str]] | None = None
 
 
 class CardRunService:
@@ -117,11 +119,17 @@ class CardRunService:
         with self._lock:
             # One snapshot: a concurrent refresh_metadata cannot mix an old plan
             # with a new revision or epoch.
-            catalogue = self.catalogue
-            plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
-                                parties=self.major_parties, elections=self.elections)
-            run = _Run(card_id, card, plan, catalogue.revision, self.cache.alliance_epoch())
-            run.jobs = {j.key: _Job(j) for j in plan.jobs}
+            catalogue, epoch = self.catalogue, self.cache.alliance_epoch()
+        # Compiling may read the alliance table (a MySQL connect can take seconds): not under the lock.
+        plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
+                            parties=self.major_parties, elections=self.elections)
+        run = _Run(card_id, card, plan, catalogue.revision, epoch)
+        run.jobs = {j.key: _Job(j) for j in plan.jobs}
+        if card.family in BENCHMARK_FAMILIES and plan.jobs:
+            # Already looked up (and cached) by the compile above; keep the answer with the run.
+            run.endpoint_parties = endpoint_parties_of(plan.jobs[0].config, plan.state, self.preset,
+                                                       self.major_parties)
+        with self._lock:
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
                 self._runs.popitem(last=False)
@@ -295,8 +303,7 @@ class CardRunService:
         )
         if card.family in BENCHMARK_FAMILIES:
             job = run.jobs["benchmark"]
-            parties = endpoint_parties_of(job.job.config, plan.state, self.preset, self.major_parties)
-            return translate_benchmark(card, job.result, job.job.config, parties, context).model_dump()
+            return translate_benchmark(card, job.result, job.job.config, run.endpoint_parties, context).model_dump()
         if card.family in RANKING_FAMILIES:
             results = {_job_obs(j.job.config): j.result
                        for j in run.jobs.values() if j.status == "done"}
