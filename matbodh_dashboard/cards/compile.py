@@ -11,6 +11,7 @@ from matbodh_dashboard.capability import resolve_anchor, template_blockers
 from matbodh_dashboard.cards.config import (
     BENCHMARK_FAMILIES,
     RANKING_FAMILIES,
+    RELATIONSHIP_FAMILIES,
     SEAT_DIMENSIONS,
     CardConfig,
     comparison_kind,
@@ -123,6 +124,11 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
 
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  preset: MethodPreset, *, reference=None, parties=None, elections=None) -> RunPlan:
+    if config.family in RELATIONSHIP_FAMILIES:
+        # Lazy: the relationship compiler reuses this module's round helpers.
+        from matbodh_dashboard.cards.relationship.compile import compile_relationship_card
+
+        return compile_relationship_card(config, ctx, catalogue, preset, parties=parties)
     if config.family in BENCHMARK_FAMILIES:
         # Lazy: the benchmark compiler reuses this module's round helpers.
         from matbodh_dashboard.cards.benchmark.compile import compile_benchmark_card

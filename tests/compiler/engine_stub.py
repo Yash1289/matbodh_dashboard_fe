@@ -57,3 +57,13 @@ def validate_benchmark_with_engine(config: dict, rounds: list[ResolvedRound]) ->
     request = request_from_dict(explicit_request(config["request"], rounds))
     view = benchmark_view_from_dict(copy.deepcopy(config["benchmark"]))
     validate_benchmark_view(LeaningEngine(), request, view)
+
+
+def validate_relationship_with_engine(config: dict, rounds: list[ResolvedRound]) -> None:
+    """The engine's own pre-connection relationship validation (strict loader, then resolve)."""
+    from matbodh_dash.configuration import relationship_from_dict
+    from matbodh_dash.joint_relationships import resolve_relationship
+
+    request = request_from_dict(explicit_request(config["request"], rounds))
+    relationship = relationship_from_dict(copy.deepcopy(config["relationship"]))
+    resolve_relationship(LeaningEngine(), request, relationship)
