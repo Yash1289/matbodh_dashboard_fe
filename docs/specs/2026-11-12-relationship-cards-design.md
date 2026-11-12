@@ -124,7 +124,7 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 ## 11. Not verified
 
 - A relationship job through the dashboard runner on a live database (the engine CLI path is the only live evidence).
-- The `mla_choice_party` starter card with a scenario joint weight live.
+- The `mla_choice_party` starter card with a scenario joint weight, live. The engine's stored sample config for it also sets `request.weights.external = {vs_voting_intention: {column: mla_choice_party, col_key: mj_cap}}`, a binding the dashboard's `build_request` does not produce. Whether our surveys need it is unknown until a live run; if they do, the card config gains an explicit `weights.external` (never invented).
 - PC-level and cohort-filtered relationship runs (5b). The engine documents a selection plus a downstream relationship; a plain `ac_num` filter was shown equivalent for distributions, not yet for relationships.
 - The engine's own behaviour for a focal party outside the mapping (the card refuses before running).
 - The alliance labels: the stored samples say `BJP+`, the dashboard's live alliance table says `NDA`; tests copy labels from the fixture, the live smoke settles it.
@@ -136,8 +136,8 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 - A stacked bar of the four population shares in the Flow summary (display of engine numbers, only if wanted).
 - Per-endpoint alliance versions for the recalled axis (needs the engine specificity work noted in the dashboard design spec).
 
-## 13. Decisions to confirm
+## 13. Decisions confirmed (product owner, 2026-11-12)
 
-1. Acquisition share is the fifth Flow summary column (the "one extra metric"). One line to drop.
+1. Acquisition share is the fifth Flow summary column.
 2. Flow summary lists every group value as a row; only the Matrix uses value chips.
 3. Undecided, NOTA and unmapped destinations are not shown as matrix columns; they remain inside the bases and the focal flows.
