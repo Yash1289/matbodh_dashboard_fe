@@ -274,6 +274,7 @@ class _Translator:
         rules, state = self.tc.rules, self.tc.state
         for cut in self.cuts.values():
             if len(cut.dimensions) != 1:
+                self._hide_multi_dimension_rows(cut)
                 continue
             name = cut.dimensions[0]
             values = {key: row for key, row in cut.rows.items()}
@@ -283,6 +284,21 @@ class _Translator:
             keep = [f"{name}={v}" for v in visible] + [k for k in values if k.endswith("=~null")]
             cut.drop_rows(set(values) - set(keep))
             cut.rows = {k: cut.rows[k] for k in keep if k in cut.rows}
+
+    def _hide_multi_dimension_rows(self, cut: "_Cut") -> None:
+        """A row goes when any of its member values is hidden for its field (order is left as the engine's)."""
+        rules, state = self.tc.rules, self.tc.state
+        gone = set()
+        for key in cut.rows:
+            for part in key.split("|"):
+                name, _, value = part.partition("=")
+                if value != "~null" and rules.order(name, [value], states=[state]) != [value]:
+                    gone.add(key)
+                    break
+        if gone:
+            self.hidden += len(gone)
+            cut.drop_rows(gone)
+            cut.rows = {k: v for k, v in cut.rows.items() if k not in gone}
 
     # -- output -------------------------------------------------------------------
 

@@ -239,3 +239,15 @@ def test_gender_base_status_flags_only_the_lens_whose_own_value_is_missing():
     assert {c.status for c in cells if c.value is None} <= {"null_value", "missing_or_zero_gender_base"}
     impact = [c for c in cells if c.lens == "size_of_impact_pp" and c.value is not None]
     assert impact and all(c.status == "available" for c in impact)
+
+
+def test_a_hidden_value_hides_its_row_in_a_multi_dimension_cut(tmp_path):
+    from matbodh_dashboard.registry import load_rules
+
+    (tmp_path / "global.yaml").write_text("rules:\n  - field: gender\n    hidden: [Other]\n", encoding="utf-8")
+    rows = [mini_row(gs="g1", dims={"caste": dim("Jat"), "gender": dim(g)}) for g in ("Female", "Male", "Other")]
+    payload = _translate(mini_result(rows=rows), _config(cuts=[[], ["caste", "gender"]]), rules=load_rules(tmp_path))
+    (cut,) = [c for c in payload.cuts if c.id == "g1"]
+    assert {r.key for r in cut.rows} == {"caste=Jat|gender=Female", "caste=Jat|gender=Male"}
+    assert not [c for c in cut.cells if c.row.endswith("gender=Other")]
+    assert payload.hidden_count >= 1
