@@ -21,12 +21,14 @@
 - The engine job id inside the relationship operation is the constant `"relationship"`; `view` is never part of the engine config or fingerprint.
 - A compile-time alliance read failure uses `AllianceUnavailable` (no raw cause shown); the engine's `ValueError` verdict is shown as "Alliance mapping: ...".
 - Commit explicit paths only. Never stage `docs/specs/2026-11-08-dashboard-design.md`, `CLAUDE.md`, `prototypes/`, `uv.lock`, `.codegraph/`. Read a file with the Read tool before Edit.
+- Gender value `Other` is never shown (owner ruling 2026-11-12, universal for all tables): one presentation rule `field: gender, hidden: [Other]` in `config/presentation/global.yaml`; the relationship translator drops any group whose dimension value `RuleSet.order(dim, [value], states=[state])` hides, so no group, cell or summary for it reaches the payload.
+- Focal party must come from the alliance mapping (already the Task 2 rule); scenarios come from each round's dataset (`dataset.scenarios`), so no extra scenario validation beyond Task 2.
 - Verification commands: backend `.venv/Scripts/python.exe -m pytest -q` from `matbodh-dashboard/`; frontend from `web/`: `npx vitest run`, `npm run typecheck`, `npm run build`.
 - Live runs need VPN and the product owner's go-ahead each time.
 
 ## Review Focus
 
-1. A group the engine reports (it is in `summaries`) but that has no major-by-major cell (the gender `Other` group: 8-11 respondents). Expected: the matrix shows nine dashes with the reason, not an empty table. Pinned in Tasks 3 and 8.
+1. A group the engine reports (it is in `summaries`) that has no major-by-major cell at all, for example a small demographic group. Expected: the matrix shows nine dashes with the reason, not an empty table. Pinned in Tasks 3 and 8. (The gender `Other` group is not this case: it is hidden by the universal rule, Task 3 and Task 5.)
 2. A focal party that is not an alliance identity. Expected: card unavailable with a plain reason, no engine run. Task 2.
 3. A round that lacks either scenario. Expected: reported "not asked", absent from the Round chip; the anchor lacking one makes the card unavailable. Tasks 2 and 8.
 4. An engine result with zero rows. Expected: payload with no groups; the card says "The engine returned no relationship rows." Tasks 3 and 8.
@@ -114,7 +116,8 @@
   - `test_summary_copies_engine_values`: R2 Male summary `retention_share == 74.01705783351689`, `net_flow_pp == -7.806042401667394`, `gained_population_share == 5.1893381577919575`, `lost_population_share == 12.995380559459353`, `acquisition_share == 12.29438668589424`, `focal_origin_base == 244.80473394540334`, `paired_count == 211641`. Retention must not equal `retained_mass / paired_base * 100` (a wrong-base implementation).
   - `test_matrix_cells_are_major_by_major_only_and_include_the_diagonal`: every cell has origin and destination in majors; for R2 Male all nine ordered pairs are present, `BJP+ -> BJP+` included; a non-major row of the sample (an `IND_*` origin) is in the input and not in the payload.
   - `test_cell_numbers_come_from_the_matching_engine_row`: for the R2 Male `BJP+ -> SP+` cell the four display fields and `joint_count` equal that engine row's fields.
-  - `test_absent_cell_is_a_dash_with_the_reason`: R2 `Other` group `BJP+ -> SP+` (no engine row) is a cell with every number `None` and `absent == "no_respondents"`; the group has nine cells, eight of them absent (the sample has one present).
+  - `test_absent_cell_is_a_dash_with_the_reason`: in a copy of the sample remove the engine row `BJP+ -> SP+` of R2 Male; that cell is present in the payload with every number `None` and `absent == "no_respondents"`, the other eight cells have numbers. A second case removes every major row of one group: nine absent cells, and the group still exists (it is in `summaries`).
+  - `test_hidden_gender_value_is_dropped`: with a `RuleSet` hiding gender `Other` (a tmp rules YAML), no group, cell or summary has `dimensions == {"gender": "Other"}` while Male and Female remain; without the rule the `Other` group is carried (the translator hides nothing by itself).
   - `test_nothing_is_summed_or_computed`: monkeypatch-free check: no payload number outside the engine data (assert the set of non-None cell floats is a subset of the engine rows' float values for the same keys).
   - `test_without_a_focal_party_only_agreement_is_carried`: job config `focal_party=None` and an engine result whose summaries lack the focal fields: summary focal fields `None`, `agreement_share` copied.
   - `test_parties_follow_the_rule_set_order`: `payload.parties == ["BJP+", "SP+", "BSP"]` with a `RuleSet` ordering `[BJP+, SP+, BSP]` (build with `load_rules` from a tmp YAML as `tests/runner/test_service.py` does) and alphabetical after it for an unruled party.
@@ -149,7 +152,7 @@
 ### Task 5: Starter cards, fixture export and smoke support
 
 **Files:**
-- Modify: `config/cards/cards.yaml` (two cards)
+- Modify: `config/cards/cards.yaml` (two cards), `config/presentation/global.yaml` (rule `field: gender`, `hidden: [Other]`)
 - Modify: `scripts/export_card_fixtures.py` (relationship fixture), `scripts/smoke_card.py` (relationship report)
 - Create: `web/src/test/fixtures/cards/relationship_transition.json` (generated by the export script)
 - Test: `tests/cards/test_relationship_cards_yaml.py`, extend `tests/cards/test_fixture_export.py`
@@ -161,7 +164,7 @@
 
 - [ ] **Step 1: Write failing tests**: `test_relationship_cards_yaml.py` (mirror `test_benchmark_cards_yaml.py`): both cards load; each compiles to an available plan with the Task 2 fake catalogue and provider; their job configs differ only in `relationship.origin` and the request's `scenarios` (same cuts, focal and destination). In `test_fixture_export.py` extend the existing "fixtures are up to date" assertion to include the relationship fixture.
 - [ ] **Step 2: Run** the new tests. Expected: FAIL.
-- [ ] **Step 3: Implement** the cards, the exporter (translate the Task 3 sample with `relationship_card`/`relationship_ctx`, same pattern as `build_benchmark_payload`) and generate the web fixture with the script, and the smoke report.
+- [ ] **Step 3: Implement** the cards, the gender `Other` hidden rule (add a test in `tests/test_registry*.py` or `tests/cards/test_relationship_cards_yaml.py` that `load_rules(config/presentation).order("gender", ["Female", "Male", "Other"], states=["Uttar Pradesh"]) == ["Female", "Male"]`, watch it fail first), the exporter (translate the Task 3 sample with `relationship_card`/`relationship_ctx`, same pattern as `build_benchmark_payload`) and generate the web fixture with the script, and the smoke report.
 - [ ] **Step 4: Run** `.venv/Scripts/python.exe -m pytest -q`. Expected: all pass.
 - [ ] **Step 5: Commit** explicit paths with `feat: starter relationship cards, fixture and smoke report`.
 
@@ -182,7 +185,7 @@
   - `matrixRows(p, view): { key: string; origin: string; destination: string; stayed: boolean; focal: boolean; cell: RelationshipCell }[]` for the selected round and group, or `null` when that group does not exist in that round.
   - `summaryRows(p, view): { group: RelationshipGroup; label: string; byRound: Record<string, RelationshipSummary | undefined> }[]` for the selected cut, search-filtered on the label.
 
-- [ ] **Step 1: Write failing tests** with the Task 5 fixture: `initialRelationshipView` picks `summary`; `cutsOf` returns the overall and gender cuts; `valuesFor` returns `["Female", "Male", "Other"]` (any order, as a set); `matrixRows` for R2 Male has 9 rows, exactly 3 with `stayed`, focal rows flagged (`origin === focal || destination === focal`); for R2 `Other` all nine rows have `cell.absent === "no_respondents"`; a group value that does not exist returns `null` (Review Focus 5); `summaryRows` for the gender cut lists three rows with both rounds; a search for "fem" keeps one; no function mutates the payload (`structuredClone` equality).
+- [ ] **Step 1: Write failing tests** with the Task 5 fixture: `initialRelationshipView` picks `summary`; `cutsOf` returns the overall and gender cuts; `valuesFor` returns `["Female", "Male"]` (any order, as a set; the fixture is built with the hidden rule); `matrixRows` for R2 Male has 9 rows, exactly 3 with `stayed`, focal rows flagged (`origin === focal || destination === focal`); for a synthetic group (a clone of R2 Male with its cells emptied to absent) all nine rows have `cell.absent === "no_respondents"`; a group value that does not exist returns `null` (Review Focus 5); `summaryRows` for the gender cut lists three rows with both rounds; a search for "fem" keeps one; no function mutates the payload (`structuredClone` equality).
 - [ ] **Step 2: Run** `npx vitest run src/cards/relationship src/api/types.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** types and helpers; cardApi `RELATIONSHIP = { transition: () => relationshipOf(relationshipTransition) }` and `lenslessMeta` extended to the new payload (the existing helper takes `RankedPayload | BenchmarkPayload`).
 - [ ] **Step 4: Run** `npx vitest run` and `npm run typecheck`. Expected: PASS, clean.
@@ -200,7 +203,7 @@
 
 - [ ] **Step 1: Write failing tests** (fixture `RELATIONSHIP.transition()`):
   - Summary: header cells are exactly `["Group", "Net flow (pp)", "Retention share", "Gained population share", "Lost population share", "Acquisition share"]` in order; the R2 Male cell for retention contains the engine value formatted by the shared formatter and rounds appear as pipe segments (`data-segment`) in round order; each header carries a tooltip naming its base; with `showDetails` the extra fields appear (agreement, loss, conversion, neither, composition, bases, `paired_count`); with a payload whose `focal_party` is null only the Agreement column shows.
-  - Matrix: header cells are exactly `["Origin → destination", "Origin share", "Destination share", "Joint share", "Size of impact (pp)"]`; nine body rows; diagonal rows carry the text "stayed"; focal rows have `data-focal`; an absent cell renders `–` with `title="no respondents moved"` and no number (assert no digit in that cell); for R2 `Other` all four measure cells in all nine rows are dashes (Review Focus 1); with `showDetails` the counts and bases columns appear; a `null` matrix (missing group) renders "No such group in this round" (Review Focus 5).
+  - Matrix: header cells are exactly `["Origin → destination", "Origin share", "Destination share", "Joint share", "Size of impact (pp)"]`; nine body rows; diagonal rows carry the text "stayed"; focal rows have `data-focal`; an absent cell renders `–` with `title="no respondents moved"` and no number (assert no digit in that cell); for a synthetic all-absent group all four measure cells in all nine rows are dashes (Review Focus 1); with `showDetails` the counts and bases columns appear; a `null` matrix (missing group) renders "No such group in this round" (Review Focus 5).
   - CSV: summary CSV has the Details-free columns by default and every number equals the payload's `String(value)`; matrix CSV lists nine pair rows; absent cells are empty with a reason column.
 - [ ] **Step 2: Run** `npx vitest run src/cards/relationship`. Expected: FAIL.
 - [ ] **Step 3: Implement** the components with plain `<table>` markup like `BenchmarkTables.tsx` (caption, `scope` attributes, `rowgroup` per group in the summary, `aria-label` on pipe segments as `RankedTable` does).
