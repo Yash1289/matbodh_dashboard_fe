@@ -327,6 +327,7 @@ export interface RelationshipPayload {
   destination: string;
   focal_party: string | null;
   weights: Record<string, unknown>;
+  answer_overrides: Record<string, { include: string[] }> | null; // recalled statuses restored on an endpoint
   parties: string[]; // the major parties, in display order
   groups: RelationshipGroup[];
   tables_available: RelationshipTable[];

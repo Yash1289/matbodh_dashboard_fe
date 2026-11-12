@@ -80,7 +80,8 @@ def translate_relationship(card: CardConfig, result: Mapping[str, Any], job_conf
     return RelationshipPayload(
         family=card.family, card_id=context.card_id, state=state, rounds=context.rounds,
         origin=job_config["relationship"]["origin"], destination=job_config["relationship"]["destination"],
-        focal_party=focal, weights=contract["joint_weights"], parties=parties,
+        focal_party=focal, weights=contract["joint_weights"],
+        answer_overrides=job_config["relationship"].get("answer_overrides"), parties=parties,
         groups=sorted(groups.values(), key=lambda g: json.dumps(_key(g))),
         tables_available=["summary", "matrix"], default_table=wanted or "summary",
         cells=cells, summaries=summaries,

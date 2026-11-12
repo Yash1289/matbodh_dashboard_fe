@@ -5,7 +5,6 @@ import { tokens } from "../../theme";
 import { groupLabel, matrixRows, roundLabel, type RelationshipView } from "./relationshipRows";
 
 const cell = { padding: "4px 8px", textAlign: "right" as const };
-const ABSENT = "no respondents moved";
 const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 100) / 100));
 
 interface Measure { head: string; text: (c: RelationshipCell) => string | null }
@@ -33,7 +32,9 @@ export function RelationshipMatrixTable({ payload, view }: Props) {
   if (rows === null) return <Text size="sm" role="status">No such group in this round</Text>;
   const measures = view.showDetails ? [...MEASURES, ...DETAILS] : MEASURES;
   const group = payload.groups.find((g) => g.set_id === view.cut && Object.entries(view.values).every(([k, v]) => g.dimensions[k] === v));
+  const reason = (stayed: boolean) => (stayed ? "no respondents stayed" : "no respondents moved");
   return (
+    <div>
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: tokens.font.chip }}>
       <caption style={{ textAlign: "left", color: "var(--mb-muted)", paddingBottom: 6 }}>
         Matrix · {view.round === null ? "" : roundLabel(payload, view.round)}{group ? ` · ${groupLabel(group)}` : ""}
@@ -53,12 +54,16 @@ export function RelationshipMatrixTable({ payload, view }: Props) {
             </th>
             {measures.map((m) => (
               <td key={m.head} style={cell}>
-                {r.cell.absent !== null ? <span title={ABSENT}>—</span> : m.text(r.cell)}
+                {r.cell.absent !== null ? <span title={reason(r.stayed)} aria-label={reason(r.stayed)}>—</span> : m.text(r.cell)}
               </td>
             ))}
           </tr>
         ))}
       </tbody>
     </table>
+    {rows.some((r) => r.cell.absent !== null) && (
+      <Text fz={tokens.font.subtitle} c="var(--mb-muted)" mt={4}>— means no respondents moved (or stayed, on the diagonal) between these parties</Text>
+    )}
+    </div>
   );
 }

@@ -30,6 +30,14 @@ const Progress = ({ children }: { children: ReactNode }) => (
   </Stack>
 );
 
+/** Rounds the card asked for that came back with no result and are not explained by `not_asked`. */
+function noResult(p: RelationshipPayload): string[] {
+  const explained = new Set(p.not_asked.flatMap((n) => n.rounds));
+  const present = new Set(roundsWithData(p));
+  const names = p.rounds.items.filter((i) => !present.has(i.obs_id) && !explained.has(i.base_name)).map((i) => i.base_name);
+  return names.length > 0 ? [`No result in ${names.join(", ")}`] : [];
+}
+
 /** The engine's recalled-vote scenarios are exactly vs_past and ls_past; any other origin is a current answer. */
 const isRecalled = (scenario: string) => scenario.endsWith("_past");
 
@@ -89,6 +97,7 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
         <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-footer">
           {[coverageNote(p.rounds),
             ...p.not_asked.map((n) => `Not asked in ${n.rounds.join(", ")}`),
+            ...noResult(p),
             isRecalled(p.origin) ? "Recalled vote, not longitudinal linkage" : "Same-row answers, not a panel",
             "Shares include respondents who chose smaller parties",
             `Method: rules ${p.rules_version} · engine ${p.engine_version} · metadata r${p.metadata_revision}`,

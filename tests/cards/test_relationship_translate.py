@@ -157,3 +157,10 @@ def test_payload_identity_fields(tmp_path):
         "relationship", "relationship", "vs_past", "vs_voting_intention", FOCAL)
     assert payload.weights == load_transition()["contract"]["joint_weights"]
     assert copy.deepcopy(payload.model_dump())["groups"]
+
+
+def test_recalled_status_inclusion_is_carried_into_the_payload(tmp_path):
+    job = copy.deepcopy(JOB)
+    job["relationship"]["answer_overrides"] = {"origin": {"include": ["Did Not Vote", "Do Not Remember"]}}
+    assert _translate(tmp_path, job=job).answer_overrides == {"origin": {"include": ["Did Not Vote", "Do Not Remember"]}}
+    assert _translate(tmp_path).answer_overrides is None

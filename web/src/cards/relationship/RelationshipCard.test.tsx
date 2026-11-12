@@ -140,6 +140,23 @@ describe("RelationshipCard", () => {
     expect(screen.getByTestId("card-footer")).toHaveTextContent("Same-row answers, not a panel");
   });
 
+  it("the method drawer states a recalled-status inclusion", async () => {
+    mount({ ...RELATIONSHIP.transition(), answer_overrides: { origin: { include: ["Did Not Vote", "Do Not Remember"] } } });
+    await screen.findByRole("table", { name: /Flow summary/ });
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText(/Recalled statuses included.*origin: Did Not Vote, Do Not Remember/)).toBeInTheDocument();
+  });
+
+  it("names an asked round that came back with no result", async () => {
+    const p = RELATIONSHIP.transition();
+    p.summaries = p.summaries.filter((s) => s.round === "R2");
+    p.cells = p.cells.filter((c) => c.round === "R2");
+    mount(p);
+    await screen.findByRole("table", { name: /Flow summary/ });
+    expect(screen.getByTestId("card-footer")).toHaveTextContent(/No result in 2027 VS CAPI R1/);
+  });
+
   it("the method drawer names the joint weight and the alliance mapping version", async () => {
     mount(RELATIONSHIP.transition());
     await screen.findByRole("table", { name: /Flow summary/ });

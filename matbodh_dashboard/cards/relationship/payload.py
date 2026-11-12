@@ -87,6 +87,8 @@ class RelationshipPayload(_Strict):
     destination: str
     focal_party: str | None
     weights: dict
+    # Recalled statuses restored on an endpoint (widens the paired base); None when none are.
+    answer_overrides: dict | None = None
     parties: list[str]  # the major parties in display order
     groups: list[RelationshipGroup]
     tables_available: list[RelationshipTable]

@@ -92,12 +92,20 @@ describe("RelationshipMatrixTable", () => {
     renderWithProviders(<RelationshipMatrixTable payload={p} view={matrixView()} />);
     const rows = screen.getAllByRole("row").slice(1);
     for (const row of rows) {
+      const reason = within(row).getByRole("rowheader").textContent?.includes("stayed") ? "no respondents stayed" : "no respondents moved";
       for (const cell of within(row).getAllByRole("cell")) {
         expect(cell).toHaveTextContent("—");
         expect(cell.textContent).not.toMatch(/\d/);
-        expect(within(cell).getByTitle("no respondents moved")).toBeInTheDocument();
+        expect(within(cell).getByTitle(reason)).toHaveAttribute("aria-label", reason); // reachable without hover
       }
     }
+    expect(screen.getByText(/means no respondents moved/)).toBeInTheDocument(); // a visible line, not only a tooltip
+  });
+
+  it("shows no absent-cell footnote when every cell has numbers", () => {
+    const p = RELATIONSHIP.transition();
+    renderWithProviders(<RelationshipMatrixTable payload={p} view={matrixView()} />);
+    expect(screen.queryByText(/means no respondents moved/)).toBeNull();
   });
 
   it("adds counts and bases under Details", () => {

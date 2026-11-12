@@ -15,6 +15,10 @@ export function RelationshipMethod({ payload }: { payload: RelationshipPayload }
       <Text size="sm">{payload.origin} → {payload.destination}</Text>
       <Text size="sm">{payload.focal_party === null ? "No focal party (agreement only)" : `Focal party: ${payload.focal_party}`}</Text>
       <Text size="sm">Joint weight: {weights.source ?? "unknown"}{weights.source === "scenario" ? ` (${weights.scenario}, ${weights.mode})` : ""}</Text>
+      {payload.answer_overrides && (
+        <Text size="sm">Recalled statuses included (widens the paired base): {Object.entries(payload.answer_overrides)
+          .map(([endpoint, o]) => `${endpoint}: ${o.include.join(", ")}`).join("; ")}</Text>
+      )}
       {versions.length > 0 && <Text size="sm">Alliance mapping {versions.join(", ")}, the same on both axes</Text>}
       {asText(payload.contract.eligibility) && <Text size="sm">Eligibility: {asText(payload.contract.eligibility)}</Text>}
       {units && <Text size="sm">Units: shares are {units.shares}; impacts and net flow are {units.impacts_and_net_flow?.replace("_", " ")}</Text>}
