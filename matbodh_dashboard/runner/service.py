@@ -24,7 +24,11 @@ from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorParty
 from matbodh_dashboard.cards.benchmark.compile import endpoint_parties_of
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.benchmark.translate import translate_benchmark
-from matbodh_dashboard.cards.config import BENCHMARK_FAMILIES, RANKING_FAMILIES, CardConfig
+from matbodh_dashboard.cards.relationship.compile import relationship_majors
+from matbodh_dashboard.cards.relationship.translate import translate_relationship
+from matbodh_dashboard.cards.config import (
+    BENCHMARK_FAMILIES, RANKING_FAMILIES, RELATIONSHIP_FAMILIES, CardConfig,
+)
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.ranking.translate import translate_ranked
@@ -76,6 +80,8 @@ class _Run:
     jobs: dict[str, _Job] = field(default_factory=dict)
     # Benchmark only: the alliance-mapped identities per endpoint, fixed when the run starts.
     endpoint_parties: dict[str, frozenset[str]] | None = None
+    # Relationship only: the alliance-mapped major parties, fixed when the run starts.
+    majors: frozenset[str] | None = None
 
 
 class CardRunService:
@@ -129,6 +135,8 @@ class CardRunService:
             # Already looked up (and cached) by the compile above; keep the answer with the run.
             run.endpoint_parties = endpoint_parties_of(plan.jobs[0].config, plan.state, self.preset,
                                                        self.major_parties)
+        if card.family in RELATIONSHIP_FAMILIES and plan.jobs:
+            run.majors = relationship_majors(plan.state, self.preset, self.major_parties)
         with self._lock:
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
@@ -304,6 +312,9 @@ class CardRunService:
         if card.family in BENCHMARK_FAMILIES:
             job = run.jobs["benchmark"]
             return translate_benchmark(card, job.result, job.job.config, run.endpoint_parties, context).model_dump()
+        if card.family in RELATIONSHIP_FAMILIES:
+            job = run.jobs["relationship"]
+            return translate_relationship(card, job.result, job.job.config, run.majors, context).model_dump()
         if card.family in RANKING_FAMILIES:
             results = {_job_obs(j.job.config): j.result
                        for j in run.jobs.values() if j.status == "done"}

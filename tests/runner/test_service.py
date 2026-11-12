@@ -641,3 +641,90 @@ def test_alliance_lookups_do_not_hold_the_service_lock(rules, cache, monkeypatch
     service, majors, _ = _bench_service(rules, cache, monkeypatch)
     service.start(BENCH.id, ctx())
     assert majors.held_lock and not any(majors.held_lock)
+
+
+# -- relationship runs ------------------------------------------------------------------------
+
+REL = CardConfig.model_validate({
+    "id": "t.rel", "family": "relationship", "section": "r", "title": "R", "cuts": [["gender"]],
+    "relationship": {"origin": "vs_past", "destination": "vs_voting_intention", "focal_party": "BJP+"}})
+
+
+class _RelMajors:
+    def __init__(self, service_ref):
+        self.service_ref, self.down, self.held_lock = service_ref, False, []
+
+    def identities(self, state, reporting_type, *, year=None, election_type=None):
+        from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable
+        self.held_lock.append(self.service_ref[0]._lock._is_owned())
+        if self.down:
+            raise AllianceUnavailable("mysql down")
+        return frozenset({"BJP+", "SP+", "BSP"})
+
+
+def _rel_catalogue():
+    scenarios = ["vs_past", "vs_voting_intention"]
+    rows = [dataset_row(f"2027 VS CAPI R{i}", round_number=i, available_scenarios=scenarios,
+                        available_fields=["gender", "ac_num"]) for i in (1, 2)]
+    return load_catalogue(make_query(rows, [level_row(f"2027 VS CAPI R{i}", range(1, 404)) for i in (1, 2)]))
+
+
+def _rel_service(rules, cache, runner=None):
+    ref: list = [None]
+    majors = _RelMajors(ref)
+    runner = runner or FakeRunner()
+    queue = InlineQueue(runner, cache, sleep=lambda s: None)
+    service = CardRunService(_rel_catalogue(), PRESET, {REL.id: REL}, rules, cache, queue, "0.8.0",
+                             major_parties=majors)
+    ref[0] = service
+    return service, majors
+
+
+class _SampleRunner:
+    """Returns the stored engine relationship result, observation ids renamed as a real run has them."""
+
+    def run(self, config: dict) -> dict:
+        from tests.cards.relationship_helpers import load_transition
+        text = json.dumps(load_transition()).replace('"R1"', '"o1"').replace('"R2"', '"o2"')
+        return json.loads(text)
+
+
+def test_relationship_majors_are_fixed_at_start(rules, cache, monkeypatch):
+    from matbodh_dashboard.runner import service as svc
+    seen = {}
+
+    class Payload:
+        def model_dump(self):
+            return {"kind": "relationship"}
+
+    def fake_translate(card, result, config, majors, context):
+        seen["majors"] = majors
+        return Payload()
+
+    monkeypatch.setattr(svc, "translate_relationship", fake_translate)
+    service, majors = _rel_service(rules, cache)
+    run_id = service.start(REL.id, ctx())
+    majors.down = True  # the table goes away between start and assembly
+    status = service.status(run_id)
+    assert status.state == "done", status.errors
+    assert seen["majors"] == frozenset({"BJP+", "SP+", "BSP"})
+
+
+def test_relationship_lookups_do_not_hold_the_service_lock(rules, cache):
+    service, majors = _rel_service(rules, cache)
+    service.start(REL.id, ctx())
+    assert majors.held_lock and not any(majors.held_lock)
+
+
+def test_relationship_run_assembles_a_payload(rules, cache):
+    from tests.cards.relationship_helpers import load_transition
+    service, _ = _rel_service(rules, cache, runner=_SampleRunner())
+    status = service.status(service.start(REL.id, ctx()))
+    assert status.state == "done", status.errors
+    result = status.result
+    assert result["kind"] == "relationship" and result["focal_party"] == "BJP+"
+    sample = next(s for s in load_transition()["summaries"]
+                  if s["observation_id"] == "R2" and s["dimensions"]["gender"]["value"] == "Male")
+    mine = next(s for s in result["summaries"] if s["round"] == "o2" and s["group"]["dimensions"] == {"gender": "Male"})
+    assert mine["retention_share"] == sample["retention_share"]
+    assert {c["origin"] for c in result["cells"]} == {"BJP+", "SP+", "BSP"}

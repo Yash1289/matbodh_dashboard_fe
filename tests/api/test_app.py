@@ -304,3 +304,29 @@ def test_compare_equal_to_anchor_is_422(client):
     response = client.post("/cards/plan", json=body(compare_round=R2))
     assert response.status_code == 422
     assert any("anchor" in e for e in response.json()["errors"])
+
+
+def _relationship_client(tmp_path):
+    from matbodh_dashboard.cards.config import CardConfig
+    from tests.cards.test_relationship_compile import FakeParties, _catalogue
+
+    (tmp_path / "global.yaml").write_text(RULES_YAML, encoding="utf-8")
+    card = CardConfig.model_validate({
+        "id": "t.rel", "family": "relationship", "section": "r", "title": "R", "cuts": [[], ["gender"]],
+        "relationship": {"origin": "vs_past", "destination": "vs_voting_intention", "focal_party": "NDA"},
+        "view": {"table": "matrix"}})
+    cache = ResultCache(fakeredis.FakeStrictRedis(), ttl_seconds=3600)
+    queue = InlineQueue(FakeRunner(), cache, sleep=lambda s: None)
+    service = CardRunService(_catalogue(), PRESET, {card.id: card}, load_rules(tmp_path), cache, queue,
+                             "0.8.0", major_parties=FakeParties())
+    return TestClient(create_app(service))
+
+
+def test_relationship_card_is_listed_plans_and_starts_a_run(tmp_path):
+    client = _relationship_client(tmp_path)
+    (info,) = client.get("/cards").json()
+    assert info["family"] == "relationship" and info["view"] == {"table": "matrix"}
+    assert info["meta"]["lenses"] == [] and info["meta"]["capabilities"]["modes"] == ["standalone", "trend"]
+    plan = client.post("/cards/plan", json=body("t.rel"))
+    assert plan.status_code == 200 and plan.json()["unavailable"] == []
+    assert client.post("/cards/run", json=body("t.rel")).status_code == 200
