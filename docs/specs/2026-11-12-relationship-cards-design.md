@@ -21,12 +21,13 @@ One card family, `relationship`, that shows how respondents answered two party q
 - Family `relationship` in the existing `CardConfig` / `cards.yaml`.
 - Two display tables from one engine run: **Flow summary** and **Matrix**.
 - A runner path for `EngineJob.kind == "relationship"`, a relationship payload and a card body.
-- Joint weight `base` or a scenario donor; optional inclusion of the recalled statuses `Did Not Vote` / `Do Not Remember` on a recalled endpoint.
+- Joint weight `base` only (the response's `weights` column with the population factor); optional inclusion of the recalled statuses `Did Not Vote` / `Do Not Remember` on a recalled endpoint.
 - Any survey level the capability table allows for the chosen cuts.
 
 ### 2.2 Out of scope
 
 - Inter-round comparison or deltas. The contract has none. A trend shows each round's own values side by side.
+- Scenario-donor joint weights (`weights.source: scenario`) and the `weights.external` binding: owner decision 2026-11-12, base weight only for now. With `base` the external binding has no effect on the joint weights, so the engine sample's `external` entry is not needed.
 - Other party grouping (the engine rejects it for relationships), explicit party option universes (see §10, they close the answer set and fail), per-endpoint alliance versions (one default survey mapping on both axes, see §3).
 - Rows or columns for parties other than the major parties; the long tail of independents is not shown and not summed.
 - Seat cohorts, seat selection and the investigation drawer (sub-project 5b). The card must run unchanged with a cohort filter later (§11).
@@ -54,13 +55,12 @@ One card family, `relationship`, that shows how respondents answered two party q
     origin: vs_past
     destination: vs_voting_intention
     focal_party: NDA
-    weights: {source: base}
   view: {table: summary}          # never part of the engine config or its fingerprint
 ```
 
-`RelationshipConfig` (engine part, everything here changes the run): `origin`, `destination`, `focal_party` (optional; without it the engine returns agreement only and the Flow summary shows Agreement alone), `weights` (`{source: base}` or `{source: scenario, scenario, mode: mj_cap|m_cap}`), `include_recalled` (`origin` and/or `destination`: a subset of `Did Not Vote`, `Do Not Remember`, only for a scenario with role `recalled_vote`).
+`RelationshipConfig` (engine part, everything here changes the run): `origin`, `destination`, `focal_party` (optional; without it the engine returns agreement only and the Flow summary shows Agreement alone), `include_recalled` (`origin` and/or `destination`: a subset of `Did Not Vote`, `Do Not Remember`, only for a scenario with role `recalled_vote`).
 
-Validation at load: origin and destination are distinct party-domain scenarios; `include_recalled` names a recalled endpoint and only the two allowed labels; a scenario donor is a party scenario; `scenarios`, `comparison`, `caste_clubbing`, `rank`, `benchmark` are absent on a relationship card. `cuts` follow the grid rules (no duplicate set or attribute).
+Validation at load: origin and destination are distinct party-domain scenarios; `include_recalled` names a recalled endpoint and only the two allowed labels; `scenarios`, `comparison`, `caste_clubbing`, `rank`, `benchmark` are absent on a relationship card. `cuts` follow the grid rules (no duplicate set or attribute).
 
 `RelationshipViewConfig` (display only): `table: summary | matrix`. Two cards differing only in `view` share one engine run.
 
@@ -72,7 +72,7 @@ The major parties are what the alliance table maps for the survey (the same `Maj
 
 - **One job per card**, `EngineJob("relationship", "relationship", GRID, config)`. All asked rounds are observations of the one request; the engine returns one matrix per observation, so there is no per-round fan-out. A round lacking either scenario is reported as "not asked in …" (existing `not_asked`); the anchor round lacking one makes the card unavailable.
 - **Request** (existing `build_request`): preset weights and answers, `scenarios = [origin, destination]`, `grouping_sets = cuts`, no comparisons, no gender differential, no Other grouping (`other_grouping=False`), `coverage_mode: independent`, no reference observation. Alliances resolve through the view config's `alliances.reporting_type`, as other cards.
-- **Operation:** `relationship: {id: "relationship", origin, destination, weights, focal_party, answer_overrides?}` in `view_config(..., relationship=...)`. The id is a constant (not the card id) so copies share one fingerprint, as with the benchmark.
+- **Operation:** `relationship: {id: "relationship", origin, destination, weights: {source: "base"}, focal_party, answer_overrides?}` in `view_config(..., relationship=...)`. The id is a constant (not the card id) so copies share one fingerprint, as with the benchmark.
 - Runs through the existing `NamedSurveyRuntime` path (the engine runtime already dispatches on a `relationship` key). Queue, per-job cache, fingerprint, retries and error kinds are reused unchanged.
 - **Capability:** cuts are validated against the context level with the existing `template_blockers`; an unavailable reason is returned before any run.
 - **Failures at compile time** (each becomes an `unavailable` reason): focal not in the alliance mapping, alliance table unreadable (typed `AllianceUnavailable`, no raw cause shown), origin or destination not asked in the anchor round, a cut the level cannot support.
@@ -84,7 +84,7 @@ Every number is an engine value copied unchanged.
 | Field | Content |
 |---|---|
 | `kind`, `family`, `card_id`, `state`, `rounds` | as the other payloads |
-| `origin`, `destination`, `focal_party`, `weights` | scenario ids and the weight policy |
+| `origin`, `destination`, `focal_party`, `weights` | scenario ids and the weight policy (always `base`) |
 | `parties` | the major parties in display order |
 | `groups` | one entry per grouping-set value: `set_id`, `dimensions` |
 | `cells` | per `round`, `group`, `origin`, `destination` (major by major only): `origin_share`, `destination_share`, `joint_share`, `size_of_impact_pp` (the four display measures), plus `joint_count`, `joint_mass`, `origin_base`, `destination_base`, `paired_base`, `paired_count`; an absent cell has every number `None` and `absent: "no_respondents"` |
@@ -109,7 +109,7 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 
 ## 9. Testing
 
-**Backend (`tests/cards/`):** config validation (every rule in §4); compile (job config shape, weights and `include_recalled`, constant id, view-only difference gives an identical config, focal outside the mapping, alliance unreadable, scenario not asked, cut unavailable at the level); translate against a copy of the real engine result (aggregates only, `tests/fixtures/engine_samples/result_transition.json`): every displayed number equals the engine's (for example R2 Male retention 74.017 against the focal origin base, not the paired base; net flow -7.806), the diagonal is present, an absent major cell (R2 Other, `BJP+` to `SP+`) is a dash with the reason and no zero, only major-by-major cells are carried, summaries without a focal party carry agreement only, nothing is summed in Python; an engine-loader test that the compiled job config passes `relationship_from_dict` and the engine's offline resolve (as the benchmark and ranking cards do).
+**Backend (`tests/cards/`):** config validation (every rule in §4); compile (job config shape, the constant `base` weight and `include_recalled`, constant id, view-only difference gives an identical config, focal outside the mapping, alliance unreadable, scenario not asked, cut unavailable at the level); translate against a copy of the real engine result (aggregates only, `tests/fixtures/engine_samples/result_transition.json`): every displayed number equals the engine's (for example R2 Male retention 74.017 against the focal origin base, not the paired base; net flow -7.806), the diagonal is present, an absent major cell (R2 Other, `BJP+` to `SP+`) is a dash with the reason and no zero, only major-by-major cells are carried, summaries without a focal party carry agreement only, nothing is summed in Python; an engine-loader test that the compiled job config passes `relationship_from_dict` and the engine's offline resolve (as the benchmark and ranking cards do).
 **API:** the plan and run endpoints accept the new family and return the payload.
 **Frontend (vitest):** table chooser, round and value chips, diagonal marking, dash for an absent cell, Details contents, search, CSV, no fetch on any display control, stale text cleared during a re-run, unavailable state.
 **Live smoke (VPN, owner's go-ahead):** `scripts/smoke_card.py` for both starter cards (UP, R1+R2): job state and timing, group and cell counts, the focal identities `retained + lost + gained + neither = paired base` on the engine's own values.
@@ -124,7 +124,7 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 ## 11. Not verified
 
 - A relationship job through the dashboard runner on a live database (the engine CLI path is the only live evidence).
-- The `mla_choice_party` starter card with a scenario joint weight, live. The engine's stored sample config for it also sets `request.weights.external = {vs_voting_intention: {column: mla_choice_party, col_key: mj_cap}}`, a binding the dashboard's `build_request` does not produce. Whether our surveys need it is unknown until a live run; if they do, the card config gains an explicit `weights.external` (never invented).
+- The `mla_choice_party` starter card live (base weight). Its numbers have only been read from the engine's stored sample, which used a scenario donor and an external binding that this build does not use.
 - PC-level and cohort-filtered relationship runs (5b). The engine documents a selection plus a downstream relationship; a plain `ac_num` filter was shown equivalent for distributions, not yet for relationships.
 - The engine's own behaviour for a focal party outside the mapping (the card refuses before running).
 - The alliance labels: the stored samples say `BJP+`, the dashboard's live alliance table says `NDA`; tests copy labels from the fixture, the live smoke settles it.
@@ -132,6 +132,7 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 
 ## 12. Deferred
 
+- Scenario-donor joint weights and `weights.external` (the engine supports both; revisit when the owner wants donor-weighted transitions).
 - Sort / Density chips; a Duplicate-card button (sub-project 6).
 - A stacked bar of the four population shares in the Flow summary (display of engine numbers, only if wanted).
 - Per-endpoint alliance versions for the recalled axis (needs the engine specificity work noted in the dashboard design spec).
