@@ -1,5 +1,5 @@
 import { Code, Stack, Text, Title } from "@mantine/core";
-import { isBenchmarkPayload, isRankedPayload, type CardPayload, type PlanResponse, type RunError } from "../api/types";
+import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload, type CardPayload, type PlanResponse, type RunError } from "../api/types";
 
 interface Props {
   payload: CardPayload | null;
@@ -27,9 +27,9 @@ export function MethodDrawer({ payload, plan, errors }: Props) {
         <>
           <Title order={5}>Contract</Title>
           <Code block>{JSON.stringify(
-            isBenchmarkPayload(payload) ? payload.contract
+            isBenchmarkPayload(payload) || isRelationshipPayload(payload) ? payload.contract
               : isRankedPayload(payload) ? payload.contracts : payload.provenance.contract, null, 2)}</Code>
-          {!isBenchmarkPayload(payload) && (
+          {!isBenchmarkPayload(payload) && !isRelationshipPayload(payload) && (
             <>
               <Title order={5}>Coverage</Title>
               <Code block>{JSON.stringify(payload.coverage, null, 2)}</Code>

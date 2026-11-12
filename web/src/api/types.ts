@@ -94,7 +94,8 @@ export interface PresentationRules {
 export type GridFamily = "distribution" | "opinion" | "gender_differential";
 export type RankingFamily = "seat_ranking" | "demographic_ranking";
 export type BenchmarkFamily = "seat_benchmark";
-export type Family = GridFamily | RankingFamily | BenchmarkFamily;
+export type RelationshipFamily = "relationship";
+export type Family = GridFamily | RankingFamily | BenchmarkFamily | RelationshipFamily;
 export type CardMode = "standalone" | "compare" | "trend";
 export type LensUnit = "percentage" | "percentage_points";
 
@@ -261,8 +262,90 @@ export interface BenchmarkPayload {
   alliance_epoch: number;
 }
 
-/** What /runs returns for any card: a grid, a ranking or a benchmark. */
-export type CardPayload = GridPayload | RankedPayload | BenchmarkPayload;
+// --- Relationship payload: mirrors matbodh_dashboard/cards/relationship/payload.py ----------
+export type RelationshipTable = "summary" | "matrix";
+export interface RelationshipGroup { set_id: string; dimensions: Record<string, string> }
+export interface RelationshipCell {
+  round: string;
+  group: RelationshipGroup;
+  origin: string;
+  destination: string;
+  origin_share: number | null;
+  destination_share: number | null;
+  joint_share: number | null;
+  size_of_impact_pp: number | null;
+  joint_count: number | null;
+  joint_mass: number | null;
+  origin_base: number | null;
+  destination_base: number | null;
+  paired_base: number | null;
+  paired_count: number | null;
+  absent: "no_respondents" | null;
+}
+export interface RelationshipSummary {
+  round: string;
+  group: RelationshipGroup;
+  paired_count: number | null;
+  paired_base: number | null;
+  agreement_share: number | null;
+  agreement_mass: number | null;
+  composition_share: number | null;
+  agreement_size_of_impact_pp: number | null;
+  // With a focal party only (null otherwise):
+  retention_share: number | null;
+  loss_share: number | null;
+  acquisition_share: number | null;
+  conversion_share: number | null;
+  retained_population_share: number | null;
+  lost_population_share: number | null;
+  gained_population_share: number | null;
+  neither_population_share: number | null;
+  net_flow_pp: number | null;
+  net_flow_size_of_impact_pp: number | null;
+  retention_size_of_impact_pp: number | null;
+  loss_size_of_impact_pp: number | null;
+  acquisition_size_of_impact_pp: number | null;
+  conversion_size_of_impact_pp: number | null;
+  retained_population_impact_pp: number | null;
+  gained_population_impact_pp: number | null;
+  lost_population_impact_pp: number | null;
+  neither_population_impact_pp: number | null;
+  focal_origin_base: number | null;
+  focal_destination_base: number | null;
+  retained_mass: number | null;
+  lost_mass: number | null;
+  gained_mass: number | null;
+  neither_mass: number | null;
+}
+export interface RelationshipPayload {
+  kind: "relationship";
+  family: RelationshipFamily;
+  card_id: string;
+  state: string;
+  rounds: RoundsBlock;
+  origin: string;
+  destination: string;
+  focal_party: string | null;
+  weights: Record<string, unknown>;
+  parties: string[]; // the major parties, in display order
+  groups: RelationshipGroup[];
+  tables_available: RelationshipTable[];
+  default_table: RelationshipTable;
+  cells: RelationshipCell[];
+  summaries: RelationshipSummary[];
+  contract: Record<string, unknown>;
+  not_asked: NotAsked[];
+  unavailable: PartReason[];
+  rules_version: string | number;
+  engine_version: string;
+  metadata_revision: number;
+  alliance_epoch: number;
+}
+
+/** What /runs returns for any card: a grid, a ranking, a benchmark or a relationship. */
+export type CardPayload = GridPayload | RankedPayload | BenchmarkPayload | RelationshipPayload;
+export const isRelationshipPayload = (p: CardPayload): p is RelationshipPayload => "kind" in p && p.kind === "relationship";
+export const isRelationshipFamily = (f: Family): f is RelationshipFamily => f === "relationship";
 export const isBenchmarkPayload = (p: CardPayload): p is BenchmarkPayload => "kind" in p && p.kind === "benchmark";
 export const isBenchmarkFamily = (f: Family): f is BenchmarkFamily => f === "seat_benchmark";
 export const isRankedPayload = (p: CardPayload): p is RankedPayload => "kind" in p && p.kind === "ranked";
@@ -291,5 +374,5 @@ export interface CardInfo {
   requires: { min_level: "state" | "ac" };
   meta: FamilyMeta;
   rank?: RankInfo | null; // ranking families only
-  view?: { table: BenchmarkTable | null } | null; // benchmark family only
+  view?: { table: BenchmarkTable | RelationshipTable | null } | null; // benchmark and relationship families only
 }

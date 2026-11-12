@@ -1,9 +1,11 @@
 import { vi } from "vitest";
-import { isBenchmarkPayload, isRankedPayload } from "../api/types";
+import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload } from "../api/types";
 import type {
-  BenchmarkPayload, CardInfo, CardPayload, ElectionOption, FamilyMeta, GridPayload, PlanResponse, RankedPayload, RunStatus,
+  BenchmarkPayload, CardInfo, CardPayload, ElectionOption, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
+  RelationshipPayload, RunStatus,
 } from "../api/types";
 import benchmarkSurveyVs2022 from "./fixtures/cards/benchmark_survey_vs_2022.json";
+import relationshipTransition from "./fixtures/cards/relationship_transition.json";
 import rankedDemographic from "./fixtures/cards/ranked_demographic_standalone.json";
 import rankedSeatStandalone from "./fixtures/cards/ranked_seat_standalone.json";
 import rankedSeatTrend from "./fixtures/cards/ranked_seat_trend.json";
@@ -38,17 +40,21 @@ export const benchmarkOf = (fixture: unknown): BenchmarkPayload => structuredClo
 
 export const BENCHMARK = { surveyVs2022: () => benchmarkOf(benchmarkSurveyVs2022) };
 
-// Ranking and benchmark payloads carry no lenses; the card list sends an empty family meta for them.
-const lenslessMeta = (p: RankedPayload | BenchmarkPayload): FamilyMeta => ({
+export const relationshipOf = (fixture: unknown): RelationshipPayload => structuredClone(fixture) as RelationshipPayload;
+
+export const RELATIONSHIP = { transition: () => relationshipOf(relationshipTransition) };
+
+// Ranking, benchmark and relationship payloads carry no lenses; the card list sends an empty family meta for them.
+const lenslessMeta = (p: RankedPayload | BenchmarkPayload | RelationshipPayload): FamilyMeta => ({
   family: p.family, lenses: [], default_lens: "",
   capabilities: { modes: ["standalone", "compare", "trend"], transpose: false, sort: true, details: true },
 });
 
 export const infoFor = (p: CardPayload, over: Partial<CardInfo> = {}): CardInfo => ({
   id: p.card_id, family: p.family, section: "cards", title: `Card ${p.card_id}`, scenarios: [], cuts: [], filters: [],
-  comparison: { mode: isBenchmarkPayload(p) ? "standalone" : p.mode, target: null, reference: null, delta_measures: [] },
+  comparison: { mode: isBenchmarkPayload(p) || isRelationshipPayload(p) ? "standalone" : p.mode, target: null, reference: null, delta_measures: [] },
   caste_clubbing: false, requires: { min_level: "state" },
-  meta: isRankedPayload(p) || isBenchmarkPayload(p) ? lenslessMeta(p) : p.meta, ...over,
+  meta: isRankedPayload(p) || isBenchmarkPayload(p) || isRelationshipPayload(p) ? lenslessMeta(p) : p.meta, ...over,
 });
 
 export const doneRun = (p: CardPayload): RunStatus => ({ state: "done", done: 1, total: 1, result: p, errors: {} });
