@@ -214,7 +214,7 @@ parties: origin, destination and joint share, size of impact). Every chip is dis
   zero (spec section 10).
 - Scenario-donor joint weights and `weights.external` are deferred (spec section 12).
 
-Live check: see spec section 10 (it records what was run and when).
+Live check (2026-11-12, Uttar Pradesh, R1 and R2, read-only, through `scripts/smoke_card.py`, VPN, product-owner approved): both starter cards ended `done` with 1 job in about 8 s; majors NDA, SP+, BSP; 3 groups (overall, Female, Male), 54 cells, no absent cell; the four flows add to the paired base in every summary. Not verified: PC level, cohort filters, a low-base threshold. Details in spec section 10.
 
 Measured payload sizes (`measure_payload.py`, standalone mode, first scenario, latest
 observation; "rows" are payload rows, not engine rows):

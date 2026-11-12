@@ -121,13 +121,13 @@ As the benchmark: a plan with `unavailable` reasons renders the reasons and no t
 - A live relationship run with explicit party options `[NDA, SP+, BSP]` and passthrough failed in ClickHouse (`ILLEGAL_DIVISION`): an option list closes the answer set and any eligible answer outside it aborts. Options therefore cannot produce zero cells for the majors, and the card runs without them.
 - The same config with `coverage_mode: independent` and one observation passed engine validation (it reached SQL): no cross-round alignment is needed.
 
+- **Dashboard run, built code (2026-11-12, UP, R1+R2, read-only, VPN, owner approved, `scripts/smoke_card.py`):** `relationship.up_past_to_current` ended `done`, 1 job, 8.3 s (engine 7.8 s): majors `NDA, SP+, BSP` from the live alliance table, 3 groups (overall, Female, Male; gender `Other` absent through the hidden rule), 54 cells, 0 absent, 6 summaries; `retained + lost + gained + neither` equals the paired base in all 6 summaries. `relationship.up_mla_to_current` (`mla_choice_party`, base weight, no `weights.external`): `done`, 8.5 s, same counts, identity equal in all 6.
+
 ## 11. Not verified
 
-- A relationship job through the dashboard runner on a live database (the engine CLI path is the only live evidence).
-- The `mla_choice_party` starter card live (base weight). Its numbers have only been read from the engine's stored sample, which used a scenario donor and an external binding that this build does not use.
 - PC-level and cohort-filtered relationship runs (5b). The engine documents a selection plus a downstream relationship; a plain `ac_num` filter was shown equivalent for distributions, not yet for relationships.
 - The engine's own behaviour for a focal party outside the mapping (the card refuses before running).
-- The alliance labels: the stored samples say `BJP+`, the dashboard's live alliance table says `NDA`; tests copy labels from the fixture, the live smoke settles it.
+- The alliance labels differ by source: stored samples say `BJP+`, the live table says `NDA` (settled live: the cards use `NDA`); tests copy labels from the fixture.
 - A low-base threshold (owner decision still open).
 
 ## 12. Deferred
