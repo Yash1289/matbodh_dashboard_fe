@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RankedPayload, RunStatus, StateContext } from "../../api/types";
 import { RANKED, infoFor, stubCardApi } from "../../test/cardApi";
@@ -61,6 +62,44 @@ describe("RankingCard", () => {
     await userEvent.selectOptions(await screen.findByLabelText("Sort"), "o1:rank:asc");
     expect(within(bodyRows(table)[0]).getByRole("rowheader")).not.toHaveTextContent("Seat 128");
     expect(f.mock.calls.length).toBe(calls); // display controls never fetch
+  });
+
+  describe("a chosen sort follows its round when the round selection changes", () => {
+    const renamed = (p: RankedPayload, names: string[]): RankedPayload => ({
+      ...p, rounds: { ...p.rounds, items: p.rounds.items.map((i, n) => ({ ...i, base_name: names[n], label: names[n] })) },
+    });
+
+    async function sortR2ThenSwitchTo(names: string[]) {
+      const p = RANKED.seatTrend();
+      names = names.map((n) => (n === "R2" ? p.rounds.items[1].base_name : n)); // keep the fixture's real name for the sorted round
+      const runs: Record<string, RunStatus> = {};
+      stubCardApi({ payloads: [p], runs });
+      const Harness = () => {
+        const [ctx, setCtx] = useState(CTX);
+        return (
+          <>
+            <button onClick={() => { runs[p.card_id] = { state: "done", done: 1, total: 1, result: renamed(p, names), errors: {} }; setCtx({ ...CTX, rounds: names }); }}>switch</button>
+            <RankingCard info={infoFor(p)} ctx={ctx} />
+          </>
+        );
+      };
+      renderWithProviders(<Harness />);
+      await screen.findByRole("table");
+      await userEvent.click(screen.getByRole("button", { name: /Sort/ }));
+      await userEvent.selectOptions(await screen.findByLabelText("Sort"), "o2:rank:asc"); // o2 is R2 here
+      await userEvent.click(screen.getByRole("button", { name: "switch" }));
+      await screen.findByText(new RegExp(`trend ${names.join(" \\| ")}`));
+      if (screen.queryByLabelText("Sort") === null) await userEvent.click(screen.getByRole("button", { name: /Sort/ }));
+      return (await screen.findByLabelText("Sort")) as HTMLSelectElement;
+    }
+
+    it("clears the sort when its round is no longer shown", async () => {
+      expect((await sortR2ThenSwitchTo(["R3", "R4"])).value).toBe("");
+    });
+
+    it("keeps sorting by the same round when it moves position", async () => {
+      expect((await sortR2ThenSwitchTo(["R2", "R3"])).value).toBe("o1:rank:asc");
+    });
   });
 
   it("search and details are display-only", async () => {

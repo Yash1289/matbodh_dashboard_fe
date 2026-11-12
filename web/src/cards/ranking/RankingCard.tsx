@@ -29,9 +29,15 @@ const Progress = ({ children }: { children: ReactNode }) => (
   </Stack>
 );
 
-/** A chosen sort for a round the new payload no longer has falls back to the engine order. */
-const settled = (view: RankedView, p: RankedPayload): RankedView =>
-  view.sort !== null && !p.rounds.items.some((i) => i.obs_id === view.sort!.round) ? { ...view, sort: null } : view;
+/**
+ * The chosen sort remembers a round by name (obs ids are positional: o1 can be a different round after the
+ * selection changes). Resolve it to this payload's obs id; a round no longer shown falls back to the engine order.
+ */
+const settled = (view: RankedView, p: RankedPayload): RankedView => {
+  if (view.sort === null) return view;
+  const item = p.rounds.items.find((i) => i.base_name === view.sort!.round);
+  return { ...view, sort: item ? { ...view.sort, round: item.obs_id } : null };
+};
 
 /** One ranking card: runs the engine for its config (one job per round in a trend), then shows the ranked table. */
 export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
@@ -130,7 +136,8 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
                   onChange={(e) => {
                     const v = e.currentTarget.value;
                     const [round, by, dir] = v.split(":");
-                    onView({ sort: v === "" ? null : { round, by: by as "rank" | "value", dir: dir as "asc" | "desc" } });
+                    const name = shown.rounds.items.find((i) => i.obs_id === round)?.base_name;
+                    onView({ sort: v === "" || !name ? null : { round: name, by: by as "rank" | "value", dir: dir as "asc" | "desc" } });
                   }} />
               </PopoverChip>
               <PopoverChip label="Search ▾" selected={view.search !== ""}>
