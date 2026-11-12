@@ -33,7 +33,8 @@ RANKED = {"ranked_seat_standalone.json", "ranked_seat_trend.json",
 
 
 def test_export_writes_one_fixture_per_mode_and_family(exported):
-    assert set(exported) == EXPECTED | RANKED | {"benchmark_survey_vs_2022.json"}
+    assert set(exported) == EXPECTED | RANKED | {"benchmark_survey_vs_2022.json",
+                                                  "relationship_transition.json"}
 
 
 def test_benchmark_fixture_validates_and_keeps_engine_values(exported):
@@ -43,6 +44,16 @@ def test_benchmark_fixture_validates_and_keeps_engine_values(exported):
     nda = next(r for r in payload.comparisons if r.group.set_id == "g0" and r.party == "NDA")
     assert (nda.target_seats, nda.reference_seats, nda.seat_delta) == (154, 273, -119)
     assert payload.reference == {"kind": "election", "label": "2022 VS"}
+
+
+def test_relationship_fixture_validates_and_keeps_engine_values(exported):
+    from matbodh_dashboard.cards.relationship.payload import RelationshipPayload
+
+    payload = RelationshipPayload.model_validate(exported["relationship_transition.json"])
+    male = next(s for s in payload.summaries if s.round == "R2" and s.group.dimensions == {"gender": "Male"})
+    assert (male.retention_share, male.net_flow_pp) == (74.01705783351689, -7.806042401667394)
+    assert {g.dimensions["gender"] for g in payload.groups} == {"Female", "Male"}
+    assert payload.parties == ["BJP+", "SP+", "BSP"]
 
 
 def test_ranked_fixtures_validate_and_label_the_synthetic_round(exported):
@@ -59,7 +70,7 @@ def test_ranked_fixtures_validate_and_label_the_synthetic_round(exported):
 
 def test_every_fixture_is_a_valid_grid_payload(exported):
     for name, payload in exported.items():
-        if name in RANKED or name.startswith("benchmark_"):
+        if name in RANKED or name.startswith(("benchmark_", "relationship_")):
             continue
         GridPayload.model_validate(payload)
         assert payload["cuts"] and payload["columns"], name
@@ -67,7 +78,7 @@ def test_every_fixture_is_a_valid_grid_payload(exported):
 
 def test_modes_match_the_file_names(exported):
     for name, payload in exported.items():
-        if name.startswith("benchmark_"):  # a benchmark has tables, not a card mode
+        if name.startswith(("benchmark_", "relationship_")):  # these families have tables, not a card mode
             continue
         assert name.endswith(f"_{payload['mode']}.json"), name
 

@@ -4,3 +4,6 @@ rules:
     pin_last: [Other, Undecided, NOTA]
     unknown: append_alpha
     # colours: one per canonical party label; none seeded yet (editable later)
+  # Universal rule (owner, 2026-11-12): the gender value "Other" is never shown in any table.
+  - field: gender
+    hidden: [Other]

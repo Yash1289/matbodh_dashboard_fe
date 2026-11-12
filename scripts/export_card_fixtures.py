@@ -162,12 +162,30 @@ def build_benchmark_payload(name: str) -> dict:
                                ranked_ctx(card_id, ["o2"], "o2")).model_dump()
 
 
+RELATIONSHIP_FIXTURES = ("relationship_transition",)
+
+
+def build_relationship_payload(name: str) -> dict:
+    """The stored UP transition result (R1, R2 by gender, focal BJP+) through the real translator."""
+    import tempfile
+
+    from matbodh_dashboard.cards.relationship.translate import translate_relationship
+    from tests.cards.relationship_helpers import (
+        JOB, MAJORS, load_transition, relationship_card, relationship_ctx, relationship_rules)
+
+    with tempfile.TemporaryDirectory() as rules_dir:
+        ctx = relationship_ctx(["R1", "R2"], "R2", rules=relationship_rules(Path(rules_dir)))
+        return translate_relationship(relationship_card(id=f"fixture.{name}"), load_transition(), JOB,
+                                      MAJORS, ctx).model_dump()
+
+
 def export_fixtures(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     builders = ([(n, build_payload) for n in FIXTURES] + [(n, build_ranked_payload)
                                                            for n in RANKED_FIXTURES]
-                + [(n, build_benchmark_payload) for n in BENCHMARK_FIXTURES])
+                + [(n, build_benchmark_payload) for n in BENCHMARK_FIXTURES]
+                + [(n, build_relationship_payload) for n in RELATIONSHIP_FIXTURES])
     for name, build in builders:
         path = out_dir / f"{name}.json"
         path.write_text(json.dumps(build(name), ensure_ascii=False, sort_keys=True,

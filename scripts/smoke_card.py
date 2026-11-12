@@ -95,6 +95,8 @@ def report(service: CardRunService, run_id: str, status: CardRunStatus,
     result = status.result
     if result is not None and result.get("kind") == "benchmark":
         return lines + _benchmark_lines(service, run_id, result, status)
+    if result is not None and result.get("kind") == "relationship":
+        return lines + _relationship_lines(service, run_id, result, status)
     ranked = result is not None and result.get("kind") == "ranked"
     if ranked:
         lines.append(f"family={result['family']} mode={result['mode']} "
@@ -142,6 +144,30 @@ def _benchmark_lines(service: CardRunService, run_id: str, result: dict,
             sums[key] = sums.get(key, 0.0) + r["vote_share"]
     if sums:
         lines.append(f"sums: groups={len(sums)} min={min(sums.values()):.4f} max={max(sums.values()):.4f}")
+    for job in service.job_timings(run_id):
+        lines.append(f"  job part={job['part']} state={job['state']} "
+                     f"engine_s={_secs(job['engine_s'])} queue_wait_s={_secs(job['queue_wait_s'])}")
+    if result["unavailable"]:
+        lines.append(f"unavailable: {result['unavailable']}")
+    for part, error in sorted(status.errors.items()):
+        lines.append(f"ERROR part={part} kind={error['kind']}: {error['message']}")
+    return lines
+
+
+def _relationship_lines(service: CardRunService, run_id: str, result: dict,
+                        status: CardRunStatus) -> list[str]:
+    """Aggregate-only relationship report: sizes, absent cells and the four-flow identity per summary."""
+    cells, summaries = result["cells"], result["summaries"]
+    lines = [f"family={result['family']} {result['origin']} -> {result['destination']} "
+             f"focal={result['focal_party']} parties={result['parties']} groups={len(result['groups'])} "
+             f"cells={len(cells)} absent={sum(c['absent'] is not None for c in cells)} "
+             f"summaries={len(summaries)} default={result['default_table']}"]
+    for s in summaries:
+        if s["retained_mass"] is None:
+            continue
+        flows = s["retained_mass"] + s["lost_mass"] + s["gained_mass"] + s["neither_mass"]
+        lines.append(f"  {s['round']} {s['group']['dimensions']} retained+lost+gained+neither={flows:.6f} "
+                     f"paired_base={s['paired_base']:.6f} equal={abs(flows - s['paired_base']) <= 1e-9 * flows}")
     for job in service.job_timings(run_id):
         lines.append(f"  job part={job['part']} state={job['state']} "
                      f"engine_s={_secs(job['engine_s'])} queue_wait_s={_secs(job['queue_wait_s'])}")

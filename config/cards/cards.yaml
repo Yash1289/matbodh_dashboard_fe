@@ -70,3 +70,20 @@ cards:
     benchmark: {focal_party: NDA, grouping_sets: [[], [party_zone]]}
     view: {table: flips}
     requires: {min_level: ac}
+  # Relationships: two party questions of one survey row. The matrix shows only the alliance
+  # table's major parties; the focal party must be one of them. A copy that changes only `view`
+  # shows the other table of the same cached engine run.
+  - id: relationship.up_past_to_current
+    family: relationship
+    section: relationships
+    title: Past vote to current choice
+    cuts: [[], [gender]]
+    relationship: {origin: vs_past, destination: vs_voting_intention, focal_party: NDA}
+    view: {table: summary}
+  - id: relationship.up_mla_to_current
+    family: relationship
+    section: relationships
+    title: MLA choice to current choice
+    cuts: [[], [gender]]
+    relationship: {origin: mla_choice_party, destination: vs_voting_intention, focal_party: NDA}
+    view: {table: matrix}
