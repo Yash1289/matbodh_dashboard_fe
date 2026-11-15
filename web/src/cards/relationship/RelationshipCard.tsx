@@ -11,7 +11,7 @@ import { RelationshipMatrixTable } from "./RelationshipMatrix";
 import { RelationshipSummaryTable } from "./RelationshipSummary";
 import { relationshipToCsv } from "./relationshipCsv";
 import {
-  cutsOf, initialRelationshipView, roundLabel, roundsWithData, valuesFor, type RelationshipView,
+  cutsOf, initialRelationshipView, roundLabel, roundsWithData, valueLabel, valuesFor, type RelationshipView,
 } from "./relationshipRows";
 
 const TABLE_LABELS: Record<RelationshipTable, string> = { summary: "Flow summary", matrix: "Matrix" };
@@ -164,14 +164,16 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
               {view.table === "matrix" && dimensions.map((dim) => (
                 <PopoverChip key={dim} label={`${dim} ▾`} selected={false}>
                   <NativeSelect size="xs" aria-label={dim} value={view.values[dim] ?? ""}
-                    data={valuesFor(shown, view.cut ?? "", dim).map((v) => ({ value: v, label: v }))}
+                    data={valuesFor(shown, view.cut ?? "", dim).map((v) => ({ value: v, label: valueLabel(v) }))}
                     onChange={(e) => { const value = e.currentTarget.value; onView({ values: { ...view.values, [dim]: value } }); }} />
                 </PopoverChip>
               ))}
-              <PopoverChip label="Search ▾" selected={view.search !== ""}>
-                <TextInput size="xs" aria-label="Search rows" placeholder="Search groups" value={view.search}
-                  onChange={(e) => { const search = e.currentTarget.value; onView({ search }); }} />
-              </PopoverChip>
+              {view.table === "summary" && (
+                <PopoverChip label="Search ▾" selected={view.search !== ""}>
+                  <TextInput size="xs" aria-label="Search rows" placeholder="Search groups" value={view.search}
+                    onChange={(e) => { const search = e.currentTarget.value; onView({ search }); }} />
+                </PopoverChip>
+              )}
               <UnstyledButton style={chipStyle(view.showDetails)} aria-pressed={view.showDetails}
                 onClick={() => onView({ showDetails: !view.showDetails })}>Details</UnstyledButton>
               <Menu position="bottom-end">

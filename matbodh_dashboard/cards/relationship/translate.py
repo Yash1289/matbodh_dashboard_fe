@@ -6,7 +6,6 @@ major only) and which of those the engine had no row for (an absent cell).
 """
 from __future__ import annotations
 
-import json
 from collections.abc import Collection, Mapping
 from typing import Any
 
@@ -15,6 +14,7 @@ from matbodh_dashboard.cards.relationship.payload import (
     RelationshipCell, RelationshipGroup, RelationshipPayload, RelationshipSummary,
 )
 from matbodh_dashboard.cards.translate import TranslateContext
+from matbodh_dashboard.registry import _natural_key
 
 _CONTRACT_KEYS = ("relationship", "identities", "joint_weights", "eligibility", "normalisations",
                   "focal_bases", "population", "units", "cross_round_pairing", "grain")
@@ -25,7 +25,7 @@ _SUMMARY_FIELDS = tuple(f for f in RelationshipSummary.model_fields if f not in 
 
 def _dimensions(row: Mapping[str, Any]) -> dict[str, str]:
     """Member dimensions only; a subtotal dimension is not part of the group."""
-    return {name: str(d["value"]) for name, d in row["dimensions"].items() if not d["is_subtotal"]}
+    return {name: "~null" if d["value"] is None else str(d["value"]) for name, d in row["dimensions"].items() if not d["is_subtotal"]}
 
 
 def _group(row: Mapping[str, Any]) -> RelationshipGroup:
@@ -36,13 +36,18 @@ def _key(group: RelationshipGroup) -> tuple:
     return (group.set_id, tuple(sorted(group.dimensions.items())))
 
 
+def _order(group: RelationshipGroup) -> tuple:
+    """Display order: cut, then values with digit runs as numbers (g2 before g10)."""
+    return (group.set_id, [(name, _natural_key(value)) for name, value in sorted(group.dimensions.items())])
+
+
 def translate_relationship(card: CardConfig, result: Mapping[str, Any], job_config: Mapping[str, Any],
                            majors: Collection[str], context: TranslateContext) -> RelationshipPayload:
     rules, state = context.rules, context.state
     parties = rules.order("party", majors, states=[state])
 
     def shown(group: RelationshipGroup) -> bool:
-        return all(rules.order(dim, [value], states=[state]) == [value] for dim, value in group.dimensions.items())
+        return all(value == "~null" or rules.order(dim, [value], states=[state]) == [value] for dim, value in group.dimensions.items())
 
     rounds_with_data = {r["observation_id"] for r in result["summaries"]}
     rounds = [o for o in context.round_order if o in rounds_with_data]
@@ -54,7 +59,7 @@ def translate_relationship(card: CardConfig, result: Mapping[str, Any], job_conf
             summaries.append(RelationshipSummary(
                 round=r["observation_id"], group=group, **{f: r.get(f) for f in _SUMMARY_FIELDS}))
     order = {o: i for i, o in enumerate(rounds)}
-    summaries.sort(key=lambda s: (order[s.round], _key(s.group)))
+    summaries.sort(key=lambda s: (order[s.round], _order(s.group)))
 
     groups: dict[tuple, RelationshipGroup] = {}
     for s in summaries:
@@ -82,7 +87,7 @@ def translate_relationship(card: CardConfig, result: Mapping[str, Any], job_conf
         origin=job_config["relationship"]["origin"], destination=job_config["relationship"]["destination"],
         focal_party=focal, weights=contract["joint_weights"],
         answer_overrides=job_config["relationship"].get("answer_overrides"), parties=parties,
-        groups=sorted(groups.values(), key=lambda g: json.dumps(_key(g))),
+        groups=sorted(groups.values(), key=_order),
         tables_available=["summary", "matrix"], default_table=wanted or "summary",
         cells=cells, summaries=summaries,
         contract={k: contract[k] for k in _CONTRACT_KEYS if k in contract},

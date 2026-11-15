@@ -17,7 +17,7 @@ const cell = { padding: "4px 8px", textAlign: "right" as const };
 const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 100) / 100));
 
 /** Main columns: with a focal party the five readout measures, otherwise agreement alone. */
-const mainColumns = (focal: string | null): Column[] => focal === null
+export const mainColumns = (focal: string | null): Column[] => focal === null
   ? [{ head: "Agreement share", tip: "Respondents with the same party at both questions, as a share of those who answered both", unit: "pct", value: (s) => s.agreement_share }]
   : [
     { head: "Net flow (pp)", tip: `${focal} gained minus lost, as a share of all respondents who answered both questions (percentage points)`, unit: "pp", value: (s) => s.net_flow_pp },
@@ -27,7 +27,7 @@ const mainColumns = (focal: string | null): Column[] => focal === null
     { head: "Acquisition share", tip: `Of those who are ${focal} now, the share who were not before`, unit: "pct", value: (s) => s.acquisition_share },
   ];
 
-const detailColumns = (focal: string | null): Column[] => [
+export const detailColumns = (focal: string | null): Column[] => [
   ...(focal === null ? [] : [
     { head: "Agreement share", tip: "Same party at both questions, of those who answered both", unit: "pct", value: (s: RelationshipSummary) => s.agreement_share },
     { head: "Loss share", tip: `Of those who were ${focal} before, the share who left`, unit: "pct", value: (s: RelationshipSummary) => s.loss_share },

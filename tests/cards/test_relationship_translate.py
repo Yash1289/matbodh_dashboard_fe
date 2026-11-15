@@ -164,3 +164,27 @@ def test_recalled_status_inclusion_is_carried_into_the_payload(tmp_path):
     job["relationship"]["answer_overrides"] = {"origin": {"include": ["Did Not Vote", "Do Not Remember"]}}
     assert _translate(tmp_path, job=job).answer_overrides == {"origin": {"include": ["Did Not Vote", "Do Not Remember"]}}
     assert _translate(tmp_path).answer_overrides is None
+
+
+def _relabel(result, genders):
+    """Rewrite the gender value of every row, cycling through `genders` per distinct original value."""
+    result = copy.deepcopy(result)
+    mapping = dict(zip(sorted({r["dimensions"]["gender"]["value"] for r in result["summaries"]
+                               if r["dimensions"].get("gender")}), genders))
+    for table in ("summaries", "rows"):
+        for r in result[table]:
+            d = r["dimensions"].get("gender")
+            if d and d["value"] in mapping:
+                d["value"] = mapping[d["value"]]
+    return result
+
+
+def test_null_dimension_value_is_the_null_marker_not_the_word_none(tmp_path):
+    payload = _translate(tmp_path, _relabel(load_transition(), [None, "Male"]))
+    assert {"gender": "~null"} in [g.dimensions for g in payload.groups]
+    assert all("None" not in g.dimensions.values() for g in payload.groups)
+
+
+def test_groups_sort_with_digit_runs_as_numbers(tmp_path):
+    payload = _translate(tmp_path, _relabel(load_transition(), ["g10", "g2"]))
+    assert [g.dimensions["gender"] for g in payload.groups] == ["g2", "g10"]

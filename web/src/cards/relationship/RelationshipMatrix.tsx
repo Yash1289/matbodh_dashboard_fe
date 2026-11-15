@@ -8,12 +8,21 @@ const cell = { padding: "4px 8px", textAlign: "right" as const };
 const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 100) / 100));
 
 interface Measure { head: string; text: (c: RelationshipCell) => string | null }
+/** Details measures with their raw engine values (the CSV exports these). */
+export interface RawMeasure { head: string; raw: (c: RelationshipCell) => number | null }
 
 const MEASURES: Measure[] = [
   { head: "Origin share", text: (c) => formatValue(c.origin_share, "pct") },
   { head: "Destination share", text: (c) => formatValue(c.destination_share, "pct") },
   { head: "Joint share", text: (c) => formatValue(c.joint_share, "pct") },
   { head: "Size of impact (pp)", text: (c) => formatValue(c.size_of_impact_pp, "pp") },
+];
+export const DETAIL_RAW: RawMeasure[] = [
+  { head: "Respondents", raw: (c) => c.joint_count },
+  { head: "Origin base", raw: (c) => c.origin_base },
+  { head: "Destination base", raw: (c) => c.destination_base },
+  { head: "Paired base", raw: (c) => c.paired_base },
+  { head: "Paired respondents", raw: (c) => c.paired_count },
 ];
 const DETAILS: Measure[] = [
   { head: "Respondents", text: (c) => (c.joint_count === null ? "—" : String(c.joint_count)) },

@@ -30,4 +30,16 @@ describe("relationshipToCsv", () => {
     expect(out).toContain(["Male", "R2", "SP+", "SP+", "yes", kept.origin_share, kept.destination_share, kept.joint_share,
       kept.size_of_impact_pp, ""].join(","));
   });
+
+  it("with Details on, both tables export the extra columns the screen shows", () => {
+    const p = RELATIONSHIP.transition();
+    const base = initialRelationshipView(p);
+    const summary = lines(relationshipToCsv(p, { ...base, showDetails: true }));
+    expect(summary[0]).toContain("Paired base");
+    expect(summary[0]).toContain("Respondents");
+    const male = p.summaries.find((s) => s.round === "R2" && s.group.dimensions.gender === "Male")!;
+    expect(summary).toContainEqual(expect.stringContaining(`${male.paired_base},${male.paired_count}`));
+    const matrix = lines(relationshipToCsv(p, { ...base, table: "matrix", round: "R2", values: { gender: "Male" }, showDetails: true }));
+    expect(matrix[0].endsWith("Absent,Respondents,Origin base,Destination base,Paired base,Paired respondents")).toBe(true);
+  });
 });

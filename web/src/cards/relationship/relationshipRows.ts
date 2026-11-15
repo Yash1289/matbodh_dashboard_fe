@@ -70,8 +70,11 @@ export function matrixRows(p: RelationshipPayload, view: RelationshipView): Matr
     }));
 }
 
+/** A genuine NULL dimension value arrives as "~null" (as in the grid). */
+export const valueLabel = (v: string): string => (v === "~null" ? "(no value)" : v);
+
 export const groupLabel = (g: RelationshipGroup): string =>
-  Object.keys(g.dimensions).length === 0 ? "All respondents" : Object.values(g.dimensions).join(" · ");
+  Object.keys(g.dimensions).length === 0 ? "All respondents" : Object.values(g.dimensions).map(valueLabel).join(" · ");
 
 /** One row per group of the selected cut, with each round's summary; search filters on the label. */
 export function summaryRows(p: RelationshipPayload, view: RelationshipView): SummaryRow[] {
