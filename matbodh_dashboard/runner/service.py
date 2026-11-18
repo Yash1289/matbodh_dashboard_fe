@@ -19,6 +19,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
+from matbodh_dashboard.cards.cohort.compile import SelectionPredicate, compile_cohort_selection
+from matbodh_dashboard.cards.cohort.translate import translate_selection
 from matbodh_dashboard.cards.compile import compile_card
 from matbodh_dashboard.cards.benchmark.parties import ElectionOption, MajorPartyProvider
 from matbodh_dashboard.cards.benchmark.compile import endpoint_parties_of
@@ -82,6 +84,12 @@ class _Run:
     endpoint_parties: dict[str, frozenset[str]] | None = None
     # Relationship only: the alliance-mapped major parties, fixed when the run starts.
     majors: frozenset[str] | None = None
+    # A cohort creation run: its job is a selection, not the card's own result.
+    selection: bool = False
+
+
+class CohortUnavailable(ValueError):
+    """The card cannot make a cohort; the message is shown to the client."""
 
 
 class CardRunService:
@@ -139,6 +147,26 @@ class CardRunService:
                                                        self.major_parties)
         if card.family in RELATIONSHIP_FAMILIES and plan.jobs:
             run.majors = relationship_majors(plan.state, self.preset, self.major_parties)
+        with self._lock:
+            self._runs[run_id] = run
+            while len(self._runs) > MAX_RUNS:
+                self._runs.popitem(last=False)
+            self._advance(run)
+        return run_id
+
+    def start_selection(self, card_id: str, ctx: StateContext, predicate: SelectionPredicate,
+                        reference: BenchmarkReference | None = None) -> str:
+        """Run the card's own ranking or benchmark with a selection and return the seat list (nothing is stored)."""
+        card = self._card(card_id)
+        with self._lock:
+            catalogue, epoch = self.catalogue, self.cache.alliance_epoch()
+        plan = compile_cohort_selection(card, ctx, catalogue, self.preset, predicate, reference=reference,
+                                        parties=self.major_parties, elections=self.elections)
+        if not plan.jobs:
+            raise CohortUnavailable("; ".join(reason for _, reason in plan.unavailable))
+        run_id = uuid.uuid4().hex
+        run = _Run(card_id, card, plan, catalogue.revision, epoch, selection=True)
+        run.jobs = {j.key: _Job(j) for j in plan.jobs}
         with self._lock:
             self._runs[run_id] = run
             while len(self._runs) > MAX_RUNS:
@@ -288,6 +316,9 @@ class CardRunService:
         return CardRunStatus(state, len(finished), len(jobs), result, errors)
 
     def _assemble(self, run: _Run) -> dict:
+        if run.selection:
+            (job,) = run.jobs.values()
+            return translate_selection(job.result, job.job.config).model_dump()
         plan, card = run.plan, run.card
         by_name = {r.identity.base_name: r.obs_id for r in plan.rounds}
         anchor = by_name[plan.anchor]
@@ -344,7 +375,7 @@ def _ranking_anchor(run: _Run, planned: str) -> str:
 
 def _anchor_first(run: _Run, jobs: list[_Job]) -> list[_Job]:
     """Failed ranking jobs share one error entry; the anchor's message, which fails the card, leads."""
-    if run.card.family not in RANKING_FAMILIES:
+    if run.selection or run.card.family not in RANKING_FAMILIES:
         return jobs
     by_name = {r.identity.base_name: r.obs_id for r in run.plan.rounds}
     anchor = _ranking_anchor(run, by_name[run.plan.anchor])
@@ -352,7 +383,7 @@ def _anchor_first(run: _Run, jobs: list[_Job]) -> list[_Job]:
 
 
 def _ranking_anchor_failed(run: _Run) -> bool:
-    if run.card.family not in RANKING_FAMILIES:
+    if run.selection or run.card.family not in RANKING_FAMILIES:
         return False
     by_name = {r.identity.base_name: r.obs_id for r in run.plan.rounds}
     anchor = _ranking_anchor(run, by_name[run.plan.anchor])

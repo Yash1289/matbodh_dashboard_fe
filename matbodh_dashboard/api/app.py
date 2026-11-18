@@ -17,14 +17,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from matbodh_dashboard.api.schemas import (
-    CardRequest, MetadataRefreshed, RunStarted, StatesResponse,
+    CardRequest, MetadataRefreshed, PreviewRequest, RunStarted, StatesResponse,
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
 from matbodh_dashboard.catalogue.store import (
     Catalogue, CatalogueRound, DatasetVersion, RoundNotFound)
-from matbodh_dashboard.runner.service import CardRunService
+from matbodh_dashboard.runner.service import CardRunService, CohortUnavailable
 
 log = logging.getLogger(__name__)
 
@@ -207,6 +207,20 @@ def create_app(
             return _invalid(errors)
         try:
             return RunStarted(run_id=service.start(body.card_id, body.context, body.reference))
+        except RoundNotFound:
+            raise _catalogue_changed() from None
+
+    @app.post("/cohorts/preview", response_model=RunStarted)
+    def cohort_preview(body: PreviewRequest):
+        _require_card(service, body.card_id)
+        errors = validate_context(body.context, service.catalogue)
+        if errors:
+            return _invalid(errors)
+        try:
+            return RunStarted(run_id=service.start_selection(
+                body.card_id, body.context, body.predicate, body.reference))
+        except CohortUnavailable as exc:
+            return _invalid([str(exc)])
         except RoundNotFound:
             raise _catalogue_changed() from None
 
