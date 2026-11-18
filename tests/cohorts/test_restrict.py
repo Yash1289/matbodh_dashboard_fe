@@ -16,18 +16,16 @@ def test_filter_values_are_strings_and_pc_uses_pc_num():
 
 
 def test_ac_cohort_needs_an_ac_designed_survey():
-    assert cohort_blockers(cohort("ac"), "ac", 2) == []
-    reasons = cohort_blockers(cohort("ac"), "pc", 1)
+    assert cohort_blockers(cohort("ac"), "ac") == []
+    reasons = cohort_blockers(cohort("ac"), "pc")
     assert len(reasons) == 1 and "AC" in reasons[0]
 
 
-def test_pc_cohort_on_ac_rounds_is_single_round_only_until_membership_is_supplied():
-    assert cohort_blockers(cohort("pc"), "ac", 1) == []
-    (reason,) = cohort_blockers(cohort("pc"), "ac", 2)
-    assert "membership" in reason
-    assert cohort_blockers(cohort("pc"), "pc", 2) == []
+def test_a_pc_cohort_applies_to_ac_and_pc_surveys_over_any_number_of_rounds():
+    for level in ("ac", "pc"):
+        assert cohort_blockers(cohort("pc"), level) == []
 
 
 def test_zone_and_state_surveys_cannot_take_a_seat_cohort():
     for level in ("zone", "state"):
-        assert cohort_blockers(cohort("ac"), level, 1) and cohort_blockers(cohort("pc"), level, 1)
+        assert cohort_blockers(cohort("ac"), level) and cohort_blockers(cohort("pc"), level)

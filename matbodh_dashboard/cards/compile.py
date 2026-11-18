@@ -178,7 +178,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         return plan()
 
     if cohort is not None:
-        blockers = cohort_blockers(cohort, selection.used[0].dataset.level, len(selection.used))
+        blockers = cohort_blockers(cohort, selection.used[0].dataset.level)
         if blockers:
             unavailable.extend((GRID, reason) for reason in blockers)
             return plan()

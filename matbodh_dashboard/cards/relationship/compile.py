@@ -88,7 +88,7 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
     coverage = "independent"
     filters: list[dict] = []
     if cohort is not None:
-        blockers = cohort_blockers(cohort, used[0].dataset.level, len(used))
+        blockers = cohort_blockers(cohort, used[0].dataset.level)
         if blockers:
             unavailable.extend((GRID, reason) for reason in blockers)
             return plan()

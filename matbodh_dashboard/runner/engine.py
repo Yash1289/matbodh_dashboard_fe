@@ -71,9 +71,31 @@ def client_message(kind: str, message: str) -> str:
     return message if kind == "config" else GENERIC_MESSAGES.get(kind, "engine job failed")
 
 
+# The key the engine scans for: any snapshot keyed by ac_num whose rows carry pc_num.
+MEMBERSHIP_KEY = "ac_pc_membership"
+
+
 class EngineRunner:
     def __init__(self, runtime: Any) -> None:
         self._runtime = runtime
+        # The AC-to-PC membership of a state never changes, so it is read once per state and kept.
+        self._membership: dict[str, Any] = {}
+
+    def _snapshots(self, config: dict) -> dict[str, Any] | None:
+        """Aligned PC coverage over AC-designed rounds needs the complete AC-keyed membership in the
+        engine snapshots. The plain and relationship views take it from the host; ranking, benchmark
+        and selection bring their own."""
+        if any(key in config for key in ("ranking", "benchmark", "selection")):
+            return None
+        request = config.get("request") or {}
+        if request.get("coverage_mode", "independent") == "independent":
+            return None
+        if not any(f.get("field") == "pc_num" for f in request.get("filters", [])):
+            return None
+        state = request["state"]
+        if state not in self._membership:
+            self._membership[state] = self._runtime.access.seat_snapshot(state, "ac")
+        return {MEMBERSHIP_KEY: self._membership[state]}
 
     def run(self, config: dict) -> dict:
         path: Path | None = None
@@ -82,7 +104,8 @@ class EngineRunner:
             path = Path(name)
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
                 json.dump(config, handle)
-            result = self._runtime.run(path)
+            snapshots = self._snapshots(config)
+            result = self._runtime.run(path, **({"snapshots": snapshots} if snapshots else {}))
             return dataclasses.asdict(result)
         except EngineError:
             raise

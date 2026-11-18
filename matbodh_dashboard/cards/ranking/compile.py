@@ -92,7 +92,7 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
         return plan()
 
     if cohort is not None:
-        blockers = (cohort_blockers(cohort, selection.used[0].dataset.level, len(selection.used))
+        blockers = (cohort_blockers(cohort, selection.used[0].dataset.level)
                     if demographic else level_mismatch(cohort, rank.level, "ranks"))
         if blockers:
             unavailable.extend((GRID, reason) for reason in blockers)

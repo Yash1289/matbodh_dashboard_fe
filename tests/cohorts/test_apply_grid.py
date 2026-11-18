@@ -53,9 +53,13 @@ def test_cohort_changes_the_fingerprint():
     assert fp(cohort(ids=(3, 12))) == fp(cohort(ids=(12, 3, 3)))
 
 
+def test_a_pc_cohort_over_two_ac_rounds_gets_the_filter_and_common_coverage():
+    (job,) = grid_plan(grid._config(comparison=COMPARE), cohort("pc")).jobs
+    request = job.config["request"]
+    assert request["filters"][-1]["field"] == "pc_num" and request["coverage_mode"] == "common"
+
+
 def test_unavailable_reason_when_the_cohort_cannot_apply():
-    plan = grid_plan(grid._config(comparison=COMPARE), cohort("pc"))
-    assert plan.jobs == () and any("membership" in r for _, r in plan.unavailable)
     plan = grid_plan(grid._config(), cohort("ac"), level="pc", ctx=grid._ctx(level="pc"))
     assert plan.jobs == () and plan.unavailable
 
@@ -69,7 +73,9 @@ def test_relationship_cohort_filter_and_common_coverage():
     assert request["coverage_mode"] == "common"
 
 
-def test_relationship_pc_cohort_over_two_ac_rounds_is_unavailable_with_a_reason():
+def test_relationship_pc_cohort_over_two_ac_rounds_gets_the_filter_and_common_coverage():
     plan = compile_card(rel._card(), rel._ctx(), rel._catalogue(), rel.PRESET, parties=rel.FakeParties(),
                         cohort=cohort("pc"))
-    assert plan.jobs == () and any("membership" in r for _, r in plan.unavailable)
+    (job,) = plan.jobs
+    assert job.config["request"]["filters"] == [{"field": "pc_num", "operator": "in", "values": ["3", "12"]}]
+    assert job.config["request"]["coverage_mode"] == "common"
