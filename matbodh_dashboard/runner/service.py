@@ -116,7 +116,8 @@ class CardRunService:
     def plan(self, card_id: str, ctx: StateContext,
              reference: BenchmarkReference | None = None) -> RunPlan:
         return compile_card(self._card(card_id), ctx, self.catalogue, self.preset,
-                            reference=reference, parties=self.major_parties, elections=self.elections)
+                            reference=reference, parties=self.major_parties, elections=self.elections,
+                            cohort=ctx.cohort)
 
     def start(self, card_id: str, ctx: StateContext,
               reference: BenchmarkReference | None = None) -> str:
@@ -128,7 +129,8 @@ class CardRunService:
             catalogue, epoch = self.catalogue, self.cache.alliance_epoch()
         # Compiling may read the alliance table (a MySQL connect can take seconds): not under the lock.
         plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
-                            parties=self.major_parties, elections=self.elections)
+                            parties=self.major_parties, elections=self.elections,
+                            cohort=ctx.cohort)
         run = _Run(card_id, card, plan, catalogue.revision, epoch)
         run.jobs = {j.key: _Job(j) for j in plan.jobs}
         if card.family in BENCHMARK_FAMILIES and plan.jobs:

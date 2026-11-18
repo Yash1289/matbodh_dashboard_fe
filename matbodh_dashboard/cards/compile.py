@@ -123,7 +123,9 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
 
 
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
-                 preset: MethodPreset, *, reference=None, parties=None, elections=None) -> RunPlan:
+                 preset: MethodPreset, *, reference=None, parties=None, elections=None,
+                 cohort=None) -> RunPlan:
+    # cohort: applied by the family compilers (Tasks 3 and 4 of the cohort plan).
     if config.family in RELATIONSHIP_FAMILIES:
         # Lazy: the relationship compiler reuses this module's round helpers.
         from matbodh_dashboard.cards.relationship.compile import compile_relationship_card
