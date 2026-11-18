@@ -16,7 +16,7 @@ Last reviewed: 2026-11-18.
 | 3 | Seat and demographic ranking | Done, live-verified |
 | 4 | Benchmark (`seat_benchmark`) | Done, live-verified (UP) |
 | 5a | Relationship cards | Done, live-verified |
-| 5b | Seat cohorts (session-only) | **Built on branch feat/seat-cohorts, not merged; live check and PC cross-round membership (O-C5) still open** |
+| 5b | Seat cohorts (session-only) | Done: merged to main and pushed 2026-11-18, live-verified |
 | 6 | Configure modal, Duplicate card, live option lists | Not started |
 | last | Access control (Postgres, state + configuration permissions) | Not started |
 
@@ -30,8 +30,8 @@ Last reviewed: 2026-11-18.
 | O-C2 | ~~Cohort naming, provenance and edit rules~~ DROPPED 2026-11-18: cohorts are session-only, no names, no edit (D-C8) | owner | dropped |
 | O-C3 | ~~Store interface and SQLite schema~~ DROPPED 2026-11-18: no server storage (D-C8) | eng | dropped |
 | O-C4 | Cohort in `StateContext` and the fingerprint (list hash; `coverage_mode: common` for cross-round cards) | eng | BUILT (Tasks 1 to 4) |
-| O-C5 | PC cohorts across AC-designed rounds need an AC-keyed membership snapshot supplied by the host layer (`matbodh_views/named_runtime.py` in MatBodh-Dash, plain analysis path; the selection path already does it). Small change, untried | engine host layer | BUILT 2026-11-18 offline (engine main 55d32d4 adds the snapshots pass-through; the dashboard runner loads the membership once per state and passes it for plain/relationship jobs with a pc_num filter and aligned coverage; cohort_blockers no longer blocks PC cohorts). LIVE RERUN PENDING (VPN dropped) |
-| O-C6 | Live check that relationship, ranking and grid cards run under a cohort filter | eng | LIVE 2026-11-18 (UP, R1+R2, read-only): AC cohort (top 5 per group) -> relationship, distribution, ranking all done; benchmark-selected cohort (140 AC) -> benchmark done; PC cohort (5 PC) -> PC ranking and single-round grid done |
+| O-C5 | PC cohorts across AC-designed rounds need an AC-keyed membership snapshot supplied by the host layer (`matbodh_views/named_runtime.py` in MatBodh-Dash, plain analysis path; the selection path already does it). Small change, untried | engine host layer | CLOSED 2026-11-18: built (engine 55d32d4 + dashboard runner loader) and LIVE-verified: PC cohort (5 PCs) over two AC rounds through relationship.up_past_to_current and up_mla_to_current, four-flow identity holds; no-cohort and AC-cohort runs unchanged |
+| O-C6 | Live check that relationship, ranking and grid cards run under a cohort filter | eng | CLOSED 2026-11-18: live (UP, R1+R2, read-only): AC cohort, benchmark cohort (140 AC), PC cohort, relationship / distribution / ranking / benchmark under each all done |
 | O-C7 | Small "seats in this cohort" list (the investigation drawer is dropped) | eng | BUILT as the seat list in the preview; names need a read endpoint (open) |
 | O-C8 | Identify the survey dataset table and column that lists scenarios per anchor round (source decided: D-C6); the builder finds it in the existing metadata session, no invented list | eng | BUILT: party scenarios from the anchor dataset via party_scenarios_of |
 | O-C9 | Surface the predicate rules on the cards: rank_max is per partition and includes ties; a flip needs a reference endpoint (the flip table comes from seat benchmarking); demographic ranking cards offer no cohort action (rules confirmed, D-C7) | eng | BUILT: flip needs a reference, demographic cards have no action; rank_max per partition shown by the engine |
