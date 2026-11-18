@@ -129,6 +129,19 @@ def scenario_kind(scenario_id: str) -> Literal["party", "opinion"]:
     raise ValueError(f"scenario {scenario_id!r} has unsupported domain {scenario.domain!r}")
 
 
+def party_scenarios_of(scenario_ids) -> list[str]:
+    """The party-domain scenarios among a dataset's recorded ones, sorted; ids the scenario
+    catalogue does not know are skipped, never guessed."""
+    found = []
+    for scenario in scenario_ids:
+        try:
+            if scenario_kind(scenario) == "party":
+                found.append(scenario)
+        except ValueError:
+            continue
+    return sorted(found)
+
+
 def comparison_kind(target_kind: str, reference_kind: str) -> Literal["difference", "shakti"]:
     if target_kind == reference_kind:
         return "difference"
@@ -143,6 +156,8 @@ class CardConfig(_Strict):
     section: str
     title: str
     scenarios: list[str] = Field(default_factory=list)
+    # Distribution only: every party scenario the anchor round's dataset records (spec 5.3).
+    all_party_scenarios: bool = False
     cuts: list[list[str]] = Field(default_factory=lambda: [[]])
     filters: list[FilterSpec] = Field(default_factory=list)
     comparison: ComparisonConfig = Field(default_factory=ComparisonConfig)
@@ -165,6 +180,8 @@ class CardConfig(_Strict):
     @model_validator(mode="after")
     def _validate(self) -> "CardConfig":
         comparison = self.comparison
+        if self.all_party_scenarios:
+            self._check_all_party_scenarios(comparison)
         if self.family in RELATIONSHIP_FAMILIES:
             self._check_relationship(comparison)
             return self
@@ -181,6 +198,8 @@ class CardConfig(_Strict):
         if self.rank is not None:
             raise ValueError("rank applies to ranking families only")
         self._check_cuts()
+        if self.all_party_scenarios:
+            return self
         self._check_endpoints_and_scenarios(comparison)
         self._check_family(comparison)
         self._check_delta_measures(comparison)
@@ -190,6 +209,12 @@ class CardConfig(_Strict):
         if self.caste_clubbing and not any("caste" in cut for cut in self.cuts):
             raise ValueError("caste_clubbing needs caste in a cut")
         return self
+
+    def _check_all_party_scenarios(self, comparison: ComparisonConfig) -> None:
+        if (self.family != "distribution" or self.scenarios or self.cuts != [[]] or self.filters
+                or self.caste_clubbing or comparison != ComparisonConfig()):
+            raise ValueError("all_party_scenarios is for a standalone distribution card with no "
+                             "scenarios listed, cuts [[]], no filters and no caste clubbing")
 
     def _check_relationship(self, comparison: ComparisonConfig) -> None:
         rel = self.relationship

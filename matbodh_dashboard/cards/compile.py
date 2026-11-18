@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from matbodh_dashboard.capability import resolve_anchor, template_blockers
 from matbodh_dashboard.cards.config import (
+    party_scenarios_of,
     BENCHMARK_FAMILIES,
     RANKING_FAMILIES,
     RELATIONSHIP_FAMILIES,
@@ -153,6 +154,12 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                        compare=ctx.compare_round, jobs=tuple(jobs),
                        unavailable=tuple(unavailable), not_asked=tuple(not_asked))
 
+    if config.all_party_scenarios:
+        anchor_scenarios = party_scenarios_of(_by_base_name(rounds, anchor).dataset.scenarios)
+        if not anchor_scenarios:
+            unavailable.append((GRID, f"No party scenario is recorded for {anchor}"))
+            return plan()
+        config = config.model_copy(update={"scenarios": anchor_scenarios})
     fields = _needed_fields(config, preset.gender.field if spec.gender_differential else None)
     blockers = template_blockers(config.requires.min_level, fields, ctx.level)
     if blockers:

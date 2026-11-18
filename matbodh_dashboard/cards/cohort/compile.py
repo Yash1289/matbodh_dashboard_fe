@@ -12,7 +12,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from matbodh_dashboard.cards.compile import GRID, _by_base_name, compile_card
-from matbodh_dashboard.cards.config import CardConfig, scenario_kind
+from matbodh_dashboard.cards.config import CardConfig, party_scenarios_of
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan
 from matbodh_dashboard.compiler.requests import build_request, view_config
@@ -57,17 +57,6 @@ class SelectionPredicate(BaseModel):
         return "ranking" if any(getattr(self, f) is not None for f in _RANKING_FIELDS) else "benchmark"
 
 
-def _party_scenarios(anchor_round) -> list[str]:
-    found = []
-    for scenario in anchor_round.dataset.scenarios:
-        try:
-            if scenario_kind(scenario) == "party":
-                found.append(scenario)
-        except ValueError:  # unknown to the scenario catalogue: not ours to guess
-            continue
-    return sorted(found)
-
-
 def _source_job(plan: RunPlan) -> EngineJob:
     if len(plan.jobs) == 1:
         return plan.jobs[0]
@@ -105,7 +94,7 @@ def compile_cohort_selection(config: CardConfig, ctx: StateContext, catalogue: C
             return refuse("This predicate needs a reference endpoint; choose a reference for the card")
 
     anchor_round = _by_base_name(list(base.rounds), base.anchor)
-    scenarios = _party_scenarios(anchor_round)
+    scenarios = party_scenarios_of(anchor_round.dataset.scenarios)
     if not scenarios:
         return refuse(f"No party scenario is recorded for {base.anchor}")
     downstream = build_request(state=ctx.state, rounds=[anchor_round], scenarios=scenarios,

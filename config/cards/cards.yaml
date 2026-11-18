@@ -7,6 +7,13 @@ cards:
     cuts: [[], [category], [category, caste], [category, caste, gender]]
     caste_clubbing: true
     requires: {min_level: state}
+  - id: distribution.overall_vote_share
+    family: distribution
+    section: coalitions
+    title: Overall vote share
+    all_party_scenarios: true
+    cuts: [[]]
+    requires: {min_level: state}
   - id: opinion.leaders
     family: opinion
     section: leadership

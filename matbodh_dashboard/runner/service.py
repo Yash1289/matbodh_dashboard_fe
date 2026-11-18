@@ -354,6 +354,9 @@ class CardRunService:
             failed = {_job_obs(j.job.config) for j in run.jobs.values() if j.status == "failed"}
             return translate_ranked(card, results, context, failed=failed,
                                     labels=self.seat_labels).model_dump()
+        if card.all_party_scenarios:  # the columns are the scenarios the compiled request asked for
+            asked = next(iter(run.jobs.values())).job.config["request"]["scenarios"]
+            card = card.model_copy(update={"scenarios": asked})
         payload = translate_grid(card, get_family(card.family), done[0] if done else {}, context)
         return payload.model_dump()
 
