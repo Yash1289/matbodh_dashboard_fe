@@ -136,12 +136,12 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         from matbodh_dashboard.cards.benchmark.compile import compile_benchmark_card
 
         return compile_benchmark_card(config, ctx, catalogue, preset, reference=reference,
-                                      parties=parties, elections=elections)
+                                      parties=parties, elections=elections, cohort=cohort)
     if config.family in RANKING_FAMILIES:
         # Lazy: the ranking compiler reuses this module's round selection.
         from matbodh_dashboard.cards.ranking.compile import compile_ranking_card
 
-        return compile_ranking_card(config, ctx, catalogue, preset)
+        return compile_ranking_card(config, ctx, catalogue, preset, cohort=cohort)
     spec = get_family(config.family)
     rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)

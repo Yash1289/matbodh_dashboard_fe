@@ -13,6 +13,10 @@ from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
 from matbodh_dashboard.compiler.rounds import ResolvedRound, resolve_rounds
+from matbodh_dashboard.cohorts.models import CohortRef
+from matbodh_dashboard.cohorts.restrict import (
+    cohort_blockers, level_mismatch, respondent_filter, seat_restriction,
+)
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import MethodPreset
 
@@ -30,7 +34,7 @@ def _comparison(config: CardConfig, selection: _Selection) -> dict:
 
 
 def _ranking(config: CardConfig, round_: ResolvedRound | None, scenario: str | None,
-             comparison_id: str | None, survey_level: str) -> dict:
+             comparison_id: str | None, survey_level: str, cohort: CohortRef | None = None) -> dict:
     rank = config.rank
     target = [round_.obs_id, scenario] if comparison_id is None else None
     shared = {"id": config.id, "target": target, "comparison_id": comparison_id,
@@ -43,11 +47,12 @@ def _ranking(config: CardConfig, round_: ResolvedRound | None, scenario: str | N
         "seat_ids": [], "filters": _filters(rank.filters), "display_seat_ids": [],
         # A PC ranking from an AC-designed survey needs the AC-to-PC membership.
         "membership_snapshot": "ac_pc" if rank.level == "pc" and survey_level == "ac" else None,
+        **(seat_restriction(cohort) if cohort is not None else {}),
     }
 
 
 def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
-                         preset: MethodPreset) -> RunPlan:
+                         preset: MethodPreset, cohort: CohortRef | None = None) -> RunPlan:
     rank = config.rank
     rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
@@ -86,9 +91,17 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
     if unavailable:
         return plan()
 
+    if cohort is not None:
+        blockers = (cohort_blockers(cohort, selection.used[0].dataset.level, len(selection.used))
+                    if demographic else level_mismatch(cohort, rank.level, "ranks"))
+        if blockers:
+            unavailable.extend((GRID, reason) for reason in blockers)
+            return plan()
     mode = config.comparison.mode
     scenario = config.scenarios[0] if mode != "compare" else None
     respondent_filters = _filters(config.filters) if demographic else []
+    if cohort is not None and demographic:
+        respondent_filters = [*respondent_filters, respondent_filter(cohort)]
     # Round arithmetic needs the same seats in both rounds, as for grid compare cards.
     geographic = not demographic or any(f in SEAT_DIMENSIONS for f in rank.partition_by)
     coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
@@ -104,7 +117,7 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
             preset=preset, comparisons=comparisons, coverage_mode=coverage,
             filters=respondent_filters, reference_observation=reference_observation)
         survey_level = used[0].dataset.level
-        ranking = _ranking(config, round_, scenario, comparison_id, survey_level)
+        ranking = _ranking(config, round_, scenario, comparison_id, survey_level, cohort)
         return EngineJob(key, "analysis", GRID, view_config(request, preset, ranking=ranking))
 
     if mode == "compare":

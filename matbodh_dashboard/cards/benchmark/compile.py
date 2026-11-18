@@ -18,6 +18,8 @@ from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan
 from matbodh_dashboard.compiler.requests import build_request, view_config
 from matbodh_dashboard.compiler.rounds import resolve_rounds
+from matbodh_dashboard.cohorts.models import CohortRef
+from matbodh_dashboard.cohorts.restrict import level_mismatch, seat_restriction
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import MethodPreset
 
@@ -60,7 +62,8 @@ def endpoint_parties_of(job_config: Mapping, state: str, preset: MethodPreset,
 def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                            preset: MethodPreset, *, reference: BenchmarkReference | None,
                            parties: MajorPartyProvider | None,
-                           elections: Mapping[str, Sequence[ElectionOption]] | None) -> RunPlan:
+                           elections: Mapping[str, Sequence[ElectionOption]] | None,
+                           cohort: CohortRef | None = None) -> RunPlan:
     rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
     unavailable: list[tuple[str, str]] = []
@@ -75,6 +78,8 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         unavailable.append((GRID, "Benchmarks need an AC- or PC-level survey"))
     if parties is None:
         unavailable.append((GRID, "The alliance party lookup is not configured"))
+    if cohort is not None and ctx.level in ("ac", "pc"):
+        unavailable.extend((GRID, r) for r in level_mismatch(cohort, ctx.level, "compares"))
     if unavailable:
         return plan()
 
@@ -150,6 +155,7 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         "contenders": list(majors), "focal_party": focal,
         "grouping_sets": [list(gs) for gs in config.benchmark.grouping_sets],
         "filters": [], "seat_ids": [],
+        **(seat_restriction(cohort) if cohort is not None else {}),
         "competition_excluded": list(preset.competition_excluded),
     }
     return plan([EngineJob("benchmark", "benchmark", GRID,
