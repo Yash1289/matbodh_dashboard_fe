@@ -330,3 +330,10 @@ def test_relationship_card_is_listed_plans_and_starts_a_run(tmp_path):
     plan = client.post("/cards/plan", json=body("t.rel"))
     assert plan.status_code == 200 and plan.json()["unavailable"] == []
     assert client.post("/cards/run", json=body("t.rel")).status_code == 200
+
+
+def test_plan_with_invalid_cohort_is_a_422_with_reason(client):
+    cohort = {"seat_level": "ac", "seat_ids": [], "label": "Empty", "created_at": "2026-11-18T00:00:00Z"}
+    response = client.post("/cards/plan", json=body(cohort=cohort))
+    assert response.status_code == 422
+    assert "seat_ids" in response.text

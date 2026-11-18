@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from matbodh_dashboard.cohorts.models import CohortRef
+
 
 class StateContext(BaseModel):
     """Selection for one state. ``rounds`` are base names (no Extrapolated suffix)."""
@@ -19,6 +21,8 @@ class StateContext(BaseModel):
     anchor_round: str | None = None
     version_mode: Literal["extrapolated", "matched"] = "extrapolated"
     geo_scope: Literal["state", "zone", "district", "seat"] = "state"
+    # Session cohort sent by the browser (spec 5.1); None means the whole state.
+    cohort: CohortRef | None = None
 
 
 class Context(BaseModel):

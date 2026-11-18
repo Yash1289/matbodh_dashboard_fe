@@ -116,3 +116,13 @@ def test_geo_scope_other_than_state_not_supported_yet(catalogue):
     errors = validate_context(ctx(geo_scope="zone"), catalogue)
     assert any("geo_scope" in e for e in errors)
     assert validate_context(ctx(geo_scope="state"), catalogue) == []
+
+
+def test_context_accepts_a_cohort_and_forbids_extra_keys():
+    from datetime import datetime, timezone
+
+    cohort = {"seat_level": "ac", "seat_ids": [2, 1], "label": "Top 2", "created_at": datetime(2026, 11, 18, tzinfo=timezone.utc)}
+    assert ctx(cohort=cohort).cohort.seat_ids == [1, 2]
+    assert ctx().cohort is None
+    with pytest.raises(ValidationError):
+        ctx(cohort={**cohort, "id": "x"})
