@@ -64,3 +64,17 @@ def test_the_same_preview_is_served_from_the_cache(rules, cache):  # noqa: F811
     preview(service)
     preview(service)
     assert len(runner.calls) == 1
+
+
+def test_benchmark_card_previews_through_the_service(rules, cache):  # noqa: F811
+    from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
+    from tests.cards import test_benchmark_compile as bench
+
+    service, _ = make_service(rules, cache, runner=SelectionRunner(), cards={"benchmark.test": bench._card()},
+                              cat=bench._catalogue())
+    service.major_parties = bench.FakeParties()
+    service.elections = bench.ELECTIONS
+    predicate = SelectionPredicate(status="losing", margin_min=-13, margin_max=-3)
+    run_id = service.start_selection("benchmark.test", bench._ctx(), predicate, BenchmarkReference(kind="compare"))
+    status = service.status(run_id)
+    assert status.state == "done" and status.result["seat_ids"] == [3, 12, 57]
