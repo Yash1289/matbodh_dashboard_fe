@@ -130,15 +130,21 @@ def scenario_kind(scenario_id: str) -> Literal["party", "opinion"]:
 
 
 def party_scenarios_of(scenario_ids) -> list[str]:
-    """The party-domain scenarios among a dataset's recorded ones, sorted; ids the scenario
-    catalogue does not know are skipped, never guessed."""
+    """The party-domain scenarios among a dataset's recorded ones that the engine accepts without
+    an extra weight binding, sorted. Ids the scenario catalogue does not know are skipped, never
+    guessed. A party scenario with no embedded weights (other than a recalled vote, which uses base
+    weights) needs an owner-approved external weight binding, so it is left out."""
+    catalogue = _scenario_catalogue()
     found = []
     for scenario in scenario_ids:
         try:
-            if scenario_kind(scenario) == "party":
-                found.append(scenario)
+            if scenario_kind(scenario) != "party":
+                continue
         except ValueError:
             continue
+        spec = catalogue[scenario]
+        if spec.weight_keys or spec.role == "recalled_vote":
+            found.append(scenario)
     return sorted(found)
 
 

@@ -69,3 +69,20 @@ def test_the_payload_columns_follow_the_expanded_scenarios_not_the_empty_config(
     result = status.result
     assert {c["key"] for c in result["columns"]} >= {"vs_voting_intention:NDA", "vs_voting_intention:SP+"}
     assert any(c["value"] is not None for c in result["cuts"][0]["cells"])
+
+
+def _anchor_with(scenarios):
+    rows = [dataset_row(f"2027 VS CAPI R{i}", round_number=i, available_fields=grid.FIELDS,
+                        available_scenarios=list(scenarios)) for i in (1, 2, 3)]
+    levels = [level_row(f"2027 VS CAPI R{i}", range(1, 404)) for i in (1, 2, 3)]
+    return load_catalogue(make_query(rows, levels))
+
+
+def test_party_scenarios_needing_an_external_weight_binding_are_left_out():
+    # cm_choice_party has no embedded weights: the engine refuses it without an owner-approved
+    # external binding ("Explicit external weight binding required"), so it is never added here.
+    plan = compile_card(overall(), grid._ctx(),
+                        _anchor_with([grid.VS, "vs_past", "cm_choice_party", "state_govt_change_party", grid.PM]),
+                        grid.PRESET)
+    (job,) = plan.jobs
+    assert job.config["request"]["scenarios"] == ["vs_past", grid.VS]
