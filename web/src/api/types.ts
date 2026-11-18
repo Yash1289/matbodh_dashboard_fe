@@ -11,6 +11,34 @@ export interface StateContext {
   anchor_round: string | null;
   version_mode: "extrapolated" | "matched";
   geo_scope: "state";
+  /** The session cohort (seats the user selected); sent with every request, never part of the URL. */
+  cohort?: CohortRef | null;
+}
+
+export interface CohortRef {
+  seat_level: "ac" | "pc";
+  seat_ids: number[];
+  label: string;
+  created_at: string;
+}
+
+/** What the user asks of a seat ranking (rank_*, metric_*) or a seat benchmark (the rest); never both. */
+export interface SelectionPredicate {
+  rank_max?: number;
+  metric_min?: number;
+  metric_max?: number;
+  endpoint?: "target" | "reference";
+  status?: "winning" | "losing";
+  margin_min?: number;
+  margin_max?: number;
+  flip?: "gain" | "loss" | "winning_both" | "losing_both";
+}
+
+export interface CohortPreview {
+  kind: "cohort_preview";
+  seat_level: "ac" | "pc";
+  seat_ids: number[];
+  count: number;
 }
 
 export interface Cell {

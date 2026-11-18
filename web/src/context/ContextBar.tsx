@@ -6,6 +6,7 @@ import { tokens } from "../theme";
 import { ContextDialog } from "./ContextDialog";
 import styles from "./ContextDialog.module.css";
 import { contextSummary } from "./summary";
+import { clearCohort } from "../cohorts/cohortStore";
 import { useDashboardContext } from "./urlContext";
 
 const LEAD_CARD = "distribution.support_by_caste";
@@ -39,6 +40,16 @@ export function ContextBar() {
         <div data-testid="context-pill" className={styles.contextPill} title={summary ?? undefined}>
           {summary ? pillParts(summary) : ctx ? "Loading context…" : "No context chosen"}
         </div>
+        {ctx?.cohort && (
+          <Group gap={8} wrap="nowrap" data-testid="cohort-pill">
+            <div className={styles.contextPill} title={ctx.cohort.label}>
+              Cohort · {ctx.cohort.label} · {ctx.cohort.seat_ids.length} {ctx.cohort.seat_level.toUpperCase()} seats
+            </div>
+            <Button variant="default" px={10} py={6} h="auto" fz={tokens.font.button} onClick={() => clearCohort(ctx.state)}>
+              Clear cohort
+            </Button>
+          </Group>
+        )}
         <Button className={styles.trigger} px={14} py={8} h="auto" fz={tokens.font.button} fw={600}
           aria-haspopup="dialog" onClick={() => setOpen(true)}>
           {ctx ? "Edit context" : "Choose surveys"}

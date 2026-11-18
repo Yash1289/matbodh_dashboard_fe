@@ -222,3 +222,22 @@ describe("ContextBar", () => {
     });
   });
 });
+
+describe("the session cohort", () => {
+  it("shows its label and seat count in the bar and Clear removes it", async () => {
+    const { setCohort, getCohort, clearCohort } = await import("../cohorts/cohortStore");
+    stubApi();
+    setCohort("Uttar Pradesh", { seat_level: "ac", seat_ids: [3, 12], label: "Top 2 AC", created_at: "2026-11-18T00:00:00Z" });
+    try {
+      renderBar(URL_CTX);
+      const pill = await screen.findByTestId("cohort-pill");
+      expect(pill).toHaveTextContent("Top 2 AC");
+      expect(pill).toHaveTextContent("2 AC seats");
+      await userEvent.click(screen.getByRole("button", { name: "Clear cohort" }));
+      expect(getCohort("Uttar Pradesh")).toBeNull();
+      await waitFor(() => expect(screen.queryByTestId("cohort-pill")).not.toBeInTheDocument());
+    } finally {
+      clearCohort("Uttar Pradesh");
+    }
+  });
+});

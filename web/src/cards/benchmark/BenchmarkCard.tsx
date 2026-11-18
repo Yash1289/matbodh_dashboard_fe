@@ -9,6 +9,7 @@ import { MethodDrawer } from "../MethodDrawer";
 import { PopoverChip } from "../PopoverChip";
 import { benchmarkToCsv } from "./benchmarkCsv";
 import { initialBenchmarkView, type BenchmarkView } from "./benchmarkRows";
+import { CohortDialog } from "../../cohorts/CohortDialog";
 import { anchorLabel, BenchmarkTables, referenceLabel, TABLE_LABELS } from "./BenchmarkTables";
 
 /** Infrastructure messages are never shown raw; other kinds carry a client-safe message. */
@@ -60,6 +61,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
 
   const [chosen, setChosen] = useState<Partial<BenchmarkView>>({});
   const [methodOpen, setMethodOpen] = useState(false);
+  const [cohortOpen, setCohortOpen] = useState(false);
   const view = useMemo<BenchmarkView | null>(() => {
     if (shown === null) return null;
     const table = chosen.table && shown.tables_available.includes(chosen.table) ? chosen.table : shown.default_table;
@@ -150,6 +152,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
                     <Menu.Item disabled={run.current === null}
                       onClick={() => downloadCsv(`${info.id}.csv`, benchmarkToCsv(shown, view))}>Export CSV</Menu.Item>
                     <Menu.Item onClick={run.refresh}>Refresh</Menu.Item>
+                    <Menu.Item onClick={() => setCohortOpen(true)}>Make cohort…</Menu.Item>
                   </Menu.Dropdown>
                 </Menu>
               </>
@@ -158,6 +161,8 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
         </Group>
         {body}
       </Stack>
+      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} cardId={info.id} kind="benchmark" ctx={ctx}
+        reference={reference} hasReference={effective.kind !== "none"} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
         <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
       </Drawer>

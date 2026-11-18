@@ -5,6 +5,7 @@ import type { CardInfo, Density, RankedPayload, RunError, StateContext } from ".
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
+import { CohortDialog } from "../../cohorts/CohortDialog";
 import { MethodDrawer } from "../MethodDrawer";
 import { PopoverChip, chipStyle } from "../PopoverChip";
 import { RankedTable } from "./RankedTable";
@@ -50,6 +51,7 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
 
   const [chosen, setChosen] = useState<Partial<RankedView>>({});
   const [methodOpen, setMethodOpen] = useState(false);
+  const [cohortOpen, setCohortOpen] = useState(false);
   const view = useMemo(
     () => (shown === null ? null : settled({ ...initialRankedView(shown), ...chosen }, shown)),
     [chosen, shown],
@@ -159,6 +161,7 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
                   <Menu.Item disabled={run.current === null}
                     onClick={() => downloadCsv(`${info.id}.csv`, rankedToCsv(shown, rankedRows(shown, view)))}>Export CSV</Menu.Item>
                   <Menu.Item onClick={run.refresh}>Refresh</Menu.Item>
+                  {info.family === "seat_ranking" && <Menu.Item onClick={() => setCohortOpen(true)}>Make cohort…</Menu.Item>}
                 </Menu.Dropdown>
               </Menu>
             </Group>
@@ -166,6 +169,8 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
         </Group>
         {body}
       </Stack>
+      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} cardId={info.id} kind="ranking" ctx={ctx}
+        reference={null} hasReference={false} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
         <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
       </Drawer>

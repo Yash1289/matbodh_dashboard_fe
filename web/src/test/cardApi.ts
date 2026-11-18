@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload } from "../api/types";
 import type {
-  BenchmarkPayload, CardInfo, CardPayload, ElectionOption, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
+  BenchmarkPayload, CardInfo, CardPayload, CohortPreview, ElectionOption, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
   RelationshipPayload, RunStatus,
 } from "../api/types";
 import benchmarkSurveyVs2022 from "./fixtures/cards/benchmark_survey_vs_2022.json";
@@ -73,10 +73,13 @@ export interface CardApiOptions {
   runStatus?: number;
   /** What GET /catalogue/{state}/elections lists. */
   elections?: ElectionOption[];
+  /** What POST /cohorts/preview finishes with, or the 422 reason it answers instead. */
+  preview?: CohortPreview;
+  previewError?: string;
 }
 
 /** A fetch stub serving the cards API; returns the mock so tests can count requests. */
-export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, elections = [] }: CardApiOptions) {
+export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, elections = [], preview, previewError }: CardApiOptions) {
   const byCard = new Map(payloads.map((p) => [p.card_id, p]));
   const reply = (json: unknown, status = 200) => new Response(JSON.stringify(json), { status });
   const mock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -88,6 +91,13 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
     if (path.startsWith("/cards") && init?.method !== "POST") return reply([...byCard.values()].map((p) => infoFor(p)));
     if (path === "/cards/plan") return reply(planFor(byCard.get(body.card_id ?? "")!, unavailable[body.card_id ?? ""] ?? []));
     if (path === "/cards/run") return runStatus === 200 ? reply({ run_id: body.card_id }) : reply({ detail: "boom" }, runStatus);
+    if (path === "/cohorts/preview") {
+      return previewError === undefined ? reply({ run_id: "cohort-preview" })
+        : reply({ valid: false, errors: [previewError] }, 422);
+    }
+    if (path === "/runs/cohort-preview") {
+      return reply({ state: "done", done: 1, total: 1, result: preview, errors: {} });
+    }
     if (path.startsWith("/runs/")) {
       const id = decodeURIComponent(path.replace(/^\/runs\//, ""));
       return reply(runs[id] ?? doneRun(byCard.get(id)!));

@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Level, StateContext } from "../api/types";
+import { useSessionCohort } from "../cohorts/cohortStore";
 
 const LEVELS: readonly Level[] = ["ac", "pc", "zone", "state"];
 
@@ -34,7 +35,10 @@ export function serialiseContext(ctx: StateContext, base?: URLSearchParams): URL
 
 export function useDashboardContext(): { ctx: StateContext | null; setCtx(next: StateContext): void } {
   const [params, setParams] = useSearchParams();
-  const ctx = useMemo(() => parseContext(params), [params]);
+  const parsed = useMemo(() => parseContext(params), [params]);
+  // The session cohort rides in the context the cards send; it is never written to the URL.
+  const cohort = useSessionCohort(parsed?.state ?? null);
+  const ctx = useMemo(() => (parsed && cohort ? { ...parsed, cohort } : parsed), [parsed, cohort]);
   // Default navigation pushes, so Back restores the previous context.
   const setCtx = useCallback(
     (next: StateContext) => setParams((prev) => serialiseContext(next, prev)),
