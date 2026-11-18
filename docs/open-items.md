@@ -16,7 +16,7 @@ Last reviewed: 2026-11-18.
 | 3 | Seat and demographic ranking | Done, live-verified |
 | 4 | Benchmark (`seat_benchmark`) | Done, live-verified (UP) |
 | 5a | Relationship cards | Done, live-verified |
-| 5b | Seat cohorts | **In design** (this ledger's next entries) |
+| 5b | Seat cohorts (session-only) | **Built on branch feat/seat-cohorts, not merged; live check and PC cross-round membership (O-C5) still open** |
 | 6 | Configure modal, Duplicate card, live option lists | Not started |
 | last | Access control (Postgres, state + configuration permissions) | Not started |
 
@@ -26,15 +26,19 @@ Last reviewed: 2026-11-18.
 
 | ID | Item | Owner | Status |
 |---|---|---|---|
-| O-C1 | Where cohort creation starts: DECIDED 2026-11-18, from the seat ranking and benchmark cards themselves (D-C5) | owner | decided, moves to Closed with the build |
+| O-C1 | Where cohort creation starts: DECIDED 2026-11-18, from the seat ranking and benchmark cards themselves (D-C5) | owner | BUILT 2026-11-18 (Tasks 5, 6, 8) |
 | O-C2 | ~~Cohort naming, provenance and edit rules~~ DROPPED 2026-11-18: cohorts are session-only, no names, no edit (D-C8) | owner | dropped |
 | O-C3 | ~~Store interface and SQLite schema~~ DROPPED 2026-11-18: no server storage (D-C8) | eng | dropped |
-| O-C4 | Cohort in `StateContext` and the fingerprint (list hash; `coverage_mode: common` for cross-round cards) | eng | open |
+| O-C4 | Cohort in `StateContext` and the fingerprint (list hash; `coverage_mode: common` for cross-round cards) | eng | BUILT (Tasks 1 to 4) |
 | O-C5 | PC cohorts across AC-designed rounds need an AC-keyed membership snapshot supplied by the host layer (`matbodh_views/named_runtime.py` in MatBodh-Dash, plain analysis path; the selection path already does it). Small change, untried | engine host layer | open (blocks PC cohorts across rounds only) |
-| O-C6 | Live check that relationship, ranking and grid cards run under a cohort filter | eng | open (needs owner go-ahead for live runs) |
-| O-C7 | Small "seats in this cohort" list (the investigation drawer is dropped) | eng | open |
-| O-C8 | Identify the survey dataset table and column that lists scenarios per anchor round (source decided: D-C6); the builder finds it in the existing metadata session, no invented list | eng | open |
-| O-C9 | Surface the predicate rules on the cards: rank_max is per partition and includes ties; a flip needs a reference endpoint (the flip table comes from seat benchmarking); demographic ranking cards offer no cohort action (rules confirmed, D-C7) | eng | open (build) |
+| O-C6 | Live check that relationship, ranking and grid cards run under a cohort filter | eng | live check not yet run (needs VPN and owner go-ahead); smoke flag built |
+| O-C7 | Small "seats in this cohort" list (the investigation drawer is dropped) | eng | BUILT as the seat list in the preview; names need a read endpoint (open) |
+| O-C8 | Identify the survey dataset table and column that lists scenarios per anchor round (source decided: D-C6); the builder finds it in the existing metadata session, no invented list | eng | BUILT: party scenarios from the anchor dataset via party_scenarios_of |
+| O-C9 | Surface the predicate rules on the cards: rank_max is per partition and includes ties; a flip needs a reference endpoint (the flip table comes from seat benchmarking); demographic ranking cards offer no cohort action (rules confirmed, D-C7) | eng | BUILT: flip needs a reference, demographic cards have no action; rank_max per partition shown by the engine |
+| O-C10 | Cohort preview shows count and ids only; no overall vote-share table in the preview (spec 5.3 wanted it; decided in Task 5 ruling) | eng | open (optional) |
+| O-C11 | Seat names in the cohort preview and tab (needs a read endpoint on the master label lookup) | eng | open |
+| O-C12 | Engine `validate_selection` only runs live (completed-seat metadata); the offline loader test covers `selection_view_from_dict`. Verify live | eng | open |
+| O-C13 | The cohort tab has no nav item; reachable through Use as cohort or `/cohort` | owner (UI) | open |
 
 ### 2.2 Relationship cards
 

@@ -146,3 +146,32 @@ def test_report_handles_a_ranking_card():
     assert "family=seat_ranking mode=standalone" in lines[1]
     assert "entities=3 ranks=3 absent=0 groups=1" in lines[1]
     assert sum(line.startswith("  job part=grid") for line in lines) == 1
+
+
+def test_cohort_flags_parse():
+    args = smoke.parse_args(["--card", "x", "--state", "UP", "--rounds", "R1", "R2",
+                             "--cohort-from", "ranking.ac_pm_net", "--predicate", '{"rank_max": 5}'])
+    assert args.cohort_from == "ranking.ac_pm_net" and args.predicate == '{"rank_max": 5}'
+    assert smoke.parse_args(["--card", "x", "--state", "UP", "--rounds", "R1"]).cohort_from is None
+
+
+def test_make_cohort_runs_the_selection_and_returns_the_session_cohort():
+    from tests.runner.test_selection_preview import CARDS, SelectionRunner
+    from tests.cards import test_ranking_compile as rank
+
+    service = smoke.build_service(_settings(), rank._catalogue(), SelectionRunner())
+    service.cards.update(CARDS)
+    ctx = rank._ctx()
+    cohort, lines = smoke.make_cohort(service, ctx, "ranking.seat", '{"rank_max": 5}', None)
+    assert cohort.seat_level == "ac" and cohort.seat_ids == [3, 12, 57]
+    assert lines[0] == "cohort: 3 AC seats from ranking.seat"
+
+
+def test_make_cohort_reports_an_empty_selection_instead_of_a_cohort():
+    from tests.runner.test_selection_preview import CARDS, SelectionRunner
+    from tests.cards import test_ranking_compile as rank
+
+    service = smoke.build_service(_settings(), rank._catalogue(), SelectionRunner(ids=()))
+    service.cards.update(CARDS)
+    cohort, lines = smoke.make_cohort(service, rank._ctx(), "ranking.seat", '{"rank_max": 5}', None)
+    assert cohort is None and lines == ["cohort: no seats matched; nothing to apply"]

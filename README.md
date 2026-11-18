@@ -227,6 +227,30 @@ observation; "rows" are payload rows, not engine rows):
 Both are under the spec's 2 MB gzipped threshold, so the long-format encoding stays. The
 raw JSON is large, so parse time on a slow device is the thing to watch.
 
+### Seat cohorts (session only)
+
+A seat ranking or seat benchmark card can make a **cohort**: its "Make cohort…" menu item asks for a selection
+(ranking: top N per group and metric bounds; benchmark: margin range, status, flip, endpoint), re-runs the
+card's own request through an engine selection and previews the seat count and ids. "Use as cohort" keeps the
+list in the browser session (session storage, per state, never in the URL, never stored on the server) and opens
+`/cohort`: the overall vote share of the cohort's seats. While a cohort is active every card sends it in the
+context and runs filtered to those seats; "Clear cohort" returns to the full state.
+
+- Selection run: `POST /cohorts/preview` (card, context, predicate, optional reference), then `GET /runs/{id}`.
+  The run builds the card's source request plus a fixed downstream cut: overall vote share in the anchor round
+  for every party scenario the anchor round's dataset records.
+- Filtering: grid, relationship and demographic-ranking cards get a respondent filter (`ac_num`/`pc_num` in the
+  list) and `coverage_mode: common` when they read two or more rounds. Seat rankings and benchmarks rank and
+  compare only the cohort's seats (engine `seat_ids`). A card whose level differs from the cohort's is shown
+  unavailable with a reason.
+- Not built: PC cohorts on cards that read several AC-designed rounds through the plain analysis path (they
+  show as unavailable; needs the engine host to supply the AC-to-PC membership, ledger O-C5).
+- Live check (needs VPN and the owner's go-ahead): `--cohort-from` makes the cohort, then runs `--card` under it:
+
+```bash
+ENGINE_ENV_FILE=<engine .env> .venv/Scripts/python.exe scripts/smoke_card.py --card relationship.up_past_to_current   --state "Uttar Pradesh" --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"   --cohort-from ranking.ac_pm_net --predicate '{"rank_max": 5}'
+```
+
 ## Docs
 
 - Spec: [docs/specs/2026-11-08-dashboard-design.md](docs/specs/2026-11-08-dashboard-design.md)

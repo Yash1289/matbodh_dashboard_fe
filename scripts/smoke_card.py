@@ -8,20 +8,27 @@ level is AC. Results are cached in an in-process fakeredis, so no Redis server i
 
     python scripts/smoke_card.py --card opinion.leaders --state "Uttar Pradesh" \
         --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
+
+Add --cohort-from CARD --predicate JSON (a seat ranking or benchmark card and its selection,
+e.g. '{"rank_max": 5}') to make a session cohort first and run --card under it.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from matbodh_dashboard import engine_version
 from matbodh_dashboard.bootstrap import alliance_session_factory, load_card_config, seat_snapshot_loader
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.benchmark.parties import AllianceMajorParties, load_elections
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
+from matbodh_dashboard.cards.cohort.compile import SelectionPredicate
+from matbodh_dashboard.cohorts.models import CohortRef
 from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.context import StateContext
@@ -45,6 +52,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--reference", default=None, metavar="REF",
                         help="Benchmark cards only: none, compare or election:YEAR:TYPE "
                              "(e.g. election:2022:VS). Default: the compare round when there is one")
+    parser.add_argument("--cohort-from", default=None, metavar="CARD",
+                        help="A seat ranking or benchmark card whose selection becomes a session cohort")
+    parser.add_argument("--predicate", default=None, metavar="JSON",
+                        help='With --cohort-from: the selection, e.g. \'{"rank_max": 5}\'')
     return parser.parse_args(argv)
 
 
@@ -86,6 +97,26 @@ def run_card(service: CardRunService, card_id: str, ctx: StateContext,
             break
         status = service.status(run_id)
     return run_id, status, time.perf_counter() - began
+
+
+def make_cohort(service: CardRunService, ctx: StateContext, card_id: str, predicate_json: str,
+                reference: BenchmarkReference | None) -> tuple[CohortRef | None, list[str]]:
+    """Run the card's selection and return the session cohort (None when no seat matched) and report lines."""
+    predicate = SelectionPredicate(**json.loads(predicate_json))
+    run_id = service.start_selection(card_id, ctx, predicate, reference)
+    status = service.status(run_id)
+    for _ in range(POLL_LIMIT):
+        if status.state != "running":
+            break
+        status = service.status(run_id)
+    if status.state != "done" or status.result is None:
+        return None, [f"cohort: selection {status.state}: {status.errors}"]
+    preview = status.result
+    if preview["count"] == 0:
+        return None, ["cohort: no seats matched; nothing to apply"]
+    cohort = CohortRef(seat_level=preview["seat_level"], seat_ids=preview["seat_ids"],
+                       label=f"{card_id} {predicate_json}"[:120], created_at=datetime.now(timezone.utc))
+    return cohort, [f"cohort: {preview['count']} {preview['seat_level'].upper()} seats from {card_id}"]
 
 
 def report(service: CardRunService, run_id: str, status: CardRunStatus,
@@ -212,6 +243,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     # The real alliance lookup, so a benchmark card's major parties are part of the live check.
     service.major_parties = AllianceMajorParties(
         lambda: alliance_session_factory(settings), service.cache.alliance_epoch)
+    if args.cohort_from is not None:
+        if args.predicate is None:
+            print("INVALID: --cohort-from needs --predicate")
+            return 2
+        cohort, lines = make_cohort(service, ctx, args.cohort_from, args.predicate,
+                                    parse_reference(args.reference))
+        print("\n".join(lines))
+        if cohort is None:
+            return 1
+        ctx = ctx.model_copy(update={"cohort": cohort})
     run_id, status, seconds = run_card(service, args.card, ctx, parse_reference(args.reference))
     print("\n".join(report(service, run_id, status, seconds)))
     return 0 if status.state == "done" else 1
