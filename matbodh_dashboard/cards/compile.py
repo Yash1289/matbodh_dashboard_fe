@@ -18,6 +18,7 @@ from matbodh_dashboard.cards.config import (
     scenario_kind,
 )
 from matbodh_dashboard.cards.families import get_family
+from matbodh_dashboard.cohorts.restrict import cohort_blockers, respondent_filter
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
@@ -125,12 +126,11 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  preset: MethodPreset, *, reference=None, parties=None, elections=None,
                  cohort=None) -> RunPlan:
-    # cohort: applied by the family compilers (Tasks 3 and 4 of the cohort plan).
     if config.family in RELATIONSHIP_FAMILIES:
         # Lazy: the relationship compiler reuses this module's round helpers.
         from matbodh_dashboard.cards.relationship.compile import compile_relationship_card
 
-        return compile_relationship_card(config, ctx, catalogue, preset, parties=parties)
+        return compile_relationship_card(config, ctx, catalogue, preset, parties=parties, cohort=cohort)
     if config.family in BENCHMARK_FAMILIES:
         # Lazy: the benchmark compiler reuses this module's round helpers.
         from matbodh_dashboard.cards.benchmark.compile import compile_benchmark_card
@@ -170,11 +170,18 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     if unavailable:
         return plan()
 
+    if cohort is not None:
+        blockers = cohort_blockers(cohort, selection.used[0].dataset.level, len(selection.used))
+        if blockers:
+            unavailable.extend((GRID, reason) for reason in blockers)
+            return plan()
     mode = config.comparison.mode
     geographic = any(f in SEAT_DIMENSIONS for f in fields)
     coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
                                 version_mode=ctx.version_mode)
                 if mode == "compare" else "independent")
+    if cohort is not None and len(selection.used) > 1:
+        coverage = "common"  # rounds must be read on the same cohort seats
     reference_observation = (selection.reference.obs_id
                              if coverage == "common" and selection.reference else None)
     anchor_round = _by_base_name(rounds, anchor)
@@ -191,7 +198,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         gender=spec.gender_differential,
         coverage_mode=coverage,
         filters=[{"field": f.field, "operator": f.operator, "values": list(f.values)}
-                 for f in config.filters],
+                 for f in config.filters] + ([respondent_filter(cohort)] if cohort is not None else []),
         caste_clubbing=({"threshold_pct": preset.caste_threshold_pct,
                          "reference_observation": caste_reference.obs_id}
                         if config.caste_clubbing else None),

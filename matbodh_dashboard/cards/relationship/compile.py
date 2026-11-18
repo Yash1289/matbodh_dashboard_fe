@@ -13,6 +13,8 @@ from matbodh_dashboard.cards.compile import GRID, _by_base_name
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
+from matbodh_dashboard.cohorts.models import CohortRef
+from matbodh_dashboard.cohorts.restrict import cohort_blockers, respondent_filter
 from matbodh_dashboard.compiler.requests import build_request, view_config
 from matbodh_dashboard.compiler.rounds import resolve_rounds
 from matbodh_dashboard.context import StateContext
@@ -27,7 +29,8 @@ def relationship_majors(state: str, preset: MethodPreset, parties: MajorPartyPro
 
 
 def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
-                              preset: MethodPreset, *, parties: MajorPartyProvider | None) -> RunPlan:
+                              preset: MethodPreset, *, parties: MajorPartyProvider | None,
+                              cohort: CohortRef | None = None) -> RunPlan:
     rel = config.relationship
     rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
@@ -82,9 +85,18 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
     if unavailable:
         return plan()
 
+    coverage = "independent"
+    filters: list[dict] = []
+    if cohort is not None:
+        blockers = cohort_blockers(cohort, used[0].dataset.level, len(used))
+        if blockers:
+            unavailable.extend((GRID, reason) for reason in blockers)
+            return plan()
+        filters = [respondent_filter(cohort)]
+        coverage = "common" if len(used) > 1 else coverage  # rounds read on the same cohort seats
     request = build_request(state=ctx.state, rounds=used, scenarios=scenarios,
                             grouping_sets=config.cuts, preset=preset, other_grouping=False,
-                            coverage_mode="independent")
+                            coverage_mode=coverage, filters=filters)
     operation: dict = {
         # Not the card id: cards that differ only in their view must share one fingerprint.
         "id": "relationship", "origin": rel.origin, "destination": rel.destination,
