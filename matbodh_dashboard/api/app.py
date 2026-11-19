@@ -20,6 +20,7 @@ from matbodh_dashboard.api.schemas import (
     CardRequest, MetadataRefreshed, PreviewRequest, RunStarted, StatesResponse,
 )
 from matbodh_dashboard.capability import validate_context
+from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
 from matbodh_dashboard.catalogue.store import (
@@ -170,12 +171,12 @@ def create_app(
 
     @app.post("/cards/plan")
     def plan(body: CardRequest):
-        _require_card(service, body.card_id)
+        card = _card_of(service, body)
         errors = validate_context(body.context, service.catalogue)
         if errors:
             return _invalid(errors)
         try:
-            run_plan = service.plan(body.card_id, body.context, body.reference)
+            run_plan = service.plan(card, body.context, body.reference)
         except RoundNotFound:
             raise _catalogue_changed() from None
         coverage_mode: dict[str, str | None] = {}
@@ -202,24 +203,24 @@ def create_app(
 
     @app.post("/cards/run", response_model=RunStarted)
     def run(body: CardRequest):
-        _require_card(service, body.card_id)
+        card = _card_of(service, body)
         errors = validate_context(body.context, service.catalogue)
         if errors:
             return _invalid(errors)
         try:
-            return RunStarted(run_id=service.start(body.card_id, body.context, body.reference))
+            return RunStarted(run_id=service.start(card, body.context, body.reference))
         except RoundNotFound:
             raise _catalogue_changed() from None
 
     @app.post("/cohorts/preview", response_model=RunStarted)
     def cohort_preview(body: PreviewRequest):
-        _require_card(service, body.card_id)
+        card = _card_of(service, body)
         errors = validate_context(body.context, service.catalogue)
         if errors:
             return _invalid(errors)
         try:
             return RunStarted(run_id=service.start_selection(
-                body.card_id, body.context, body.predicate, body.reference))
+                card, body.context, body.predicate, body.reference))
         except CohortUnavailable as exc:
             return _invalid([str(exc)])
         except RoundNotFound:
@@ -253,9 +254,12 @@ def create_app(
     return app
 
 
-def _require_card(service: CardRunService, card_id: str) -> None:
-    if card_id not in service.cards:
-        raise HTTPException(404, f"unknown card {card_id!r}")
+def _card_of(service: CardRunService, body) -> CardConfig:
+    """The card a request is about; an unknown library id is a 404."""
+    try:
+        return service.resolve(body.card_id, body.card)
+    except KeyError:
+        raise HTTPException(404, f"unknown card {body.card_id!r}") from None
 
 
 def _catalogue_changed() -> HTTPException:

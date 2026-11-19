@@ -121,13 +121,13 @@ class CardRunService:
 
     # -- public API -------------------------------------------------------
 
-    def plan(self, card_id: str, ctx: StateContext,
+    def plan(self, card_id: str | CardConfig, ctx: StateContext,
              reference: BenchmarkReference | None = None) -> RunPlan:
         return compile_card(self._card(card_id), ctx, self.catalogue, self.preset,
                             reference=reference, parties=self.major_parties, elections=self.elections,
                             cohort=ctx.cohort)
 
-    def start(self, card_id: str, ctx: StateContext,
+    def start(self, card_id: str | CardConfig, ctx: StateContext,
               reference: BenchmarkReference | None = None) -> str:
         card = self._card(card_id)
         run_id = uuid.uuid4().hex
@@ -139,7 +139,7 @@ class CardRunService:
         plan = compile_card(card, ctx, catalogue, self.preset, reference=reference,
                             parties=self.major_parties, elections=self.elections,
                             cohort=ctx.cohort)
-        run = _Run(card_id, card, plan, catalogue.revision, epoch)
+        run = _Run(card.id, card, plan, catalogue.revision, epoch)
         run.jobs = {j.key: _Job(j) for j in plan.jobs}
         if card.family in BENCHMARK_FAMILIES and plan.jobs:
             # Already looked up (and cached) by the compile above; keep the answer with the run.
@@ -154,7 +154,7 @@ class CardRunService:
             self._advance(run)
         return run_id
 
-    def start_selection(self, card_id: str, ctx: StateContext, predicate: SelectionPredicate,
+    def start_selection(self, card_id: str | CardConfig, ctx: StateContext, predicate: SelectionPredicate,
                         reference: BenchmarkReference | None = None) -> str:
         """Run the card's own ranking or benchmark with a selection and return the seat list (nothing is stored)."""
         card = self._card(card_id)
@@ -165,7 +165,7 @@ class CardRunService:
         if not plan.jobs:
             raise CohortUnavailable("; ".join(reason for _, reason in plan.unavailable))
         run_id = uuid.uuid4().hex
-        run = _Run(card_id, card, plan, catalogue.revision, epoch, selection=True)
+        run = _Run(card.id, card, plan, catalogue.revision, epoch, selection=True)
         run.jobs = {j.key: _Job(j) for j in plan.jobs}
         with self._lock:
             self._runs[run_id] = run
@@ -207,11 +207,20 @@ class CardRunService:
 
     # -- job progress -----------------------------------------------------
 
-    def _card(self, card_id: str) -> CardConfig:
-        card = self.cards.get(card_id)
-        if card is None:
-            raise KeyError(f"unknown card {card_id!r}")
-        return card
+    def resolve(self, card_id: str | None, card: CardConfig | None = None) -> CardConfig:
+        """The card a request is about: the inline config, or the library card (KeyError if unknown)."""
+        if (card_id is None) == (card is None):
+            raise ValueError("give exactly one of card_id or card")
+        return card if card is not None else self._card(card_id)
+
+    def _card(self, card: str | CardConfig) -> CardConfig:
+        """A library card by id; an inline config passes through unchanged."""
+        if isinstance(card, CardConfig):
+            return card
+        found = self.cards.get(card)
+        if found is None:
+            raise KeyError(f"unknown card {card!r}")
+        return found
 
     def _advance(self, run: _Run) -> None:
         """Submit waiting jobs and collect finished ones until nothing changes."""

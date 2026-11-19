@@ -739,3 +739,22 @@ def test_windowed_trend_payload_lists_only_window_rounds(rules, cache):
     assert [o["id"] for o in runner.calls[0]["request"]["observations"]] == ["o2", "o3"]
     assert [i["obs_id"] for i in status.result["rounds"]["items"]] == ["o2", "o3"]
     assert status.result["rounds"]["compare"] is None
+
+
+def test_resolve_returns_the_inline_or_library_card_and_rejects_neither_or_both(rules, cache):
+    service, _ = make_service(rules, cache)
+    inline = card(id="mine.1")
+    assert service.resolve(VOTE.id) is VOTE
+    assert service.resolve(None, inline) is inline
+    with pytest.raises(KeyError):
+        service.resolve("nope")
+    for args in ((None, None), (VOTE.id, inline)):
+        with pytest.raises(ValueError):
+            service.resolve(*args)
+
+
+def test_an_inline_card_runs_and_logs_under_its_own_id(rules, cache):
+    service, runner = make_service(rules, cache)
+    mine = card(id="mine.1")
+    status = service.status(service.start(mine, ctx()))
+    assert status.state == "done" and status.result["card_id"] == "mine.1" and len(runner.calls) == 1
