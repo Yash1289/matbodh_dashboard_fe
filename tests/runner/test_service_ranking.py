@@ -121,3 +121,14 @@ def test_the_anchors_error_message_comes_first_and_every_failed_job_is_listed(ru
     assert status.state == "failed" and status.result is None
     assert status.errors["grid"]["message"] == "anchor problem"
     assert sorted(status.errors["grid"]["jobs"]) == ["rank:o1", "rank:o2"]
+
+
+def test_windowed_ranking_trend_payload_lists_only_window_rounds(rules, cache):
+    windowed = seat_card(id="t.rank_trend2", comparison={"mode": "trend"}, pipe_rounds=2)
+    runner = RankRunner()
+    service, _ = make_service(rules, cache, runner=runner, cards={windowed.id: windowed},
+                              cat=catalogue((R1, R2, R3)))
+    status = service.status(service.start(windowed.id, ctx(rounds=[R1, R2, R3], compare_round=R1)))
+    assert status.state == "done", status.errors
+    assert runner.calls == ["o2", "o3"]
+    assert [i["obs_id"] for i in status.result["rounds"]["items"]] == ["o2", "o3"]

@@ -9,7 +9,7 @@ import logging
 
 from matbodh_dashboard.capability import resolve_anchor, template_blockers
 from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, MajorPartyProvider
-from matbodh_dashboard.cards.compile import GRID, _by_base_name
+from matbodh_dashboard.cards.compile import GRID, _by_base_name, compare_in, windowed
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
@@ -32,15 +32,15 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
                               preset: MethodPreset, *, parties: MajorPartyProvider | None,
                               cohort: CohortRef | None = None) -> RunPlan:
     rel = config.relationship
-    rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
+    rounds, notes = windowed(config, resolve_rounds(ctx, catalogue), anchor)
     unavailable: list[tuple[str, str]] = []
     not_asked: list[tuple[str, tuple[str, ...]]] = []
 
     def plan(jobs=()) -> RunPlan:
         return RunPlan(card_id=config.id, state=ctx.state, rounds=tuple(rounds), anchor=anchor,
-                       compare=ctx.compare_round, jobs=tuple(jobs), unavailable=tuple(unavailable),
-                       not_asked=tuple(not_asked))
+                       compare=compare_in(rounds, ctx.compare_round), jobs=tuple(jobs),
+                       unavailable=tuple(unavailable), not_asked=tuple(not_asked), notes=notes)
 
     fields = list(dict.fromkeys(d for cut in config.cuts for d in cut))
     unavailable.extend((GRID, r) for r in template_blockers(config.requires.min_level, fields, ctx.level))

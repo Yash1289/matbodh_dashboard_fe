@@ -73,6 +73,11 @@ def test_plan_body_validates_an_optional_benchmark_reference(client):
     assert client.post("/cards/plan", json=payload).status_code == 200
 
 
+def test_plan_response_carries_notes(client):
+    plan = client.post("/cards/plan", json=body()).json()
+    assert plan["notes"] == []  # a card with no pipe-round count has nothing to remark on
+
+
 def test_elections_endpoint_lists_options_for_a_state(service, client):
     from matbodh_dashboard.cards.benchmark.parties import ElectionOption
 

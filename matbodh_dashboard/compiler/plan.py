@@ -35,6 +35,8 @@ class RunPlan:
     unavailable: tuple[tuple[str, str], ...]
     # (part, base names of selected rounds that did not ask its question)
     not_asked: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    # Plain-language remarks about how the card was fitted to the context (shown by Configure).
+    notes: tuple[str, ...] = ()
 
 
 @lru_cache(maxsize=1)

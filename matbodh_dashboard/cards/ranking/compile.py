@@ -6,7 +6,7 @@ one engine ranking has exactly one target. No rank arithmetic happens here.
 from __future__ import annotations
 
 from matbodh_dashboard.capability import capabilities, resolve_anchor, template_blockers
-from matbodh_dashboard.cards.compile import GRID, _select, _Selection
+from matbodh_dashboard.cards.compile import GRID, _select, _Selection, compare_in, windowed
 from matbodh_dashboard.cards.config import SEAT_DIMENSIONS, CardConfig, comparison_kind, scenario_kind
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
@@ -54,15 +54,15 @@ def _ranking(config: CardConfig, round_: ResolvedRound | None, scenario: str | N
 def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                          preset: MethodPreset, cohort: CohortRef | None = None) -> RunPlan:
     rank = config.rank
-    rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
+    rounds, notes = windowed(config, resolve_rounds(ctx, catalogue), anchor)
     unavailable: list[tuple[str, str]] = []
     not_asked: list[tuple[str, tuple[str, ...]]] = []
 
     def plan(jobs=()) -> RunPlan:
         return RunPlan(card_id=config.id, state=ctx.state, rounds=tuple(rounds), anchor=anchor,
-                       compare=ctx.compare_round, jobs=tuple(jobs),
-                       unavailable=tuple(unavailable), not_asked=tuple(not_asked))
+                       compare=compare_in(rounds, ctx.compare_round), jobs=tuple(jobs),
+                       unavailable=tuple(unavailable), not_asked=tuple(not_asked), notes=notes)
 
     demographic = config.family == "demographic_ranking"
     fields = ([rank.level, *rank.partition_by, *(f.field for f in config.filters)]

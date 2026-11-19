@@ -728,3 +728,14 @@ def test_relationship_run_assembles_a_payload(rules, cache):
     mine = next(s for s in result["summaries"] if s["round"] == "o2" and s["group"]["dimensions"] == {"gender": "Male"})
     assert mine["retention_share"] == sample["retention_share"]
     assert {c["origin"] for c in result["cells"]} == {"BJP+", "SP+", "BSP"}
+
+
+def test_windowed_trend_payload_lists_only_window_rounds(rules, cache):
+    windowed = card(id="t.trend2", family="opinion", scenarios=["cm_satisfaction"], cuts=[[]],
+                    comparison={"mode": "trend"}, pipe_rounds=2)
+    service, runner = make_service(rules, cache, cards={windowed.id: windowed}, cat=catalogue((R1, R2, R3)))
+    status = service.status(service.start(windowed.id, ctx(rounds=[R1, R2, R3], compare_round=R1)))
+    assert status.state == "done", status.errors
+    assert [o["id"] for o in runner.calls[0]["request"]["observations"]] == ["o2", "o3"]
+    assert [i["obs_id"] for i in status.result["rounds"]["items"]] == ["o2", "o3"]
+    assert status.result["rounds"]["compare"] is None

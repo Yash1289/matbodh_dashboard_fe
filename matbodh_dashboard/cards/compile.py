@@ -24,7 +24,7 @@ from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
-from matbodh_dashboard.compiler.rounds import ResolvedRound, resolve_rounds
+from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import MethodPreset
 
@@ -37,6 +37,20 @@ class _Selection:
     used: list[ResolvedRound]
     target: ResolvedRound | None = None
     reference: ResolvedRound | None = None
+
+
+def windowed(config: CardConfig, rounds: list[ResolvedRound], anchor: str) -> tuple[list[ResolvedRound], tuple[str, ...]]:
+    """The rounds a card reads: its pipe-round window for trends and relationships, else all."""
+    if config.pipe_rounds is None or not (
+            config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES):
+        return list(rounds), ()
+    window, note = pipe_window(rounds, anchor, config.pipe_rounds)
+    return window, ((note,) if note else ())
+
+
+def compare_in(rounds: list[ResolvedRound], name: str | None) -> str | None:
+    """The comparison round, unless this card's window left it out."""
+    return name if any(r.identity.base_name == name for r in rounds) else None
 
 
 def _names(rounds) -> str:
@@ -144,15 +158,15 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
 
         return compile_ranking_card(config, ctx, catalogue, preset, cohort=cohort)
     spec = get_family(config.family)
-    rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
+    rounds, notes = windowed(config, resolve_rounds(ctx, catalogue), anchor)
     unavailable: list[tuple[str, str]] = []
     not_asked: list[tuple[str, tuple[str, ...]]] = []
 
     def plan(jobs=()) -> RunPlan:
         return RunPlan(card_id=config.id, state=ctx.state, rounds=tuple(rounds), anchor=anchor,
-                       compare=ctx.compare_round, jobs=tuple(jobs),
-                       unavailable=tuple(unavailable), not_asked=tuple(not_asked))
+                       compare=compare_in(rounds, ctx.compare_round), jobs=tuple(jobs),
+                       unavailable=tuple(unavailable), not_asked=tuple(not_asked), notes=notes)
 
     if config.all_party_scenarios:
         anchor_scenarios = party_scenarios_of(_by_base_name(rounds, anchor).dataset.scenarios)

@@ -129,3 +129,15 @@ def test_engine_verdict_is_shown():
 
     plan = _compile(parties=NoContext())
     assert any(reason.startswith("Alliance mapping:") for _, reason in plan.unavailable)
+
+
+def test_relationship_pipe_rounds_window():
+    names = [f"2027 VS CAPI R{i}" for i in (1, 2, 3)]
+    rows = [dataset_row(n, round_number=i, available_fields=list(FIELDS), available_scenarios=list(BOTH))
+            for i, n in enumerate(names, 1)]
+    cat = load_catalogue(make_query(rows, [level_row(n, range(1, 404)) for n in names]))
+    plan = _compile(_card(pipe_rounds=2), _ctx(rounds=names, compare_round=names[0]), catalogue=cat)
+    assert plan.unavailable == ()
+    (job,) = plan.jobs
+    assert [o["id"] for o in job.config["request"]["observations"]] == ["o2", "o3"]
+    assert [r.obs_id for r in plan.rounds] == ["o2", "o3"] and plan.compare is None

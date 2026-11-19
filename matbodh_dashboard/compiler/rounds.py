@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from matbodh_dashboard.catalogue.labels import RoundIdentity, short_labels
@@ -43,3 +44,22 @@ def resolve_rounds(ctx: StateContext, catalogue: Catalogue) -> list[ResolvedRoun
             )
         )
     return resolved
+
+
+def pipe_window(
+    rounds: Sequence[ResolvedRound], anchor: str, count: int | None
+) -> tuple[list[ResolvedRound], str | None]:
+    """The last `count` rounds up to and including the anchor (spec section 4), in round order.
+
+    `count=None` keeps every round. A count follows the context when it changes; if fewer rounds
+    exist than asked for, all of them are read and the note says so.
+    """
+    if count is None:
+        return list(rounds), None
+    upto = list(rounds)
+    for index, round_ in enumerate(rounds):
+        if round_.identity.base_name == anchor:
+            upto = list(rounds[: index + 1])
+            break
+    note = f"showing {len(upto)} of the {count} rounds asked for" if len(upto) < count else None
+    return upto[-count:], note

@@ -221,3 +221,56 @@ def test_compiled_requests_are_accepted_by_the_engine(name):
     plan = _compile(_config(**CONFIGS[name]))
     request = _request(plan)
     resolve_with_engine(request, list(plan.rounds))
+
+
+# -- per-card pipe rounds (spec section 4) ------------------------------------------------------
+
+
+def _long_catalogue(count, lacking=None):
+    """`count` rounds; `lacking` maps a round number to the scenario that round did not ask."""
+    rows, levels = [], []
+    for i in range(1, count + 1):
+        scenarios = [s for s in [*SCENARIOS, LS] if s != (lacking or {}).get(i)]
+        name = f"2027 VS CAPI R{i}"
+        rows.append(dataset_row(name, round_number=i, available_fields=FIELDS, available_scenarios=scenarios))
+        levels.append(level_row(name, range(1, 404)))
+    return load_catalogue(make_query(rows, levels))
+
+
+def _trend(count, pipe_rounds, lacking=None):
+    names = [f"2027 VS CAPI R{i}" for i in range(1, count + 1)]
+    config = _config(comparison={"mode": "trend"}, pipe_rounds=pipe_rounds)
+    return compile_card(config, _ctx(rounds=names, compare=None), _long_catalogue(count, lacking), PRESET)
+
+
+def test_trend_pipe_rounds_window_then_not_asked():
+    plan = _trend(4, 3, lacking={3: VS})
+    assert plan.unavailable == () and plan.notes == ()
+    (job,) = plan.jobs
+    assert [o["id"] for o in job.config["request"]["observations"]] == ["o2", "o4"]
+    assert plan.not_asked == (("grid", ("2027 VS CAPI R3",)),)
+    assert [r.obs_id for r in plan.rounds] == ["o2", "o3", "o4"]  # only the window is listed
+
+
+def test_trend_without_pipe_rounds_reads_every_context_round():
+    plan = _trend(3, None)
+    assert [r.obs_id for r in plan.rounds] == ["o1", "o2", "o3"] and plan.notes == ()
+
+
+def test_trend_window_shorter_than_asked_adds_a_note():
+    plan = _trend(3, 5)
+    assert plan.notes == ("showing 3 of the 5 rounds asked for",)
+    assert [r.obs_id for r in plan.rounds] == ["o1", "o2", "o3"]
+
+
+def test_trend_window_above_max_is_unavailable():
+    plan = _trend(5, 5)
+    assert plan.jobs == ()
+    assert plan.unavailable == (("grid", "Trend shows at most 4 rounds; 5 are selected"),)
+
+
+def test_compare_round_outside_the_window_is_dropped_from_the_plan():
+    names = [f"2027 VS CAPI R{i}" for i in range(1, 5)]
+    config = _config(comparison={"mode": "trend"}, pipe_rounds=2)
+    plan = compile_card(config, _ctx(rounds=names, compare=names[0]), _long_catalogue(4), PRESET)
+    assert plan.compare is None  # R1 is not among the rounds this card reads
