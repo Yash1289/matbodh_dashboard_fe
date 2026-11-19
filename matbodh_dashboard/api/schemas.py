@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.cohort.compile import SelectionPredicate
@@ -79,6 +79,17 @@ class OptionsRequest(BaseModel):
     params: dict[str, str | int | bool] = {}
     card: dict = {}
     context: StateContext
+
+
+class ValuesRequest(BaseModel):
+    """Body of /configure/values: the field to list, optionally the scenario and pipe-round window."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    scenario: str | None = None
+    context: StateContext
+    pipe_rounds: int | None = Field(default=None, ge=1)
 
 
 class StatesResponse(BaseModel):

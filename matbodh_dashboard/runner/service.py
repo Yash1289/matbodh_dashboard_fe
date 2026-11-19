@@ -19,6 +19,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
+from matbodh_dashboard.cards.configure.values import compile_values, translate_values
 from matbodh_dashboard.cards.cohort.compile import SelectionPredicate, compile_cohort_selection
 from matbodh_dashboard.cards.cohort.translate import translate_selection
 from matbodh_dashboard.cards.compile import compile_card
@@ -86,10 +87,16 @@ class _Run:
     majors: frozenset[str] | None = None
     # A cohort creation run: its job is a selection, not the card's own result.
     selection: bool = False
+    # A filter-values run: its job is a distribution cut by one field (Configure).
+    values: bool = False
 
 
 class CohortUnavailable(ValueError):
     """The card cannot make a cohort; the message is shown to the client."""
+
+
+class ValuesUnavailable(ValueError):
+    """The values of a field cannot be listed here; the message is shown to the client."""
 
 
 class CardRunService:
@@ -166,6 +173,26 @@ class CardRunService:
             raise CohortUnavailable("; ".join(reason for _, reason in plan.unavailable))
         run_id = uuid.uuid4().hex
         run = _Run(card.id, card, plan, catalogue.revision, epoch, selection=True)
+        run.jobs = {j.key: _Job(j) for j in plan.jobs}
+        with self._lock:
+            self._runs[run_id] = run
+            while len(self._runs) > MAX_RUNS:
+                self._runs.popitem(last=False)
+            self._advance(run)
+        return run_id
+
+    def start_values(self, field: str, scenario: str | None, ctx: StateContext,
+                     pipe_rounds: int | None) -> str:
+        """List the values of one respondent field for a filter (nothing is stored; the job is cached)."""
+        with self._lock:
+            catalogue, epoch = self.catalogue, self.cache.alliance_epoch()
+        plan = compile_values(field, scenario, ctx, catalogue, self.preset, pipe_rounds)
+        if not plan.jobs:
+            raise ValuesUnavailable("; ".join(reason for _, reason in plan.unavailable))
+        asked = plan.jobs[0].config["request"]["scenarios"]
+        stand_in = CardConfig(id="values", family="distribution", title="values", scenarios=asked)
+        run_id = uuid.uuid4().hex
+        run = _Run(stand_in.id, stand_in, plan, catalogue.revision, epoch, values=True)
         run.jobs = {j.key: _Job(j) for j in plan.jobs}
         with self._lock:
             self._runs[run_id] = run
@@ -328,6 +355,9 @@ class CardRunService:
         if run.selection:
             (job,) = run.jobs.values()
             return translate_selection(job.result, job.job.config).model_dump()
+        if run.values:
+            (job,) = run.jobs.values()
+            return translate_values(job.result, job.job.config["request"]["grouping_sets"][0][0]).model_dump()
         plan, card = run.plan, run.card
         by_name = {r.identity.base_name: r.obs_id for r in plan.rounds}
         anchor = by_name[plan.anchor]

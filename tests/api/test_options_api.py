@@ -45,3 +45,25 @@ def test_alliance_lookup_down_is_503_without_details(service, client):  # noqa: 
     service.major_parties = Down()
     response = post(client, "parties", {"use": "focal"}, {"family": "relationship"})
     assert response.status_code == 503 and "10.0.0.5" not in response.text
+
+
+def values(client, **over):  # noqa: F811
+    return client.post("/configure/values", json={"field": "gender", "context": CONTEXT, **over})
+
+
+def test_values_endpoint_starts_a_run_read_via_runs(client):  # noqa: F811
+    response = values(client)
+    assert response.status_code == 200
+    status = client.get(f"/runs/{response.json()['run_id']}").json()
+    assert status["state"] == "done" and status["result"]["kind"] == "filter_values"
+    assert status["result"]["field"] == "gender"
+
+
+def test_values_endpoint_unavailable_field_is_422_with_reason(client):  # noqa: F811
+    response = values(client, field="not_a_field")
+    assert response.status_code == 422 and "not_a_field" in response.text
+
+
+def test_values_endpoint_rejects_a_bad_context_and_a_bad_window(client):  # noqa: F811
+    assert values(client, context={**CONTEXT, "rounds": ["No such round"]}).status_code == 422
+    assert values(client, pipe_rounds=0).status_code == 422

@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 
 from matbodh_dashboard.api.schemas import (
     CardRequest, MetadataRefreshed, OptionsRequest, PreviewRequest, RunStarted, StatesResponse,
-    ValidateRequest,
+    ValidateRequest, ValuesRequest,
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
@@ -30,7 +30,7 @@ from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
 from matbodh_dashboard.catalogue.store import (
     Catalogue, CatalogueRound, DatasetVersion, RoundNotFound)
-from matbodh_dashboard.runner.service import CardRunService, CohortUnavailable
+from matbodh_dashboard.runner.service import CardRunService, CohortUnavailable, ValuesUnavailable
 
 log = logging.getLogger(__name__)
 
@@ -220,6 +220,19 @@ def create_app(
         except RoundNotFound:
             raise _catalogue_changed() from None
         return [item.model_dump() for item in found]
+
+    @app.post("/configure/values", response_model=RunStarted)
+    def configure_values(body: ValuesRequest):
+        errors = validate_context(body.context, service.catalogue)
+        if errors:
+            return _invalid(errors)
+        try:
+            return RunStarted(run_id=service.start_values(body.field, body.scenario, body.context,
+                                                          body.pipe_rounds))
+        except ValuesUnavailable as exc:
+            return _invalid([str(exc)])
+        except RoundNotFound:
+            raise _catalogue_changed() from None
 
     @app.post("/cards/validate")
     def validate(body: ValidateRequest) -> dict:
