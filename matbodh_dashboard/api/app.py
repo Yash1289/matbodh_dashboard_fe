@@ -21,6 +21,7 @@ from matbodh_dashboard.api.schemas import (
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.configure.families import descriptors
 from matbodh_dashboard.cards.configure.validate import rounds_payload, validate_draft
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
@@ -194,6 +195,10 @@ def create_app(
             "rounds": rounds_payload(run_plan),
             "coverage_mode": coverage_mode,
         }
+
+    @app.get("/configure/families")
+    def configure_families() -> list[dict]:
+        return [d.model_dump(exclude_none=True) for d in descriptors()]
 
     @app.post("/cards/validate")
     def validate(body: ValidateRequest) -> dict:
