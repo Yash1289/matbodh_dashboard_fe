@@ -7,26 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.cohort.compile import SelectionPredicate
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.configure.limits import check_inline_limits
 from matbodh_dashboard.context import StateContext
-
-# Limits on a card sent from the browser (spec 8.1): a trust boundary, so bounded.
-MAX_TITLE, MAX_SCENARIOS, MAX_CUTS, MAX_FILTERS, MAX_FILTER_VALUES = 200, 12, 8, 8, 200
-
-
-def check_inline_limits(card: CardConfig) -> None:
-    """Raise ValueError naming the limit a card sent from the browser exceeds."""
-    if len(card.title) > MAX_TITLE:
-        raise ValueError(f"title is at most {MAX_TITLE} characters")
-    if len(card.scenarios) > MAX_SCENARIOS:
-        raise ValueError(f"a card has at most {MAX_SCENARIOS} scenarios")
-    if len(card.cuts) > MAX_CUTS:
-        raise ValueError(f"a card has at most {MAX_CUTS} cuts")
-    for specs in (card.filters, card.rank.filters if card.rank is not None else []):
-        if len(specs) > MAX_FILTERS:
-            raise ValueError(f"a card has at most {MAX_FILTERS} filters")
-        if any(len(f.values) > MAX_FILTER_VALUES for f in specs):
-            raise ValueError(f"a filter has at most {MAX_FILTER_VALUES} values")
-
 
 class _CardTarget(BaseModel):
     """Which card a request is about: a library card by id, or a full config sent inline."""

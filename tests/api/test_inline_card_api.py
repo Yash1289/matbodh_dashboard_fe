@@ -95,3 +95,20 @@ def test_same_inline_card_two_clients_share_fingerprint(parts):  # noqa: F811
     second = client.post("/cards/run", json=inline({**INLINE, "id": "bob.9", "title": "Bob"}))
     assert first.status_code == second.status_code == 200
     assert len(runner.calls) == 1  # the second run was a cache hit on the same engine config
+
+
+def test_inline_benchmark_and_party_lists_are_bounded(parts):  # noqa: F811
+    service, runner = parts
+    client = TestClient(create_app(service))
+    bench = {"id": "b", "family": "seat_benchmark", "title": "B", "scenarios": [VS],
+             "benchmark": {"focal_party": "NDA", "grouping_sets": [[]] + [[f"f{i}"] for i in range(8)]}}
+    response = client.post("/cards/run", json=inline(bench))
+    assert response.status_code == 422 and "at most 8 grouping sets" in response.text
+    many = [f"P{i}" for i in range(21)]
+    response = client.post("/cards/run", json=inline({**INLINE, "display_parties": many}))
+    assert response.status_code == 422 and "at most 20 parties" in response.text
+    response = client.post("/cards/run", json=inline({**bench, "benchmark": {"focal_party": "P0", "contenders": many}}))
+    assert response.status_code == 422 and "at most 20 parties" in response.text
+    response = client.post("/cards/run", json=inline({**INLINE, "id": "x" * 101}))
+    assert response.status_code == 422 and "id is at most 100 characters" in response.text
+    assert runner.calls == []

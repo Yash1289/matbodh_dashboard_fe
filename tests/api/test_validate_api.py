@@ -91,3 +91,11 @@ def test_validate_never_queues_jobs(parts):  # noqa: F811
     client = TestClient(create_app(service))
     assert validate(client)["valid"] is True
     assert runner.calls == []
+
+
+def test_validate_applies_the_inline_limits_on_their_field(client):  # noqa: F811
+    """Validate and run must agree: a draft that run would reject with 422 is never valid here."""
+    draft = {**DRAFT, "filters": [{"field": "ac_num", "values": [str(i) for i in range(1, 202)]}]}
+    result = validate(client, draft)
+    assert result["valid"] is False
+    assert paths(result) == ["filters"] and "at most 200 values" in result["errors"][0]["message"]

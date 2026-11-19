@@ -12,6 +12,10 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
   const items: OptionItem[] = field.choices
     ? field.choices.map((c) => ({ value: c, label: c, kind: null, recalled: false, disabled_reason: null }))
     : fetched.data ?? [];
+  // Only once the list is known: before that every chosen value would look "no longer available".
+  const known = field.choices !== undefined || fetched.isSuccess;
+  const offered = new Set(items.map((o) => o.value));
+  const stale = (v: string) => known && !offered.has(v);
 
   if (field.multiple) {
     const chosen = Array.isArray(value) ? (value as string[]) : [];
@@ -25,6 +29,9 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
           <Checkbox key={o.value} label={optionLabel(o)} checked={chosen.includes(o.value)}
             disabled={o.disabled_reason !== null && !chosen.includes(o.value)} onChange={() => toggle(o.value)} />
         ))}
+        {chosen.filter(stale).map((v) => (
+          <Checkbox key={v} label={`${v} (no longer available)`} checked onChange={() => toggle(v)} />
+        ))}
         {error && <Text size="xs" c="red">{error}</Text>}
       </Stack>
     );
@@ -35,6 +42,7 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
     <NativeSelect label={field.label} description={field.help} error={error} value={current}
       onChange={(e) => onChange(e.currentTarget.value === "" ? undefined : e.currentTarget.value)}
       data={[...(blank ? [{ value: "", label: "—" }] : []),
-        ...items.map((o) => ({ value: o.value, label: optionLabel(o), disabled: o.disabled_reason !== null }))]} />
+        ...items.map((o) => ({ value: o.value, label: optionLabel(o), disabled: o.disabled_reason !== null })),
+        ...(current !== "" && stale(current) ? [{ value: current, label: `${current} (no longer available)` }] : [])]} />
   );
 }

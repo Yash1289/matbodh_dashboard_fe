@@ -26,14 +26,18 @@ function useFilterValues(field: string, draft: CardConfigJson, ctx: StateContext
     refetchInterval: (q) => (q.state.data?.state === "running" ? POLL_MS : false),
   });
   const done = run.data?.state === "done" ? (run.data.result as unknown as FilterValues) : null;
-  return { values: done?.values ?? null, error: started.error ?? run.error };
+  const failed = run.data !== undefined && (run.data.state === "failed" || run.data.state === "partial")
+    ? Object.values(run.data.errors).map((e) => e.message).join("; ") || "The values could not be loaded"
+    : null;
+  const requestError = started.error ?? run.error;
+  return { values: done?.values ?? null, error: failed ?? (requestError ? "The values could not be loaded" : null) };
 }
 
 function FilterRow({ filter, onChange, onRemove, draft, ctx }: {
   filter: CardFilterConfig; onChange(f: CardFilterConfig): void; onRemove(): void; draft: CardConfigJson; ctx: StateContext;
 }) {
   const { values, error } = useFilterValues(filter.field, draft, ctx);
-  const missing = values === null ? [] : filter.values.filter((v) => !values.includes(v));
+  const missing = values === null ? (error !== null ? filter.values : []) : filter.values.filter((v) => !values.includes(v));
   const toggle = (v: string) => onChange({
     ...filter, values: filter.values.includes(v) ? filter.values.filter((x) => x !== v) : [...filter.values, v],
   });
@@ -46,12 +50,12 @@ function FilterRow({ filter, onChange, onRemove, draft, ctx }: {
         <Button size="xs" variant="subtle" aria-label={`Remove filter ${filter.field}`} onClick={onRemove}>Remove</Button>
       </Group>
       {values === null && error === null && <Text size="xs" c="var(--mb-muted)">Loading values…</Text>}
-      {error !== null && <Text size="xs" c="red">The values could not be loaded</Text>}
+      {error !== null && <Text size="xs" c="red">{error}</Text>}
       {(values ?? []).map((v) => (
         <Checkbox key={v} label={v} checked={filter.values.includes(v)} onChange={() => toggle(v)} />
       ))}
       {missing.map((v) => (
-        <Checkbox key={v} label={`${v} (${MISSING})`} checked onChange={() => toggle(v)} />
+        <Checkbox key={v} label={values === null ? v : `${v} (${MISSING})`} checked onChange={() => toggle(v)} />
       ))}
     </Stack>
   );

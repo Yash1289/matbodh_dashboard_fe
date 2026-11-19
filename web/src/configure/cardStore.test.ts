@@ -81,3 +81,22 @@ describe("library cards and copied config", () => {
     expect(JSON.parse(text.slice(2))).toEqual({ id: "mine.1", family: "distribution", title: "T: with, punctuation", scenarios: ["a"] });
   });
 });
+
+describe("two open tabs", () => {
+  const OTHER = { id: "other-tab", config: { ...CONFIG, id: "other-tab" } };
+
+  it("does not overwrite a card another tab added since this one loaded", () => {
+    const a = cardStore.add(STATE, CONFIG);
+    localStorage.setItem(`mb.cards.${STATE}`, JSON.stringify([a, OTHER])); // the other tab's write
+    const b = cardStore.add(STATE, CONFIG);
+    expect(cardStore.list(STATE).map((c) => c.id)).toEqual([a.id, "other-tab", b.id]);
+  });
+
+  it("picks up another tab's change through the storage event", () => {
+    expect(cardStore.list(STATE)).toEqual([]);
+    localStorage.setItem(`mb.cards.${STATE}`, JSON.stringify([OTHER]));
+    window.dispatchEvent(new StorageEvent("storage", { key: `mb.cards.${STATE}` }));
+    expect(cardStore.list(STATE).map((c) => c.id)).toEqual(["other-tab"]);
+  });
+});
+

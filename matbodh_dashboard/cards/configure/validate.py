@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.configure.limits import check_inline_limits
 from matbodh_dashboard.catalogue.store import RoundNotFound
 from matbodh_dashboard.compiler.plan import RunPlan
 from matbodh_dashboard.context import StateContext
@@ -59,6 +60,10 @@ def validate_draft(draft: dict[str, Any], ctx: StateContext, service: CardRunSer
         card = CardConfig.model_validate(draft)
     except ValidationError as exc:
         return _result([_error(item) for item in exc.errors(include_url=False)])
+    try:
+        check_inline_limits(card)  # run would refuse the same card: validate must agree
+    except ValueError as exc:
+        return _result([_error({"msg": str(exc), "loc": ()})])
     context_errors = validate_context(ctx, service.catalogue)
     if context_errors:
         return _result([{"path": "context", "message": message} for message in context_errors])

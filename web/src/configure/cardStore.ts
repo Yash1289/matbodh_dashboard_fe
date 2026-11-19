@@ -13,19 +13,22 @@ const emit = () => listeners.forEach((l) => l());
 const newId = (): string =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `card-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function read(state: string): StoredCard[] {
-  const held = memory.get(state);
-  if (held !== undefined) return held;
-  let cards: StoredCard[] = [];
+/** The list as stored now (another tab may have written since); memory when storage cannot be read. */
+function load(state: string): StoredCard[] {
   try {
     const raw = localStorage.getItem(storageKey(state));
     const parsed: unknown = raw === null ? [] : JSON.parse(raw);
-    if (Array.isArray(parsed)) cards = parsed as StoredCard[];
+    const cards = Array.isArray(parsed) ? (parsed as StoredCard[]) : [];
+    memory.set(state, cards);
+    return cards;
   } catch {
-    // unreadable or unavailable storage: no cards (never an error on the page)
+    // unreadable or unavailable storage: keep what this tab has (never an error on the page)
+    return memory.get(state) ?? [];
   }
-  memory.set(state, cards);
-  return cards;
+}
+
+function read(state: string): StoredCard[] {
+  return memory.get(state) ?? load(state);
 }
 
 function write(state: string, cards: StoredCard[]): void {
@@ -46,21 +49,21 @@ export const cardStore = {
   add(state: string, config: CardConfigJson): StoredCard {
     const id = newId();
     const stored = { id, config: withId(config, id) };
-    write(state, [...read(state), stored]);
+    write(state, [...load(state), stored]);
     return stored;
   },
 
   replace(state: string, id: string, config: CardConfigJson): void {
-    write(state, read(state).map((c) => (c.id === id ? { id, config: withId(config, id) } : c)));
+    write(state, load(state).map((c) => (c.id === id ? { id, config: withId(config, id) } : c)));
   },
 
   remove(state: string, id: string): void {
-    write(state, read(state).filter((c) => c.id !== id));
+    write(state, load(state).filter((c) => c.id !== id));
   },
 
   /** A new card with the same config (its title says "copy"); null if the card is not stored. */
   copy(state: string, id: string): StoredCard | null {
-    const source = read(state).find((c) => c.id === id);
+    const source = load(state).find((c) => c.id === id);
     if (source === undefined) return null;
     return this.add(state, { ...source.config, title: `${source.config.title} (copy)` });
   },
@@ -77,6 +80,16 @@ export const copyConfigText = (config: CardConfigJson): string => `- ${JSON.stri
 
 /** Tests only: forget the in-memory copy, as a page reload does. */
 export const _dropMemory = (): void => memory.clear();
+
+// Another tab changed its cards: forget this tab's copy so the next read takes the stored list.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === null) memory.clear();
+    else if (e.key.startsWith("mb.cards.")) memory.delete(e.key.slice("mb.cards.".length));
+    else return;
+    emit();
+  });
+}
 
 const subscribe = (listener: () => void) => {
   listeners.add(listener);

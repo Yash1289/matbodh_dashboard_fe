@@ -15,7 +15,7 @@ const FIELD: FieldDescriptor = {
 };
 const DRAFT: CardConfigJson = { id: "d", family: "distribution", title: "T", scenarios: ["vs_voting_intention"] };
 
-function stub(values: string[]) {
+function stub(values: string[], state: "done" | "failed" = "done") {
   const posts: unknown[] = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, "");
@@ -28,6 +28,10 @@ function stub(values: string[]) {
       return reply({ run_id: "vals" });
     }
     if (path === "/runs/vals") {
+      if (state === "failed") {
+        return reply({ state, done: 1, total: 1, result: null,
+          errors: { values: { kind: "config", message: "Field 'caste' is missing in R1", fingerprint: null, jobs: ["values"] } } });
+      }
       return reply({ state: "done", done: 1, total: 1, errors: {}, result: { kind: "filter_values", field: "caste", values } });
     }
     return new Response("{}", { status: 404 });
@@ -70,5 +74,13 @@ describe("FilterList", () => {
     expect(onChange).toHaveBeenLastCalledWith([{ field: "caste", operator: "in", values: ["Yadav", "Brahmin"] }]);
     await userEvent.selectOptions(screen.getByRole("combobox", { name: "caste" }), "not_in");
     expect(onChange).toHaveBeenLastCalledWith([{ field: "caste", operator: "not_in", values: ["Yadav"] }]);
+  });
+
+  it("a failed values run says so instead of loading forever", async () => {
+    stub([], "failed");
+    mount([{ field: "caste", operator: "in", values: ["Yadav"] }]);
+    expect(await screen.findByText(/Field 'caste' is missing in R1/)).toBeInTheDocument();
+    expect(screen.queryByText("Loading values…")).toBeNull();
+    expect(screen.getByRole("checkbox", { name: /Yadav/ })).toBeChecked(); // the chosen value is still shown
   });
 });
