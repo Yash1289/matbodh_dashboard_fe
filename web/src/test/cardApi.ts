@@ -15,6 +15,7 @@ import distributionTrend from "./fixtures/cards/distribution_trend.json";
 import genderStandalone from "./fixtures/cards/gender_differential_standalone.json";
 import opinionStandalone from "./fixtures/cards/opinion_standalone.json";
 import states from "./fixtures/states.json";
+import configureFamilies from "./fixtures/configure_families.json";
 import surveys from "./fixtures/surveys.json";
 
 /** JSON imports widen string-literal unions, so payload fixtures are cast once, here. */
@@ -87,6 +88,11 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
     const sent = init?.body ? (JSON.parse(String(init.body)) as { card_id?: string; card?: { id: string } }) : {};
     const body = { card_id: sent.card_id ?? sent.card?.id };
     if (path === "/catalogue/states") return reply(states);
+    if (path === "/configure/families") return reply(configureFamilies);
+    if (path === "/configure/options") return reply([]);
+    if (path === "/cards/validate") {
+      return reply({ valid: true, errors: [], unavailable: [], not_asked: [], notes: [], rounds: [] });
+    }
     if (path.endsWith("/surveys")) return reply(surveys);
     if (path.endsWith("/elections")) return reply(elections);
     if (path.startsWith("/cards") && init?.method !== "POST") return reply([...byCard.values()].map((p) => infoFor(p)));
@@ -104,7 +110,8 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
     }
     if (path.startsWith("/runs/")) {
       const id = decodeURIComponent(path.replace(/^\/runs\//, ""));
-      return reply(runs[id] ?? doneRun(byCard.get(id)!));
+      // An analyst's own card has no payload of its own in the stub: it gets the first one.
+      return reply(runs[id] ?? doneRun(byCard.get(id) ?? payloads[0]));
     }
     return reply({ detail: "not found" }, 404);
   });

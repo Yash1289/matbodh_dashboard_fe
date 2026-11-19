@@ -178,3 +178,15 @@ def test_seed_cards_load():
     assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone",
             "ranking.ac_pm_net", "ranking.ac_bjp_support_by_zone", "ranking.pc_pm_net",
             "ranking.castes_by_ac_support"} <= set(cards)
+
+
+def test_copied_config_loads(tmp_path):
+    """Configure's "Copy config" puts one YAML list item (JSON, with its id) on the clipboard; the owner
+    pastes it under `cards:` in cards.yaml, and load_cards accepts it."""
+    pasted = ('- {"id": "mine.1", "family": "distribution", "title": "T: with, punctuation", '
+              '"scenarios": ["vs_voting_intention"], "cuts": [[], ["caste"]], "caste_clubbing": true, '
+              '"comparison": {"mode": "standalone"}, "pipe_rounds": null, "display_parties": ["NDA"]}')
+    path = tmp_path / "cards.yaml"
+    path.write_text("cards:\n" + pasted + "\n", encoding="utf-8")
+    card = load_cards(path)["mine.1"]
+    assert card.title == "T: with, punctuation" and card.caste_clubbing and card.display_parties == ["NDA"]

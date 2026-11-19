@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -59,18 +59,17 @@ describe("BenchmarkCard", () => {
     expect(f.mock.calls.length).toBe(calls);
   });
 
-  it("the reference picker is the one control that starts exactly one new run", async () => {
-    const f = mount(BENCHMARK.surveyVs2022());
+  it("shows the configured election reference and has no picker; requests carry no reference", async () => {
+    const p = BENCHMARK.surveyVs2022();
+    const f = stubCardApi({ payloads: [p], elections: ELECTIONS });
+    const info = { ...infoFor(p), benchmark: { reference: { kind: "election" as const, year: 2022, election_type: "VS" as const } } };
+    renderWithProviders(<BenchmarkCard info={info} ctx={CTX} />);
     await screen.findByRole("table", { name: /Comparison/ });
-    const before = runPosts(f).length;
-    await userEvent.click(screen.getByRole("button", { name: /Reference/ }));
-    const picker = await screen.findByLabelText("Reference");
-    expect(within(picker).getAllByRole("option").map((o) => o.textContent))
-      .toEqual(["No reference", "Compare round (R1)", "2022 VS"]);
-    await userEvent.selectOptions(picker, "election:2022:VS");
-    await waitFor(() => expect(runPosts(f).length).toBe(before + 1));
+    expect(screen.queryByRole("button", { name: /Reference/ })).toBeNull();
+    expect(screen.getByTestId("card-subtitle").textContent).toMatch(/ vs /); // the reference, read-only
     const posts = runPosts(f);
-    expect(posts[posts.length - 1].reference).toEqual({ kind: "election", year: 2022, election_type: "VS" });
+    expect(posts.length).toBeGreaterThan(0);
+    expect(posts.every((body) => !("reference" in body))).toBe(true); // the reference is in the card's config
   });
 
   it("copies the engine's values exactly", async () => {
@@ -126,21 +125,6 @@ describe("BenchmarkCard", () => {
     const p = BENCHMARK.surveyVs2022();
     const runs: Record<string, RunStatus> = {};
     stubCardApi({ payloads: [p], elections: ELECTIONS, runs });
-    renderWithProviders(<BenchmarkCard info={infoFor(p)} ctx={CTX} />);
-    await screen.findByRole("table", { name: /Comparison/ });
-    expect(screen.getByTestId("card-subtitle")).toBeInTheDocument();
-    runs[p.card_id] = { state: "running", done: 0, total: 1, result: null, errors: {} };
-    await userEvent.click(screen.getByRole("button", { name: /Reference/ }));
-    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "none");
-    expect(await screen.findByText(/Running the benchmark/)).toBeInTheDocument();
-    expect(screen.queryByTestId("card-subtitle")).toBeNull();
-    expect(screen.queryByRole("button", { name: /Search/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: "⋯" })).toBeNull();
-  });
-
-  it("falls back to the default reference when the chosen compare round is dropped", async () => {
-    const p = BENCHMARK.surveyVs2022();
-    const f = stubCardApi({ payloads: [p], elections: ELECTIONS });
     const Harness = () => {
       const [ctx, setCtx] = useState<StateContext>(CTX);
       return (
@@ -152,12 +136,13 @@ describe("BenchmarkCard", () => {
     };
     renderWithProviders(<Harness />);
     await screen.findByRole("table", { name: /Comparison/ });
-    await userEvent.click(screen.getByRole("button", { name: /Reference/ }));
-    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "election:2022:VS");
-    await userEvent.selectOptions(await screen.findByLabelText("Reference"), "compare");
-    await userEvent.click(screen.getByRole("button", { name: "drop compare" }));
-    await waitFor(() => expect(runPosts(f).length).toBe(4)); // default, election, compare, then the fallback
-    expect(runPosts(f)[3].reference ?? null).toBeNull(); // not {kind: "compare"} for a round that is gone
+    expect(screen.getByTestId("card-subtitle")).toBeInTheDocument();
+    runs[p.card_id] = { state: "running", done: 0, total: 1, result: null, errors: {} };
+    await userEvent.click(screen.getByRole("button", { name: "drop compare" })); // a new context starts a new run
+    expect(await screen.findByText(/Running the benchmark/)).toBeInTheDocument();
+    expect(screen.queryByTestId("card-subtitle")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Search/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "⋯" })).toBeNull();
   });
 
   it("says so in words when a search matches nothing", async () => {

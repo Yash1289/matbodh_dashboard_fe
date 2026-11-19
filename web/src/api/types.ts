@@ -406,6 +406,7 @@ export interface CardInfo {
   view?: { table: BenchmarkTable | RelationshipTable | null } | null; // benchmark and relationship families only
   pipe_rounds?: number | null;
   display_parties?: string[];
+  benchmark?: { reference?: BenchmarkReference | null } | null; // benchmark family: what it is compared with
   /** A card configured by the analyst (kept in the browser), not a library card from the server. */
   inline?: boolean;
 }
