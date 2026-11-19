@@ -70,6 +70,17 @@ class ValidateRequest(BaseModel):
     context: StateContext
 
 
+class OptionsRequest(BaseModel):
+    """Body of /configure/options: which list, its parameters, the draft card and its context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    params: dict[str, str | int | bool] = {}
+    card: dict = {}
+    context: StateContext
+
+
 class StatesResponse(BaseModel):
     states: list[str]
 

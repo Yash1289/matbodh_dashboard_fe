@@ -17,11 +17,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from matbodh_dashboard.api.schemas import (
-    CardRequest, MetadataRefreshed, PreviewRequest, RunStarted, StatesResponse, ValidateRequest,
+    CardRequest, MetadataRefreshed, OptionsRequest, PreviewRequest, RunStarted, StatesResponse,
+    ValidateRequest,
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable
 from matbodh_dashboard.cards.configure.families import descriptors
+from matbodh_dashboard.cards.configure.options import options_for
 from matbodh_dashboard.cards.configure.validate import rounds_payload, validate_draft
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
@@ -199,6 +202,24 @@ def create_app(
     @app.get("/configure/families")
     def configure_families() -> list[dict]:
         return [d.model_dump(exclude_none=True) for d in descriptors()]
+
+    @app.post("/configure/options")
+    def configure_options(body: OptionsRequest):
+        errors = validate_context(body.context, service.catalogue)
+        if errors:
+            return _invalid(errors)
+        try:
+            found = options_for(body.source, body.params, body.card, body.context, service)
+        except KeyError:
+            raise HTTPException(404, f"unknown option source {body.source!r}") from None
+        except AllianceUnavailable:  # the cause may carry hosts or settings: log it, do not show it
+            log.warning("alliance mapping unavailable for options", exc_info=True)
+            raise HTTPException(503, "The alliance mapping could not be loaded; try again shortly") from None
+        except ValueError as exc:
+            return _invalid([str(exc)])
+        except RoundNotFound:
+            raise _catalogue_changed() from None
+        return [item.model_dump() for item in found]
 
     @app.post("/cards/validate")
     def validate(body: ValidateRequest) -> dict:
