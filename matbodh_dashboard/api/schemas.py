@@ -61,6 +61,15 @@ class PreviewRequest(_CardTarget):
     reference: BenchmarkReference | None = None
 
 
+class ValidateRequest(BaseModel):
+    """Body of /cards/validate: a draft card (checked, never run) and the context it would run in."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    card: dict
+    context: StateContext
+
+
 class StatesResponse(BaseModel):
     states: list[str]
 

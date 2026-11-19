@@ -17,10 +17,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from matbodh_dashboard.api.schemas import (
-    CardRequest, MetadataRefreshed, PreviewRequest, RunStarted, StatesResponse,
+    CardRequest, MetadataRefreshed, PreviewRequest, RunStarted, StatesResponse, ValidateRequest,
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
+from matbodh_dashboard.cards.configure.validate import rounds_payload, validate_draft
 from matbodh_dashboard.cards.families import family_meta, get_family
 from matbodh_dashboard.catalogue.labels import series_groups, short_labels
 from matbodh_dashboard.catalogue.store import (
@@ -190,16 +191,13 @@ def create_app(
             "not_asked": [{"part": p, "rounds": list(names)}
                           for p, names in run_plan.not_asked],
             "notes": list(run_plan.notes),
-            "rounds": [
-                {"obs_id": r.obs_id, "label": r.label,
-                 "base_name": r.identity.base_name, "round": r.identity.round,
-                 "dataset_id": r.dataset.dataset_id, "version": r.dataset.variant,
-                 "fallback": r.fallback, "seats": len(r.dataset.seat_ids),
-                 "borrowed": len(r.dataset.borrowed_seat_ids), "seats_source": "metadata"}
-                for r in run_plan.rounds
-            ],
+            "rounds": rounds_payload(run_plan),
             "coverage_mode": coverage_mode,
         }
+
+    @app.post("/cards/validate")
+    def validate(body: ValidateRequest) -> dict:
+        return validate_draft(body.card, body.context, service)
 
     @app.post("/cards/run", response_model=RunStarted)
     def run(body: CardRequest):
