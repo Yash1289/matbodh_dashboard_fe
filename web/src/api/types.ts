@@ -264,7 +264,6 @@ export interface BenchmarkComparisonRow {
 export interface BenchmarkBucketRow { endpoint: BenchmarkSide; group: BenchmarkGroup; bucket: string; seats: number; eligible_seats: number }
 export interface BenchmarkFlipRow { group: BenchmarkGroup; bucket: string; seats: number; eligible_seats: number }
 export interface BenchmarkReference { kind: "none" | "compare" | "election"; year?: number; election_type?: "LS" | "VS" }
-export interface ElectionOption { year: number; election_type: "LS" | "VS"; label: string }
 export interface BenchmarkPayload {
   kind: "benchmark";
   family: BenchmarkFamily;

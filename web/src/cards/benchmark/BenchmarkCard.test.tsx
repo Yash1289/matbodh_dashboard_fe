@@ -11,12 +11,11 @@ const CTX: StateContext = {
   state: "Uttar Pradesh", level: "ac", rounds: ["R1", "R2"], compare_round: "R1", anchor_round: "R2",
   version_mode: "extrapolated", geo_scope: "state",
 };
-const ELECTIONS = [{ year: 2022, election_type: "VS" as const, label: "2022 VS" }];
 
 afterEach(() => vi.unstubAllGlobals());
 
 const mount = (p: BenchmarkPayload) => {
-  const f = stubCardApi({ payloads: [p], elections: ELECTIONS });
+  const f = stubCardApi({ payloads: [p] });
   renderWithProviders(<BenchmarkCard info={infoFor(p)} ctx={CTX} />);
   return f;
 };
@@ -61,7 +60,7 @@ describe("BenchmarkCard", () => {
 
   it("shows the configured election reference and has no picker; requests carry no reference", async () => {
     const p = BENCHMARK.surveyVs2022();
-    const f = stubCardApi({ payloads: [p], elections: ELECTIONS });
+    const f = stubCardApi({ payloads: [p] });
     const info = { ...infoFor(p), benchmark: { reference: { kind: "election" as const, year: 2022, election_type: "VS" as const } } };
     renderWithProviders(<BenchmarkCard info={info} ctx={CTX} />);
     await screen.findByRole("table", { name: /Comparison/ });
@@ -124,7 +123,7 @@ describe("BenchmarkCard", () => {
   it("clears the old subtitle, chips and method text while a new run is in progress", async () => {
     const p = BENCHMARK.surveyVs2022();
     const runs: Record<string, RunStatus> = {};
-    stubCardApi({ payloads: [p], elections: ELECTIONS, runs });
+    stubCardApi({ payloads: [p], runs });
     const Harness = () => {
       const [ctx, setCtx] = useState<StateContext>(CTX);
       return (

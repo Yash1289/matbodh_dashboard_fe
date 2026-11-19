@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload } from "../api/types";
 import type {
-  BenchmarkPayload, CardInfo, CardPayload, CohortPreview, ElectionOption, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
+  BenchmarkPayload, CardInfo, CardPayload, CohortPreview, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
   RelationshipPayload, RunStatus,
 } from "../api/types";
 import benchmarkSurveyVs2022 from "./fixtures/cards/benchmark_survey_vs_2022.json";
@@ -72,15 +72,13 @@ export interface CardApiOptions {
   runs?: Record<string, RunStatus>;
   /** A status other than 200 makes POST /cards/run fail with that status. */
   runStatus?: number;
-  /** What GET /catalogue/{state}/elections lists. */
-  elections?: ElectionOption[];
   /** What POST /cohorts/preview finishes with, or the 422 reason it answers instead. */
   preview?: CohortPreview;
   previewError?: string;
 }
 
 /** A fetch stub serving the cards API; returns the mock so tests can count requests. */
-export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, elections = [], preview, previewError }: CardApiOptions) {
+export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, preview, previewError }: CardApiOptions) {
   const byCard = new Map(payloads.map((p) => [p.card_id, p]));
   const reply = (json: unknown, status = 200) => new Response(JSON.stringify(json), { status });
   const mock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -94,7 +92,6 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
       return reply({ valid: true, errors: [], unavailable: [], not_asked: [], notes: [], rounds: [] });
     }
     if (path.endsWith("/surveys")) return reply(surveys);
-    if (path.endsWith("/elections")) return reply(elections);
     if (path.startsWith("/cards") && init?.method !== "POST") return reply([...byCard.values()].map((p) => infoFor(p)));
     // A card the stub has no payload for (the context bar's own) is planned like the first payload.
     if (path === "/cards/plan") {

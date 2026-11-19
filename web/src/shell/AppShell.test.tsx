@@ -24,23 +24,21 @@ describe("shell", () => {
     stubCardApi({ payloads: [CARD()] });
     renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
     const nav = screen.getByRole("navigation", { name: "Sections" });
-    for (const label of ["Cards", "Seat Battleground", "Voter Coalitions", "Leadership", "Vote Movement", "My cards", "+ Add a cut"]) {
-      expect(within(nav).getByRole("link", { name: label })).toHaveAttribute("href", expect.stringContaining(CONTEXT_QUERY));
-    }
-    expect(within(nav).getByText("SECTIONS")).toBeInTheDocument();
-    expect(within(nav).getByText("MINE")).toBeInTheDocument();
+    expect(within(nav).getAllByRole("link").map((l) => l.textContent)).toEqual(["Cards"]);
+    expect(within(nav).getByRole("link", { name: "Cards" })).toHaveAttribute("href", expect.stringContaining(CONTEXT_QUERY));
     expect(within(nav).getByRole("link", { name: "Cards" })).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "Vote Movement" })).not.toHaveAttribute("aria-current");
-    expect(within(nav).queryByRole("link", { name: "State Pulse" })).toBeNull();
+    // The dropped State Pulse sections and the old "+ Add a cut" builder are gone (Configure's Add card replaces it).
+    for (const gone of ["State Pulse", "Seat Battleground", "Voter Coalitions", "Leadership", "Vote Movement", "My cards", "+ Add a cut"]) {
+      expect(within(nav).queryByRole("link", { name: gone })).toBeNull();
+    }
     await screen.findByRole("table");
   });
 
-  it("placeholder pages keep the full section name", async () => {
+  it("an old placeholder path goes to the cards page", async () => {
     stubCardApi({ payloads: [CARD()] });
     renderWithProviders(<AppRoutes />, { route: `/leadership${CONTEXT_QUERY}` });
-    expect(await screen.findByText("Leadership & Anti-incumbency arrives in phase 2")).toBeInTheDocument();
-    await screen.findByTestId("context-pill");
-    await waitFor(() => expect(screen.getByTestId("context-pill")).toHaveTextContent("Geo: whole state"));
+    expect(await screen.findByRole("heading", { name: "Cards" })).toBeInTheDocument();
+    expect(screen.queryByText(/arrives in phase/)).toBeNull();
   });
 
   it("renders the cards page at / and sends unknown paths there", async () => {

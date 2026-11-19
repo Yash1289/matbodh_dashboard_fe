@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiGet, fetchOptions, getRun, planCard, startRun } from "./client";
 import type {
-  BenchmarkReference, CardConfigJson, CardInfo, CardPayload, CardRef, ElectionOption, FamilyDescriptor, GridPayload,
+  BenchmarkReference, CardConfigJson, CardInfo, CardPayload, CardRef, FamilyDescriptor, GridPayload,
   OptionItem, RunStatus, StateContext, SurveysResponse,
 } from "./types";
 
@@ -33,15 +33,6 @@ export const useCards = (section?: string) =>
     queryKey: ["cards", section ?? null],
     queryFn: () => apiGet<CardInfo[]>(section === undefined ? "/cards" : `/cards?section=${encodeURIComponent(section)}`),
     staleTime: Infinity,
-  });
-
-/** The elections a benchmark card's reference picker lists for a state. */
-export const useElections = (state: string | null) =>
-  useQuery({
-    queryKey: ["elections", state],
-    queryFn: () => apiGet<ElectionOption[]>(`/catalogue/${encodeURIComponent(state ?? "")}/elections`),
-    enabled: state !== null,
-    staleTime: 5 * 60_000,
   });
 
 export const useCardPlan = (ref: CardRef, ctx: StateContext | null, reference: BenchmarkReference | null = null) =>

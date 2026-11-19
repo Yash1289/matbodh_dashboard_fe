@@ -99,22 +99,22 @@ Last reviewed: 2026-11-19.
 | O-P4 | Smoke script prints a raw traceback (with the DB host) on connection failure | eng | open |
 | O-P5 | Bundle size warning (chunks over 500 kB) from the Vite build | eng | open |
 | O-P6 | Stale claude-mem work list `analytics-card-brainstorm`; the session files are the source of truth | eng | open |
-| O-P7 | Owner's uncommitted edit `docs/specs/2026-11-08-dashboard-design.md`: never touch or commit it. Untracked: `.codegraph/`, `CLAUDE.md`, `prototypes/`, `uv.lock` | owner | standing |
+| O-P7 | Owner's uncommitted edit `docs/specs/2026-11-08-dashboard-design.md`: never touch or commit it. Untracked: `.codegraph/`, `CLAUDE.md`, `uv.lock` (`prototypes/` deleted 2026-11-19) | owner | standing |
 | O-P8 | Engine repo has uncommitted `compiler.py` / `validation.py` changes (`binding_observation` validation scope) with no test seen | engine | open |
 | O-P9 | `npm run e2e` has no journey for benchmark or relationship cards | eng | open |
 
-### 2.1b Configure (6a)
+### 2.1b Configure (6a) - IDs O-F
 
 | ID | Item | Owner | Status |
 |---|---|---|---|
-| O-K1 | Seat segmentation (seat type/score from a past election; NDA/BJP+ view only; seat ranking and benchmark; data in MySQL `acDashboard_retrosegement`) deferred. Proposed shape: seat type as a seat attribute plus a "Seat type from" election picker, `segmentation_party` in the preset | owner | deferred 2026-11-19 |
-| O-K2 | Derived categories (engine `conditional_variables`) as a rule-editor widget; the descriptor model leaves room (`slot` widget, one more condition use) | owner | deferred 2026-11-19 |
-| O-K3 | Benchmark seat filters (`benchmark.filters`) are not offered in configure; the compiler sends none | owner | deferred 2026-11-19 |
-| O-K4 | The "showing 2 of the 3 rounds asked for" note is shown in the configure summary and the plan response, not yet in the card footer | eng | open (with the 6b card redesign) |
-| O-K5 | Live check of one card per family configured end to end, plus hide parties, contenders, config reference, joint weight scenario and the filter-values run | eng | VERIFIED live 2026-11-19 (UP, R1+R2, read-only, owner go-ahead): 31/31 checks. Option lists from the live catalogue and alliance table (7 party scenarios, Q-11 excluded, 28 cut fields, no seat type, 14 seat attributes, elections 2009-2024, contenders incl. INDI for 2022 VS); every family validated and ran from an inline config (distribution with hide parties, trend with pipe_rounds 3 -> note, opinion compare, gender gap, seat and demographic ranking, benchmark vs 2022 VS with contenders NDA+SP+, relationship with scenario joint weight); caste filter values from an engine run (66) and a filtered card ran; repeat run was a cache hit. Benchmark with contenders NDA+SP+: all 32 groups' vote shares sum to 100 and seats won = eligible seats (BSP counted in Other) |
-| O-K6 | Cards a user configures live only in this browser (localStorage per state). The workspace format and the move to the database belong to 6c / the access-control phase | owner | open |
-| O-K7 | A card shared with everyone is added by pasting "Copy config" output under `cards:` in `config/cards/cards.yaml` (which ships empty); no publish action | owner | decided |
-| O-K8 | Scenario display names (the pickers show scenario ids) still need the owner's names (O-G6) | owner | open |
+| O-F1 | Seat segmentation (seat type/score from a past election; NDA/BJP+ view only; seat ranking and benchmark; data in MySQL `acDashboard_retrosegement`) deferred. Proposed shape: seat type as a seat attribute plus a "Seat type from" election picker, `segmentation_party` in the preset | owner | deferred 2026-11-19 |
+| O-F2 | Derived categories (engine `conditional_variables`) as a rule-editor widget; the descriptor model leaves room (`slot` widget, one more condition use) | owner | deferred 2026-11-19 |
+| O-F3 | Benchmark seat filters (`benchmark.filters`) are not offered in configure; the compiler sends none | owner | deferred 2026-11-19 |
+| O-F4 | The "showing 2 of the 3 rounds asked for" note is shown in the configure summary and the plan response, not yet in the card footer | eng | open (with the 6b card redesign) |
+| O-F5 | Live check of one card per family configured end to end, plus hide parties, contenders, config reference, joint weight scenario and the filter-values run | eng | VERIFIED live 2026-11-19 (UP, R1+R2, read-only, owner go-ahead): 31/31 checks. Option lists from the live catalogue and alliance table (7 party scenarios, Q-11 excluded, 28 cut fields, no seat type, 14 seat attributes, elections 2009-2024, contenders incl. INDI for 2022 VS); every family validated and ran from an inline config (distribution with hide parties, trend with pipe_rounds 3 -> note, opinion compare, gender gap, seat and demographic ranking, benchmark vs 2022 VS with contenders NDA+SP+, relationship with scenario joint weight); caste filter values from an engine run (66) and a filtered card ran; repeat run was a cache hit. Benchmark with contenders NDA+SP+: all 32 groups' vote shares sum to 100 and seats won = eligible seats (BSP counted in Other) |
+| O-F6 | Cards a user configures live only in this browser (localStorage per state). The workspace format and the move to the database belong to 6c / the access-control phase | owner | open |
+| O-F7 | A card shared with everyone is added by pasting "Copy config" output under `cards:` in `config/cards/cards.yaml` (which ships empty); no publish action | owner | decided |
+| O-F8 | Scenario display names (the pickers show scenario ids) still need the owner's names (O-G6) | owner | open |
 
 ## 3. Questions for the product owner
 
@@ -128,7 +128,7 @@ Last reviewed: 2026-11-19.
 | Q-6 | Zone / vibhag / district levels | geographic levels |
 | Q-7 | Elections list for states other than UP | O-B4 |
 | Q-8 | Method preset final values (provisional UP values in design spec section 20) | method drawer, defaults |
-| Q-9 | Sentence-builder depth and who may edit presets | sub-project 6 |
+| Q-9 | ~~Sentence-builder depth~~ ANSWERED 2026-11-19: Configure is a backend-described form per family (D-K1), not a sentence builder. STILL OPEN: who may edit method presets (access-control phase) | access control |
 | Q-11 | Include party scenarios without embedded weights (cm_choice_party, pm_choice_party, govt_change, *_swap_voting_intention) in the cohort creation query and overall vote-share card? Needs an approved external weight binding (for example base weights) | cohort overall table |
 | Q-10 | ~~Under a cohort, rank only the cohort's seats or rank all and show the cohort?~~ DECIDED 2026-11-18 (owner): Option A, rank/compare only the cohort's seats (engine `seat_ids`); see D-C9 | closed |
 
@@ -183,6 +183,7 @@ Newest first inside each group. A decision changes only when the owner says so.
 
 | ID | What | Closed |
 |---|---|---|
+| O-F9 | Dead frontend removed: `CardFilterBar` (superseded universal-card design), `InvestigationDrawer` (dropped with cohorts), `useElections` and `ElectionOption` (the benchmark reference picker moved into Configure), and the placeholder pages and nav links of the dropped State Pulse sections (Seat Battleground, Voter Coalitions, Leadership, Vote Movement) plus "My cards" and "+ Add a cut" (replaced by Configure's Add card). Old paths now go to the cards page. Navigation is redesigned with the canvas (6b) | 2026-11-19 |
 | O-R3 | Relationship CSV omitted Details columns | 2026-11-18 |
 | O-R4 | Search chip did nothing in the Matrix (hidden there) | 2026-11-18 |
 | O-R5 | Null dimension value became "None" | 2026-11-18 |

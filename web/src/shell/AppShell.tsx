@@ -1,22 +1,10 @@
-import { AppShell, Button, NavLink, Stack, Text } from "@mantine/core";
+import { AppShell, NavLink, Stack, Text } from "@mantine/core";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ContextBar } from "../context/ContextBar";
 import { tokens } from "../theme";
 
-/** `label` is the nav text; `title` is the full section name used on placeholder pages. */
-export const NAV = [
-  { path: "/", label: "Cards", title: "Cards" },
-  { path: "/battleground", label: "Seat Battleground", title: "Seat Battleground" },
-  { path: "/coalitions", label: "Voter Coalitions", title: "Voter Coalitions" },
-  { path: "/leadership", label: "Leadership", title: "Leadership & Anti-incumbency" },
-  { path: "/movement", label: "Vote Movement", title: "Vote Movement" },
-  { path: "/my-cards", label: "My cards", title: "My cards" },
-  { path: "/builder", label: "+ Add a cut", title: "+ Add a cut" },
-] as const;
-
-const SECTIONS = NAV.slice(0, 5);
-const MINE = NAV.slice(5, 6);
-const ADD = NAV[6];
+// The canvas and tabs (sub-project 6b) will design the navigation; until then there is one page.
+const NAV = [{ path: "/", label: "Cards" }] as const;
 
 export function Shell() {
   const { search, pathname } = useLocation();
@@ -37,9 +25,6 @@ export function Shell() {
       />
     );
   };
-  const caption = (text: string) => (
-    <Text fz={tokens.font.navSection} fw={600} c="var(--mb-muted)" px={12} pt={8}>{text}</Text>
-  );
   return (
     <AppShell
       header={{ height: tokens.layout.topBar }} navbar={{ width: tokens.layout.nav, breakpoint: 0 }} padding={0}
@@ -57,14 +42,8 @@ export function Shell() {
         style={{ background: "var(--mb-surface)", borderRight: "1px solid var(--mb-border)" }}
       >
         <Stack gap={4} style={{ flex: 1 }}>
-          {caption("SECTIONS")}
-          {SECTIONS.map(link)}
-          {caption("MINE")}
-          {MINE.map(link)}
+          {NAV.map(link)}
         </Stack>
-        <Button component={Link} to={{ pathname: ADD.path, search }} fz={tokens.font.button} fw={600} px={14} py={8} h="auto">
-          {ADD.label}
-        </Button>
       </AppShell.Navbar>
       <AppShell.Main>
         <div style={{ maxWidth: tokens.layout.content + 2 * tokens.layout.contentPad, padding: tokens.layout.contentPad }}>

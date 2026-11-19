@@ -3,10 +3,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ApiError } from "./api/client";
 import { backoff } from "./api/queries";
-import { ComingLater } from "./pages/ComingLater";
 import { CohortTab } from "./cohorts/CohortTab";
 import { CardsPage } from "./pages/CardsPage";
-import { NAV, Shell } from "./shell/AppShell";
+import { Shell } from "./shell/AppShell";
 import { cssVariablesResolver, theme } from "./theme";
 
 export function createQueryClient(): QueryClient {
@@ -33,10 +32,6 @@ export function AppRoutes() {
       <Route element={<Shell />}>
         <Route index element={<CardsPage />} />
         <Route path="cohort" element={<CohortTab />} />
-        {NAV.filter((n) => n.path !== "/").map((n) => (
-          <Route key={n.path} path={n.path}
-            element={<ComingLater section={n.title} phase={n.path === "/my-cards" || n.path === "/builder" ? 3 : 2} />} />
-        ))}
         <Route path="*" element={<ToCards />} />
       </Route>
     </Routes>
