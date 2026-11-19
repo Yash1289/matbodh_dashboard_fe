@@ -404,4 +404,104 @@ export interface CardInfo {
   meta: FamilyMeta;
   rank?: RankInfo | null; // ranking families only
   view?: { table: BenchmarkTable | RelationshipTable | null } | null; // benchmark and relationship families only
+  pipe_rounds?: number | null;
+  display_parties?: string[];
+  /** A card configured by the analyst (kept in the browser), not a library card from the server. */
+  inline?: boolean;
 }
+
+// --- A card sent from the browser: mirrors matbodh_dashboard/cards/config.py (CardConfig) -------------
+export interface EndpointJson { round?: "anchor" | "compare"; scenario?: string }
+export interface CardConfigJson {
+  id: string;
+  family: Family;
+  title: string;
+  section?: string;
+  scenarios?: string[];
+  all_party_scenarios?: boolean;
+  cuts?: string[][];
+  filters?: CardFilterConfig[];
+  comparison?: { mode?: CardMode; target?: EndpointJson | null; reference?: EndpointJson | null; delta_measures?: string[] };
+  caste_clubbing?: boolean;
+  requires?: { min_level: "state" | "ac" };
+  rank?: {
+    metric?: string; party_id?: string | null; level?: string; partition_by?: string[];
+    filters?: CardFilterConfig[]; top_k?: number | null;
+  } | null;
+  benchmark?: {
+    focal_party?: string | null; grouping_sets?: string[][]; reference?: BenchmarkReference | null;
+    contenders?: string[] | null;
+  } | null;
+  relationship?: {
+    origin?: string; destination?: string; focal_party?: string | null;
+    include_recalled?: Partial<Record<"origin" | "destination", string[]>>;
+    joint_weight?: { source: "base" | "scenario"; scenario?: string | null };
+  } | null;
+  view?: { table: BenchmarkTable | RelationshipTable | null } | null;
+  pipe_rounds?: number | null;
+  display_parties?: string[];
+}
+
+/** Which card a request is about: a library card by id, or the full config sent inline. */
+export type CardRef = { card_id: string } | { card: CardConfigJson };
+
+export const toCardRef = (info: CardInfo): CardRef => {
+  if (!info.inline) return { card_id: info.id };
+  const { meta: _meta, inline: _inline, ...config } = info;
+  return { card: config as unknown as CardConfigJson };
+};
+
+// --- Configure: mirrors matbodh_dashboard/cards/configure/ ---------------------------------------------
+export type Condition =
+  | { op: "equals"; path: string; value: string | number | boolean | null }
+  | { op: "in"; path: string; values: (string | number | boolean)[] }
+  | { op: "nonempty"; path: string }
+  | { op: "contains"; path: string; value: string }
+  | { op: "kind_of"; path: string; kind: "party" | "opinion" | "recalled" }
+  | { op: "count_at_least"; path: string; n: number }
+  | { op: "all"; of: Condition[] }
+  | { op: "any"; of: Condition[] }
+  | { op: "not"; of: Condition };
+
+export type Widget =
+  | "scenario_picker" | "metric_picker" | "cut_builder" | "filter_list" | "party_picker"
+  | "election_picker" | "number" | "toggle" | "choice" | "text" | "slot";
+
+export interface OptionSource { source: string; params?: Record<string, string | number | boolean> }
+export interface FieldDescriptor {
+  path: string;
+  label: string;
+  help?: string;
+  widget: Widget;
+  required: boolean;
+  tier: "primary" | "more";
+  show_when?: Condition;
+  options?: OptionSource;
+  choices?: string[];
+  default?: string | number | boolean | unknown[];
+  limits?: Record<string, number>;
+  multiple: boolean;
+}
+export interface FamilyDescriptor {
+  family: Family;
+  label: string;
+  description: string;
+  fields: FieldDescriptor[];
+  meta: FamilyMeta;
+}
+export interface OptionItem {
+  value: string;
+  label: string;
+  kind: string | null;
+  recalled: boolean;
+  disabled_reason: string | null;
+}
+export interface ValidateResponse {
+  valid: boolean;
+  errors: { path: string; message: string }[];
+  unavailable: { reason: string }[];
+  not_asked: { part: string; rounds: string[] }[];
+  notes: string[];
+  rounds: RoundItem[];
+}
+export interface FilterValues { kind: "filter_values"; field: string; values: string[] }

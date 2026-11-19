@@ -24,19 +24,20 @@ async function serve(page: Page, payloads: Record<string, Json> = PAYLOADS): Pro
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
     calls.push(`${request.method()} ${path}`);
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    const body = request.postDataJSON?.() as { card_id?: string } | null;
+    const sent = request.postDataJSON?.() as { card_id?: string; card?: { id: string } } | null;
+    const body = { card_id: sent?.card_id ?? sent?.card?.id };
     if (path === "/catalogue/states") return json(fx("states"));
     if (path.endsWith("/surveys")) return json(fx("surveys"));
     if (path === "/cards") return json(Object.values(payloads).map(infoOf));
     if (path === "/cards/plan") {
-      // The context bar plans the seeded lead card, which is not one of the cards on the page.
-      const p = payloads[body!.card_id!] ?? STANDALONE;
+      // The context bar plans a card of its own, which is not one of the cards on the page.
+      const p = payloads[body.card_id!] ?? STANDALONE;
       return json({
         valid: true, errors: [], unavailable: [], not_asked: [], coverage_mode: { grid: "independent" },
         rounds: p.rounds.items.map(({ cycle: _c, series: _s, ...rest }: Json) => rest),
       });
     }
-    if (path === "/cards/run") return json({ run_id: body!.card_id });
+    if (path === "/cards/run") return json({ run_id: body.card_id });
     if (path.startsWith("/runs/")) {
       const id = decodeURIComponent(path.replace("/runs/", ""));
       return json({ state: "done", done: 1, total: 1, result: payloads[id], errors: {} });

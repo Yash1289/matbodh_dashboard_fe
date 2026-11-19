@@ -84,12 +84,16 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
   const reply = (json: unknown, status = 200) => new Response(JSON.stringify(json), { status });
   const mock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, "");
-    const body = init?.body ? (JSON.parse(String(init.body)) as { card_id?: string }) : {};
+    const sent = init?.body ? (JSON.parse(String(init.body)) as { card_id?: string; card?: { id: string } }) : {};
+    const body = { card_id: sent.card_id ?? sent.card?.id };
     if (path === "/catalogue/states") return reply(states);
     if (path.endsWith("/surveys")) return reply(surveys);
     if (path.endsWith("/elections")) return reply(elections);
     if (path.startsWith("/cards") && init?.method !== "POST") return reply([...byCard.values()].map((p) => infoFor(p)));
-    if (path === "/cards/plan") return reply(planFor(byCard.get(body.card_id ?? "")!, unavailable[body.card_id ?? ""] ?? []));
+    // A card the stub has no payload for (the context bar's own) is planned like the first payload.
+    if (path === "/cards/plan") {
+      return reply(planFor(byCard.get(body.card_id ?? "") ?? payloads[0], unavailable[body.card_id ?? ""] ?? []));
+    }
     if (path === "/cards/run") return runStatus === 200 ? reply({ run_id: body.card_id }) : reply({ detail: "boom" }, runStatus);
     if (path === "/cohorts/preview") {
       return previewError === undefined ? reply({ run_id: "cohort-preview" })

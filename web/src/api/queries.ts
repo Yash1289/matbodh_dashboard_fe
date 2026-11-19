@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, apiGet, getRun, planCard, startRun } from "./client";
+import { ApiError, apiGet, fetchOptions, getRun, planCard, startRun } from "./client";
 import type {
-  BenchmarkReference, CardInfo, CardPayload, ElectionOption, GridPayload, RunStatus, StateContext, SurveysResponse,
+  BenchmarkReference, CardConfigJson, CardInfo, CardPayload, CardRef, ElectionOption, FamilyDescriptor, GridPayload,
+  OptionItem, RunStatus, StateContext, SurveysResponse,
 } from "./types";
 
 const POLL_MS = 1500;
@@ -43,11 +44,37 @@ export const useElections = (state: string | null) =>
     staleTime: 5 * 60_000,
   });
 
-export const useCardPlan = (cardId: string, ctx: StateContext | null, reference: BenchmarkReference | null = null) =>
+export const useCardPlan = (ref: CardRef, ctx: StateContext | null, reference: BenchmarkReference | null = null) =>
   useQuery({
-    queryKey: ["plan", cardId, ctx, reference],
-    queryFn: () => planCard(cardId, ctx as StateContext, reference),
+    queryKey: ["plan", ref, ctx, reference],
+    queryFn: () => planCard(ref, ctx as StateContext, reference),
     enabled: ctx !== null,
+  });
+
+/** What Configure draws for each card family; fixed for a deploy. */
+export const useFamilies = () =>
+  useQuery({
+    queryKey: ["configure-families"],
+    queryFn: () => apiGet<FamilyDescriptor[]>("/configure/families"),
+    staleTime: Infinity,
+  });
+
+/** The draft parts that change which rounds a card reads, and so which options are valid. */
+const roundsReadKey = (d: CardConfigJson) => ({
+  family: d.family, scenarios: d.scenarios, comparison: d.comparison, pipe_rounds: d.pipe_rounds,
+  reference: d.benchmark?.reference, origin: d.relationship?.origin, destination: d.relationship?.destination,
+  level: d.rank?.level,
+});
+
+/** An option list for a field of the draft card; asked again only when the rounds read change. */
+export const useOptions = (
+  source: string, params: Record<string, string>, draft: CardConfigJson, ctx: StateContext | null,
+) =>
+  useQuery<OptionItem[]>({
+    queryKey: ["options", source, params, roundsReadKey(draft), ctx],
+    queryFn: () => fetchOptions(source, params, draft, ctx as StateContext),
+    enabled: ctx !== null,
+    staleTime: 60_000,
   });
 
 /** `P` is the payload type the card's family returns; grid cards are the default. */
@@ -73,10 +100,10 @@ const asApiError = (e: unknown) =>
   e instanceof ApiError ? e : new ApiError(0, [], e instanceof Error ? e.message : String(e));
 
 export function useCardRun<P extends CardPayload = GridPayload>(
-  cardId: string, ctx: StateContext | null, enabled: boolean, reference: BenchmarkReference | null = null,
+  ref: CardRef, ctx: StateContext | null, enabled: boolean, reference: BenchmarkReference | null = null,
 ): CardRun<P> {
-  // Context identity by value, so an equal ctx object never restarts the run.
-  const key = enabled && ctx !== null ? JSON.stringify([cardId, ctx, reference]) : null;
+  // Card and context identity by value, so an equal object never restarts the run.
+  const key = enabled && ctx !== null ? JSON.stringify([ref, ctx, reference]) : null;
   const seq = useRef(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [last, setLast] = useState<{ key: string; result: P } | null>(null);
@@ -84,10 +111,10 @@ export function useCardRun<P extends CardPayload = GridPayload>(
   const start = useCallback((k: string, restarts: number) => {
     const mine = ++seq.current;
     setAttempt({ key: k, seq: mine, runId: null, restarts, error: null });
-    const [id, c, ref] = JSON.parse(k) as [string, StateContext, BenchmarkReference | null];
+    const [cardRef, c, bench] = JSON.parse(k) as [CardRef, StateContext, BenchmarkReference | null];
     const settle = (patch: Partial<Attempt>) =>
       setAttempt((a) => (a?.seq === mine ? { ...a, ...patch } : a));
-    startRun(id, c, ref).then((runId) => settle({ runId }), (e: unknown) => settle({ error: asApiError(e) }));
+    startRun(cardRef, c, bench).then((runId) => settle({ runId }), (e: unknown) => settle({ error: asApiError(e) }));
   }, []);
 
   useEffect(() => {
@@ -123,7 +150,7 @@ export function useCardRun<P extends CardPayload = GridPayload>(
   }, [active, current]);
 
   // From the context, not `enabled`: the previous result stays visible while a new plan is pending.
-  const ctxKey = ctx !== null ? JSON.stringify([cardId, ctx, reference]) : null;
+  const ctxKey = ctx !== null ? JSON.stringify([ref, ctx, reference]) : null;
   const previous = ctxKey !== null && current === null && last !== null && last.key !== ctxKey ? last.result : null;
   return {
     status,

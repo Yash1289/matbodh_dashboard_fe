@@ -5,7 +5,8 @@ import runRunning from "../test/fixtures/run_running.json";
 import surveys from "../test/fixtures/surveys.json";
 import { PAYLOADS, doneRun } from "../test/cardApi";
 import rankedTrend from "../test/fixtures/cards/ranked_seat_trend.json";
-import { isRankedPayload, type CardPayload, type PlanResponse, type RunStatus, type SurveysResponse } from "./types";
+import { infoFor } from "../test/cardApi";
+import { isRankedPayload, toCardRef, type CardPayload, type PlanResponse, type RunStatus, type SurveysResponse } from "./types";
 
 // JSON imports widen string-literal unions to `string`, so cast through
 // helpers; the shape is still asserted at runtime below.
@@ -53,3 +54,20 @@ describe("fixtures match the API types", () => {
 
 // Compile-time check (npm run typecheck).
 void (surveys satisfies SurveysResponse);
+
+describe("toCardRef", () => {
+  const info = infoFor(PAYLOADS.distributionStandalone());
+
+  it("a library card is referenced by id", () => {
+    expect(toCardRef(info)).toEqual({ card_id: info.id });
+  });
+
+  it("an inline card sends its config without meta and inline", () => {
+    const ref = toCardRef({ ...info, inline: true });
+    expect("card" in ref).toBe(true);
+    const card = (ref as unknown as { card: Record<string, unknown> }).card;
+    expect("meta" in card || "inline" in card).toBe(false);
+    expect(card).toMatchObject({ id: info.id, family: info.family, title: info.title });
+  });
+});
+

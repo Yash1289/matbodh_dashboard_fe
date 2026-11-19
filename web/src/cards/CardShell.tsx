@@ -2,6 +2,7 @@ import { Alert, Button, Drawer, Group, Skeleton, Stack, Text, Title } from "@man
 import { useElementSize } from "@mantine/hooks";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../api/queries";
+import { toCardRef } from "../api/types";
 import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
 import { tokens } from "../theme";
@@ -47,9 +48,10 @@ const Progress = ({ children }: { children: ReactNode }) => (
 
 /** One card: runs the engine for its config, then hands the payload to its family's body. */
 export function CardShell({ info, ctx, presentationRules, order, colors }: Props) {
-  const plan = useCardPlan(info.id, ctx);
+  const cardRef = toCardRef(info);
+  const plan = useCardPlan(cardRef, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
-  const run = useCardRun(info.id, ctx, plan.isSuccess && !blocked);
+  const run = useCardRun(cardRef, ctx, plan.isSuccess && !blocked);
   const status = run.status;
   // A newly unavailable or failed selection never shows stale numbers or metadata beside its error.
   const errored = plan.isError || run.error !== null || status?.state === "failed";

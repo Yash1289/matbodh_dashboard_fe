@@ -1,6 +1,7 @@
 import { Button, Drawer, Group, Menu, NativeSelect, Skeleton, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
+import { toCardRef } from "../../api/types";
 import type { CardInfo, RelationshipPayload, RelationshipTable, RunError, StateContext } from "../../api/types";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
@@ -63,9 +64,10 @@ function settled(chosen: Partial<RelationshipView>, p: RelationshipPayload): Rel
 
 /** One relationship card: one engine run, shown as a table the user chooses; every chip is display-only. */
 export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
-  const plan = useCardPlan(info.id, ctx);
+  const ref = toCardRef(info);
+  const plan = useCardPlan(ref, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
-  const run = useCardRun<RelationshipPayload>(info.id, ctx, plan.isSuccess && !blocked);
+  const run = useCardRun<RelationshipPayload>(ref, ctx, plan.isSuccess && !blocked);
   const status = run.status;
   const errored = plan.isError || run.error !== null || status?.state === "failed";
   // Never the previous run's payload: its subtitle and method text would describe the old run.

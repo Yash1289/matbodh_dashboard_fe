@@ -1,6 +1,7 @@
 import { Button, Drawer, Group, Menu, NativeSelect, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun, useElections } from "../../api/queries";
+import { toCardRef } from "../../api/types";
 import type { BenchmarkPayload, BenchmarkReference, BenchmarkTable, CardInfo, RunError, StateContext } from "../../api/types";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
@@ -51,9 +52,10 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
   const offered = chosenReference === null || referenceOptions.some((o) => o.value === pickerValue(chosenReference))
     || (chosenReference.kind === "election" && elections.data === undefined);
   const reference = offered ? chosenReference : null;
-  const plan = useCardPlan(info.id, ctx, reference);
+  const ref = toCardRef(info);
+  const plan = useCardPlan(ref, ctx, reference);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
-  const run = useCardRun<BenchmarkPayload>(info.id, ctx, plan.isSuccess && !blocked, reference);
+  const run = useCardRun<BenchmarkPayload>(ref, ctx, plan.isSuccess && !blocked, reference);
   const status = run.status;
   const errored = plan.isError || run.error !== null || status?.state === "failed";
   // Never the previous run's payload: its reference, subtitle and method text would describe the old choice.
@@ -161,7 +163,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
         </Group>
         {body}
       </Stack>
-      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} cardId={info.id} kind="benchmark" ctx={ctx}
+      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} card={ref} kind="benchmark" ctx={ctx}
         reference={reference} hasReference={effective.kind !== "none"} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
         <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />

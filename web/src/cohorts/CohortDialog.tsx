@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError, getRun } from "../api/client";
-import type { BenchmarkReference, CohortPreview, SelectionPredicate, StateContext } from "../api/types";
+import type { BenchmarkReference, CardRef, CohortPreview, SelectionPredicate, StateContext } from "../api/types";
 import { startPreview } from "./cohortApi";
 import { setCohort } from "./cohortStore";
 
@@ -13,7 +13,7 @@ const MAX_LISTED = 40;
 interface Props {
   opened: boolean;
   onClose(): void;
-  cardId: string;
+  card: CardRef;
   kind: "ranking" | "benchmark";
   ctx: StateContext;
   reference: BenchmarkReference | null;
@@ -30,7 +30,7 @@ const describe = (p: SelectionPredicate) =>
 const FLIPS = [["", "Any"], ["gain", "Gain"], ["loss", "Loss"], ["winning_both", "Winning in both"], ["losing_both", "Losing in both"]];
 
 /** Picks the selection for a seat ranking or benchmark card, previews the seat list, and keeps it as the session cohort. */
-export function CohortDialog({ opened, onClose, cardId, kind, ctx, reference, hasReference, cardTitle }: Props) {
+export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasReference, cardTitle }: Props) {
   const navigate = useNavigate();
   const { search } = useLocation();
   const [fields, setFields] = useState<Record<string, number | string>>({});
@@ -66,7 +66,7 @@ export function CohortDialog({ opened, onClose, cardId, kind, ctx, reference, ha
 
   const preparePreview = () => {
     setStartError(null);
-    startPreview(cardId, ctx, predicate, reference).then(setRunId, (e: unknown) => setStartError(message(e)));
+    startPreview(card, ctx, predicate, reference).then(setRunId, (e: unknown) => setStartError(message(e)));
   };
 
   const use = () => {

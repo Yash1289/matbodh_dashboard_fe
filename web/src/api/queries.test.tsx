@@ -6,8 +6,8 @@ import runRunning from "../test/fixtures/run_running.json";
 import states from "../test/fixtures/states.json";
 import { createQueryClient } from "../App";
 import { PAYLOADS, doneRun, infoFor } from "../test/cardApi";
-import { useCardPlan, useCardRun, useCards, useStates } from "./queries";
-import type { RunStatus, StateContext } from "./types";
+import { useCardPlan, useCardRun, useCards, useOptions, useStates } from "./queries";
+import type { CardConfigJson, RunStatus, StateContext } from "./types";
 
 const asRun = (v: unknown) => v as RunStatus;
 const RUNNING = asRun(runRunning);
@@ -18,7 +18,7 @@ const PARTIAL: RunStatus = {
 };
 const CARDS = [infoFor(PAYLOADS.distributionStandalone())];
 
-const CARD = "distribution.support_by_caste";
+const CARD = { card_id: "distribution.support_by_caste" };
 const ctxA: StateContext = {
   state: "Uttar Pradesh", level: "ac", rounds: ["o1", "o2"], compare_round: "o1",
   anchor_round: "o2", version_mode: "extrapolated", geo_scope: "state",
@@ -68,6 +68,41 @@ beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+const INLINE: CardConfigJson = { id: "mine.1", family: "distribution", title: "Mine", scenarios: ["vs_voting_intention"] };
+
+describe("useCardRun with an inline card", () => {
+  it("restarts when the inline config changes, not when an equal one is passed", async () => {
+    const f = stubFetch(runServer(["r1", "r2"], { r1: [[200, DONE]], r2: [[200, DONE]] }));
+    const { rerender } = renderHook(({ card }) => useCardRun({ card }, ctxA, true), {
+      wrapper: wrapper(), initialProps: { card: INLINE },
+    });
+    await waitFor(() => expect(count(f, "POST", "/cards/run")).toBe(1));
+    rerender({ card: { ...INLINE } }); // an equal config by value: no new run
+    await tick(100);
+    expect(count(f, "POST", "/cards/run")).toBe(1);
+    rerender({ card: { ...INLINE, scenarios: ["ls_past"] } });
+    await waitFor(() => expect(count(f, "POST", "/cards/run")).toBe(2));
+    const sent = f.mock.calls.filter(([, i]) => i?.method === "POST").map(([, i]) => JSON.parse(String(i!.body)));
+    expect(sent[1].card.scenarios).toEqual(["ls_past"]);
+    expect("card_id" in sent[1]).toBe(false);
+  });
+});
+
+describe("useOptions", () => {
+  it("asks again only when a draft part that changes the rounds read changes", async () => {
+    const f = stubFetch(() => [200, []]);
+    const { rerender } = renderHook(({ draft }) => useOptions("fields", { use: "cut" }, draft, ctxA), {
+      wrapper: wrapper(), initialProps: { draft: { ...INLINE } },
+    });
+    await waitFor(() => expect(count(f, "POST", "/configure/options")).toBe(1));
+    rerender({ draft: { ...INLINE, title: "A new title" } }); // not a rounds-read part
+    await tick(100);
+    expect(count(f, "POST", "/configure/options")).toBe(1);
+    rerender({ draft: { ...INLINE, comparison: { mode: "trend" }, pipe_rounds: 2 } });
+    await waitFor(() => expect(count(f, "POST", "/configure/options")).toBe(2));
+  });
 });
 
 describe("useCardRun", () => {

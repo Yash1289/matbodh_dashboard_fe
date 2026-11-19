@@ -2,6 +2,7 @@ import { Button, Group, Modal } from "@mantine/core";
 import { Fragment, useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { useCardPlan, useSurveys } from "../api/queries";
+import type { CardRef } from "../api/types";
 import { tokens } from "../theme";
 import { ContextDialog } from "./ContextDialog";
 import styles from "./ContextDialog.module.css";
@@ -9,7 +10,10 @@ import { contextSummary } from "./summary";
 import { clearCohort } from "../cohorts/cohortStore";
 import { useDashboardContext } from "./urlContext";
 
-const LEAD_CARD = "distribution.support_by_caste";
+// The context bar only needs the plan's round list, so it plans a card of its own, not a library card.
+const CONTEXT_CARD: CardRef = {
+  card: { id: "context", family: "distribution", title: "Context", all_party_scenarios: true },
+};
 
 function pillParts(summary: string) {
   return summary.split(" · ").map((part, i) => (
@@ -24,7 +28,7 @@ export function ContextBar() {
   const { ctx, setCtx } = useDashboardContext();
   const [open, setOpen] = useState(ctx === null);
   const surveys = useSurveys(ctx?.state ?? null);
-  const plan = useCardPlan(LEAD_CARD, ctx);
+  const plan = useCardPlan(CONTEXT_CARD, ctx);
   const close = () => setOpen(false);
 
   useEffect(() => {

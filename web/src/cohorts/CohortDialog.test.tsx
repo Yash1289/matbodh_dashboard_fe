@@ -23,7 +23,7 @@ afterEach(() => {
 const mount = (over: Partial<Parameters<typeof CohortDialog>[0]> = {}) => {
   const onClose = vi.fn();
   const api = stubCardApi({ payloads: [RANKED.seatStandalone()], preview: PREVIEW });
-  renderWithProviders(<CohortDialog opened onClose={onClose} cardId="ranking.test" kind="ranking" ctx={CTX}
+  renderWithProviders(<CohortDialog opened onClose={onClose} card={{ card_id: "ranking.test" }} kind="ranking" ctx={CTX}
     reference={null} hasReference={false} cardTitle="AC ranking" {...over} />);
   return { onClose, api };
 };
@@ -52,7 +52,7 @@ describe("CohortDialog", () => {
 
   it("an empty selection cannot be used", async () => {
     stubCardApi({ payloads: [], preview: { ...PREVIEW, seat_ids: [], count: 0 } });
-    renderWithProviders(<CohortDialog opened onClose={vi.fn()} cardId="ranking.test" kind="ranking" ctx={CTX}
+    renderWithProviders(<CohortDialog opened onClose={vi.fn()} card={{ card_id: "ranking.test" }} kind="ranking" ctx={CTX}
       reference={null} hasReference={false} cardTitle="AC ranking" />);
     await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "5");
     await userEvent.click(screen.getByRole("button", { name: "Preview" }));
@@ -78,7 +78,7 @@ describe("CohortDialog", () => {
 
   it("shows the reason when the card cannot make a cohort", async () => {
     stubCardApi({ payloads: [], previewError: "A demographic ranking cannot supply a seat set" });
-    renderWithProviders(<CohortDialog opened onClose={vi.fn()} cardId="ranking.demo" kind="ranking" ctx={CTX}
+    renderWithProviders(<CohortDialog opened onClose={vi.fn()} card={{ card_id: "ranking.demo" }} kind="ranking" ctx={CTX}
       reference={null} hasReference={false} cardTitle="Demo" />);
     await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "3");
     await userEvent.click(screen.getByRole("button", { name: "Preview" }));

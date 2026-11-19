@@ -1,6 +1,7 @@
 import { Alert, Button, Drawer, Group, Menu, NativeSelect, SegmentedControl, Skeleton, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
+import { toCardRef } from "../../api/types";
 import type { CardInfo, Density, RankedPayload, RunError, StateContext } from "../../api/types";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
@@ -42,9 +43,10 @@ const settled = (view: RankedView, p: RankedPayload): RankedView => {
 
 /** One ranking card: runs the engine for its config (one job per round in a trend), then shows the ranked table. */
 export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
-  const plan = useCardPlan(info.id, ctx);
+  const ref = toCardRef(info);
+  const plan = useCardPlan(ref, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
-  const run = useCardRun<RankedPayload>(info.id, ctx, plan.isSuccess && !blocked);
+  const run = useCardRun<RankedPayload>(ref, ctx, plan.isSuccess && !blocked);
   const status = run.status;
   const errored = plan.isError || run.error !== null || status?.state === "failed";
   const shown = blocked || errored ? null : run.current ?? run.previous;
@@ -169,7 +171,7 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
         </Group>
         {body}
       </Stack>
-      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} cardId={info.id} kind="ranking" ctx={ctx}
+      <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} card={ref} kind="ranking" ctx={ctx}
         reference={null} hasReference={false} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
         <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />

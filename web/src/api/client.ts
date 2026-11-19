@@ -1,4 +1,6 @@
-import type { BenchmarkReference, PlanResponse, RunStatus, StateContext } from "./types";
+import type {
+  BenchmarkReference, CardConfigJson, CardRef, OptionItem, PlanResponse, RunStatus, StateContext, ValidateResponse,
+} from "./types";
 
 const BASE = "/api";
 const HEADERS = { "X-Dashboard-User": "anonymous" };
@@ -44,16 +46,33 @@ export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
   });
 
 // `reference` only exists for benchmark cards; it is left out of the body when absent.
-const cardBody = (cardId: string, ctx: StateContext, reference?: BenchmarkReference | null) =>
-  ({ card_id: cardId, context: ctx, ...(reference ? { reference } : {}) });
+const cardBody = (ref: CardRef, ctx: StateContext, reference?: BenchmarkReference | null) =>
+  ({ ...ref, context: ctx, ...(reference ? { reference } : {}) });
 
-export const planCard = (cardId: string, ctx: StateContext, reference?: BenchmarkReference | null): Promise<PlanResponse> =>
-  apiPost<PlanResponse>("/cards/plan", cardBody(cardId, ctx, reference));
+export const planCard = (ref: CardRef, ctx: StateContext, reference?: BenchmarkReference | null): Promise<PlanResponse> =>
+  apiPost<PlanResponse>("/cards/plan", cardBody(ref, ctx, reference));
 
 export const startRun = async (
-  cardId: string, ctx: StateContext, reference?: BenchmarkReference | null,
+  ref: CardRef, ctx: StateContext, reference?: BenchmarkReference | null,
 ): Promise<string> =>
-  (await apiPost<{ run_id: string }>("/cards/run", cardBody(cardId, ctx, reference))).run_id;
+  (await apiPost<{ run_id: string }>("/cards/run", cardBody(ref, ctx, reference))).run_id;
+
+/** A draft card checked against the card rules and the engine plan; nothing is run. */
+export const validateCard = (card: CardConfigJson, ctx: StateContext): Promise<ValidateResponse> =>
+  apiPost<ValidateResponse>("/cards/validate", { card, context: ctx });
+
+/** Starts a run that lists the values of one respondent field; read it with `getRun`. */
+export const startValues = async (
+  field: string, scenario: string | null, ctx: StateContext, pipeRounds: number | null,
+): Promise<string> =>
+  (await apiPost<{ run_id: string }>("/configure/values", {
+    field, scenario, context: ctx, pipe_rounds: pipeRounds,
+  })).run_id;
+
+export const fetchOptions = (
+  source: string, params: Record<string, string>, draft: CardConfigJson, ctx: StateContext,
+): Promise<OptionItem[]> =>
+  apiPost<OptionItem[]>("/configure/options", { source, params, card: draft, context: ctx });
 
 export const getRun = (runId: string): Promise<RunStatus> =>
   apiGet<RunStatus>(`/runs/${encodeURIComponent(runId)}`);
