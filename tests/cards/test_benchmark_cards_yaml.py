@@ -6,7 +6,7 @@ from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.config import load_cards
 from tests.cards.test_benchmark_compile import _compile
 
-CARDS = load_cards(Path(__file__).resolve().parents[2] / "config" / "cards" / "cards.yaml")
+CARDS = load_cards(Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "cards.yaml")
 
 
 def test_both_benchmark_cards_load_and_share_one_engine_config():

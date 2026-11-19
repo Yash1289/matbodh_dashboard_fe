@@ -73,7 +73,7 @@ def test_build_service_wires_settings_redis_queue_and_catalogue(fakes):
     assert service.cache._ttl == 1234 and service.cache._redis is redis
     assert service.catalogue.states() == ("Uttar Pradesh",)
     assert service.preset.id == "uttar-pradesh.standard-v1"
-    assert "distribution.support_by_caste" in service.cards
+    assert service.cards == {}
     assert service.rules.version
     # The catalogue query is read-only and the connection is closed after use.
     (client,) = clients
@@ -87,12 +87,25 @@ def test_build_service_wires_seat_labels_to_the_catalogue_revision(fakes):
     assert service.seat_labels._revision() == service.catalogue.revision
 
 
+def test_production_library_may_be_empty(fakes):
+    from matbodh_dashboard.api.app import create_app
+
+    _, cards, _ = bootstrap.load_card_config(ROOT / "config")
+    assert cards == {}  # cards.yaml ships empty: analysts build cards, the owner pastes shared ones in
+    service = bootstrap.build_service_from_settings(SETTINGS)
+    assert TestClient(create_app(service)).get("/cards").json() == []
+
+
 def test_load_card_config_reads_cards_yaml():
     preset, cards, rules = bootstrap.load_card_config(ROOT / "config")
     assert preset.id == "uttar-pradesh.standard-v1"
-    assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone"} <= set(cards)
-    assert cards["opinion.leaders"].family == "opinion"
+    assert cards == {}
     assert rules.version
+    from matbodh_dashboard.cards.config import load_cards
+
+    seeded = load_cards(ROOT / "tests" / "fixtures" / "cards.yaml")  # the cards the tests rely on
+    assert {"distribution.support_by_caste", "opinion.leaders", "gender.gap_by_zone"} <= set(seeded)
+    assert seeded["opinion.leaders"].family == "opinion"
 
 
 def test_catalogue_loader_closes_the_client_on_failure(monkeypatch):

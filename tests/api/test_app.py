@@ -131,7 +131,7 @@ def test_cards_listed_with_family_meta_and_filtered_by_section(client):
 def test_seeded_ranking_cards_are_listed_without_lenses_and_plan_as_valid(tmp_path):
     (tmp_path / "global.yaml").write_text(RULES_YAML, encoding="utf-8")
     cache = ResultCache(fakeredis.FakeStrictRedis(), ttl_seconds=3600)
-    seeds = load_cards(Path(__file__).resolve().parents[2] / "config/cards/cards.yaml")
+    seeds = load_cards(Path(__file__).resolve().parents[2] / "tests/fixtures/cards.yaml")
     service = CardRunService(load_catalogue(make_query()), PRESET, seeds, load_rules(tmp_path),
                              cache, InlineQueue(FakeRunner(), cache), "0.8.0")
     client = TestClient(create_app(service))

@@ -56,7 +56,7 @@ def test_no_party_scenario_in_the_anchor_round_is_unavailable_with_a_reason():
 
 
 def test_the_seeded_overall_vote_share_card_loads_from_yaml():
-    cards = load_cards(grid.ROOT / "config/cards/cards.yaml")
+    cards = load_cards(grid.ROOT / "tests/fixtures/cards.yaml")
     card = cards["distribution.overall_vote_share"]
     assert card.all_party_scenarios and card.cuts == [[]] and card.scenarios == []
 

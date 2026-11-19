@@ -134,7 +134,7 @@ def test_scenario_not_asked_in_the_anchor_round_is_unavailable_with_no_jobs():
 def test_seeded_pc_card_is_available_on_a_pc_designed_survey():
     from matbodh_dashboard.cards.config import load_cards
 
-    card = load_cards(ROOT / "config/cards/cards.yaml")["ranking.pc_pm_net"]
+    card = load_cards(ROOT / "tests/fixtures/cards.yaml")["ranking.pc_pm_net"]
     plan = _compile(card, level="pc")
     assert plan.unavailable == () and [j.key for j in plan.jobs] == ["rank"]
 

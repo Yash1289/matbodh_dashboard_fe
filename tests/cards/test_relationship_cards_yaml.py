@@ -7,7 +7,7 @@ from matbodh_dashboard.registry import load_rules
 from tests.cards.test_relationship_compile import _compile
 
 ROOT = Path(__file__).resolve().parents[2]
-CARDS = load_cards(ROOT / "config" / "cards" / "cards.yaml")
+CARDS = load_cards(ROOT / "tests" / "fixtures" / "cards.yaml")
 
 
 def test_both_starter_cards_load_with_their_views():

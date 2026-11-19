@@ -3,8 +3,8 @@
 Not collected by pytest (it lives outside tests/). Run it only with the product
 owner's go-ahead; it opens read-only MySQL and ClickHouse connections taken from
 ENGINE_ENV_FILE. Output is aggregates only: timings, row and cell counts, errors.
-The preset and cards are the Uttar Pradesh standard-v1 files in config/ and the
-level is AC. Results are cached in an in-process fakeredis, so no Redis server is needed.
+The preset is the Uttar Pradesh standard-v1 file in config/, the cards come from --cards (default:
+the seeded test fixture, as config/cards is empty) and the level is AC. Results are cached in an in-process fakeredis, so no Redis server is needed.
 
     python scripts/smoke_card.py --card opinion.leaders --state "Uttar Pradesh" \
         --rounds "2027 VS CAPI R1" "2027 VS CAPI R2"
@@ -21,6 +21,7 @@ import sys
 import time
 from collections.abc import Sequence
 from datetime import datetime, timezone
+from pathlib import Path
 
 from matbodh_dashboard import engine_version
 from matbodh_dashboard.bootstrap import alliance_session_factory, load_card_config, seat_snapshot_loader
@@ -28,6 +29,7 @@ from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.benchmark.parties import AllianceMajorParties, load_elections
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.cohort.compile import SelectionPredicate
+from matbodh_dashboard.cards.config import load_cards
 from matbodh_dashboard.cohorts.models import CohortRef
 from matbodh_dashboard.cards.ranking.labels import MasterSeatLabels
 from matbodh_dashboard.catalogue.store import Catalogue
@@ -38,13 +40,17 @@ from matbodh_dashboard.runner.service import CardRunService, CardRunStatus
 from matbodh_dashboard.settings import Settings, load_settings
 
 POLL_LIMIT = 100
+# config/cards/cards.yaml ships empty, so the seeded cards are read from the test fixture.
+DEFAULT_CARDS = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "cards.yaml"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Read-only card smoke check against the real engine.",
     )
-    parser.add_argument("--card", required=True, help="Card id from config/cards/cards.yaml")
+    parser.add_argument("--card", required=True, help="Card id from the cards file")
+    parser.add_argument("--cards", default=str(DEFAULT_CARDS),
+                        help="Cards YAML to read (default: the seeded test fixture)")
     parser.add_argument("--state", required=True, help='State name, e.g. "Uttar Pradesh"')
     parser.add_argument("--rounds", nargs="+", required=True, metavar="ROUND",
                         help="Round base names, oldest first; with two or more, the "
@@ -74,13 +80,15 @@ def build_context(state: str, rounds: Sequence[str]) -> StateContext:
                         compare_round=rounds[0] if len(rounds) > 1 else None)
 
 
-def build_service(settings: Settings, catalogue: Catalogue, runner: Runner) -> CardRunService:
+def build_service(settings: Settings, catalogue: Catalogue, runner: Runner,
+                  cards_path: Path = DEFAULT_CARDS) -> CardRunService:
     """Wire the card run service with an in-process cache and a synchronous queue."""
     import fakeredis
 
     cache = ResultCache(fakeredis.FakeStrictRedis(), settings.cache_ttl_seconds)
     queue = InlineQueue(runner, cache)
-    preset, cards, rules = load_card_config(settings.config_dir)
+    preset, _, rules = load_card_config(settings.config_dir)
+    cards = load_cards(cards_path)
     service = CardRunService(catalogue, preset, cards, rules, cache, queue, engine_version())
     service.elections = load_elections(settings.config_dir / "elections.yaml")
     return service
@@ -216,7 +224,7 @@ def _secs(value: float | None) -> str:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     settings = load_settings()
-    _, cards, _ = load_card_config(settings.config_dir)
+    cards = load_cards(Path(args.cards))
     if args.card not in cards:
         print(f"INVALID: unknown card {args.card!r}; known: {', '.join(sorted(cards))}")
         return 2
@@ -236,7 +244,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"INVALID: {error}")
         return 2
     runner = EngineRunner(build_runtime(settings.engine_env_file))
-    service = build_service(settings, catalogue, runner)
+    service = build_service(settings, catalogue, runner, Path(args.cards))
     # The real master lookup, so a ranking card's seat names are part of the live check.
     service.seat_labels = MasterSeatLabels(
         seat_snapshot_loader(settings), lambda: service.catalogue.revision)
