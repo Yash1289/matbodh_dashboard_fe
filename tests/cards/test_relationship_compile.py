@@ -141,3 +141,25 @@ def test_relationship_pipe_rounds_window():
     (job,) = plan.jobs
     assert [o["id"] for o in job.config["request"]["observations"]] == ["o2", "o3"]
     assert [r.obs_id for r in plan.rounds] == ["o2", "o3"] and plan.compare is None
+
+
+def test_relationship_joint_weight_scenario():
+    rel = {"origin": "vs_past", "destination": "vs_voting_intention", "focal_party": "NDA",
+           "joint_weight": {"source": "scenario", "scenario": "mla_choice_party"}}
+    (job,) = _compile(_card(relationship=rel)).jobs
+    assert job.config["relationship"]["weights"] == {
+        "source": "scenario", "scenario": "mla_choice_party", "mode": "mj_cap"}
+
+
+def test_relationship_joint_weight_defaults_to_base():
+    (job,) = _compile().jobs
+    assert job.config["relationship"]["weights"] == {"source": "base"}
+
+
+def test_joint_weight_scenario_missing_in_a_read_round_is_unavailable():
+    rel = {"origin": "vs_past", "destination": "vs_voting_intention",
+           "joint_weight": {"source": "scenario", "scenario": "mla_choice_party"}}
+    only_two = ["vs_past", "vs_voting_intention"]  # round 2 asked both answers, not the donor
+    plan = _compile(_card(relationship=rel), catalogue=_catalogue(scenarios=(BOTH, only_two)))
+    assert plan.jobs == ()
+    assert any("mla_choice_party" in reason and R2 in reason for _, reason in plan.unavailable)

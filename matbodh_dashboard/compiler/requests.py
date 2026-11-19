@@ -64,6 +64,7 @@ def build_request(
     caste_clubbing: dict | None = None,
     reference_observation: str | None = None,
     keep: Sequence[str] | None = None,
+    display_parties: Sequence[str] = (),
 ) -> dict:
     if not rounds:
         raise ValueError("at least one resolved round is required")
@@ -97,7 +98,7 @@ def build_request(
         },
         "geography_path": "ac_hierarchy",
         "filters": [dict(f) for f in filters],
-        "display_parties": [],
+        "display_parties": list(display_parties),
         "comparisons": [dict(c) for c in comparisons],
         "reference_observation": (
             reference_observation if reference_observation is not None

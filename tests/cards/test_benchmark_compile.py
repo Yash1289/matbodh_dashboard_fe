@@ -161,3 +161,46 @@ def test_view_only_difference_gives_identical_job_config():
     a = _compile(card=_card(table="comparison"))
     b = _compile(card=_card(table="flips", id="benchmark.copy"))  # another card id and view
     assert a.jobs[0].config == b.jobs[0].config  # so the runner shares one fingerprint
+
+
+# -- reference and contenders in the card config (spec 5.6) ---------------------------------------
+
+ELECTION_REF = {"kind": "election", "year": 2022, "election_type": "VS"}
+
+
+def _configured(**benchmark):
+    return _card(benchmark={"focal_party": "NDA", "grouping_sets": [[]], **benchmark})
+
+
+def test_benchmark_reference_from_config():
+    (job,) = _compile(_configured(reference=ELECTION_REF)).jobs
+    reference = job.config["benchmark"]["reference"]
+    assert reference["source"] == "election" and reference["context"] == {"year": 2022, "election_type": "VS"}
+
+
+def test_a_request_reference_wins_over_the_config_reference():
+    plan = _compile(_configured(reference=ELECTION_REF), reference=BenchmarkReference(kind="compare"))
+    (job,) = plan.jobs
+    assert job.config["benchmark"]["reference"]["source"] == "survey"
+
+
+def test_config_reference_none_means_one_endpoint():
+    (job,) = _compile(_configured(reference={"kind": "none"})).jobs
+    assert job.config["benchmark"]["reference"] is None
+
+
+def test_benchmark_contenders_subset():
+    (job,) = _compile(_configured(contenders=["NDA", "SP+"])).jobs
+    assert job.config["benchmark"]["contenders"] == ["NDA", "SP+"]
+    # Every major still competes and is kept apart from Other: contenders only narrow the display.
+    assert job.config["request"]["parties"]["other_grouping"]["keep"] == MAJORS
+
+
+def test_benchmark_default_contenders_are_every_major():
+    (job,) = _compile(_configured()).jobs
+    assert job.config["benchmark"]["contenders"] == MAJORS
+
+
+def test_a_contender_that_is_not_a_major_is_unavailable():
+    plan = _compile(_configured(contenders=["NDA", "XYZ"]))
+    assert plan.jobs == () and any("XYZ" in reason for _, reason in plan.unavailable)

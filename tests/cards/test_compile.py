@@ -274,3 +274,23 @@ def test_compare_round_outside_the_window_is_dropped_from_the_plan():
     config = _config(comparison={"mode": "trend"}, pipe_rounds=2)
     plan = compile_card(config, _ctx(rounds=names, compare=names[0]), _long_catalogue(4), PRESET)
     assert plan.compare is None  # R1 is not among the rounds this card reads
+
+
+# -- hide parties (spec 5.1) --------------------------------------------------------------------
+
+
+def test_display_parties_emitted():
+    request = _request(_compile(_config(display_parties=["NDA", "Other"])))
+    assert request["display_parties"] == ["NDA", "Other"]
+    gender = _request(_compile(_config(family="gender_differential", display_parties=["NDA"])))
+    assert gender["display_parties"] == ["NDA"]
+
+
+def test_display_parties_default_is_every_party():
+    assert _request(_compile(_config()))["display_parties"] == []
+
+
+def test_display_parties_unknown_party_unavailable():
+    plan = _compile(_config(display_parties=["NDA", "XYZ"]))  # not in preset.keep + Other
+    assert plan.jobs == ()
+    assert any("XYZ" in reason for _, reason in plan.unavailable)

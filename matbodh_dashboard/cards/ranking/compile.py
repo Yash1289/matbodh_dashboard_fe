@@ -37,7 +37,8 @@ def _ranking(config: CardConfig, round_: ResolvedRound | None, scenario: str | N
              comparison_id: str | None, survey_level: str, cohort: CohortRef | None = None) -> dict:
     rank = config.rank
     target = [round_.obs_id, scenario] if comparison_id is None else None
-    shared = {"id": config.id, "target": target, "comparison_id": comparison_id,
+    # Not the card id: it would put client ids into fingerprints (spec 8.1).
+    shared = {"id": "ranking", "target": target, "comparison_id": comparison_id,
               "measure": rank.metric, "party_id": rank.party_id,
               "partition_by": list(rank.partition_by), "top_k": rank.top_k}
     if config.family == "demographic_ranking":

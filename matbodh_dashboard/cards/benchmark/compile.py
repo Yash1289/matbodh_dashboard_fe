@@ -72,7 +72,9 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         return RunPlan(card_id=config.id, state=ctx.state, rounds=tuple(rounds), anchor=anchor,
                        compare=ctx.compare_round, jobs=tuple(jobs), unavailable=tuple(unavailable))
 
-    ref = reference or default_reference(ctx)
+    ref = (reference if reference is not None
+           else config.benchmark.reference if config.benchmark.reference is not None
+           else default_reference(ctx))
     unavailable.extend((GRID, r) for r in template_blockers(config.requires.min_level, [], ctx.level))
     if ctx.level not in ("ac", "pc"):
         unavailable.append((GRID, "Benchmarks need an AC- or PC-level survey"))
@@ -127,6 +129,10 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         # The engine returns a zero for a party one endpoint does not map; margins and flips would show it.
         unavailable.append((GRID, f"Focal party {focal!r} must be mapped for every endpoint; "
                                   "its margins and flips would otherwise be wrong"))
+    contenders = config.benchmark.contenders if config.benchmark.contenders is not None else majors
+    stray = [c for c in contenders if c not in majors]
+    if stray:
+        unavailable.append((GRID, f"Contender {stray[0]!r} is not a major party in the alliance mapping"))
     if unavailable:
         return plan()
 
@@ -152,7 +158,7 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         "target": {"source": "survey", "id": "target", "observation": target.obs_id,
                    "scenario": scenario},
         "reference": reference_endpoint,
-        "contenders": list(majors), "focal_party": focal,
+        "contenders": list(contenders), "focal_party": focal,
         "grouping_sets": [list(gs) for gs in config.benchmark.grouping_sets],
         "filters": [], "seat_ids": [],
         **(seat_restriction(cohort) if cohort is not None else {}),

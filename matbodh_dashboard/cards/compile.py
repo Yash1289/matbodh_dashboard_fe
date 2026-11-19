@@ -174,6 +174,12 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
             unavailable.append((GRID, f"No party scenario is recorded for {anchor}"))
             return plan()
         config = config.model_copy(update={"scenarios": anchor_scenarios})
+    shown = {*preset.keep, preset.other_label}  # the party rows a grid card has
+    unknown = [p for p in config.display_parties if p not in shown]
+    if unknown:
+        unavailable.append((GRID, f"Party {unknown[0]!r} is not a party row of this card "
+                                  f"({', '.join(sorted(shown))})"))
+        return plan()
     fields = _needed_fields(config, preset.gender.field if spec.gender_differential else None)
     blockers = template_blockers(config.requires.min_level, fields, ctx.level)
     if blockers:
@@ -224,5 +230,6 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                          "reference_observation": caste_reference.obs_id}
                         if config.caste_clubbing else None),
         reference_observation=reference_observation,
+        display_parties=config.display_parties,
     )
     return plan([EngineJob(GRID, "analysis", GRID, view_config(request, preset))])

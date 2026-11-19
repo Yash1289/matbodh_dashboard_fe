@@ -68,6 +68,14 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
     if unavailable:
         return plan()
 
+    donor = rel.joint_weight.scenario if rel.joint_weight.source == "scenario" else None
+    if donor is not None:
+        without = [r.identity.base_name for r in used if donor not in r.dataset.scenarios]
+        if without:
+            unavailable.append((GRID, f"Joint weight scenario {donor!r} needs to exist in every included "
+                                      f"round; missing in: {', '.join(without)}"))
+            return plan()
+
     try:
         majors = relationship_majors(ctx.state, preset, parties)
     except ValueError as exc:  # the engine's verdict, e.g. no alliance context for this survey
@@ -100,7 +108,9 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
     operation: dict = {
         # Not the card id: cards that differ only in their view must share one fingerprint.
         "id": "relationship", "origin": rel.origin, "destination": rel.destination,
-        "weights": {"source": "base"}, "focal_party": rel.focal_party,
+        "weights": ({"source": "scenario", "scenario": donor, "mode": preset.weights.mode}
+                    if donor is not None else {"source": "base"}),
+        "focal_party": rel.focal_party,
     }
     if any(rel.include_recalled.values()):
         operation["answer_overrides"] = {endpoint: {"include": list(statuses)}
