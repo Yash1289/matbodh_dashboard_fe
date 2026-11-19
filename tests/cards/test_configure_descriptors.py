@@ -155,3 +155,16 @@ def test_families_endpoint(client):  # noqa: F811
     assert len(listed) == 7
     assert all(item["meta"]["family"] == item["family"] for item in listed)
     assert {item["family"] for item in listed} == set(EXPECTED)
+
+
+def test_web_fixture_matches_descriptors():
+    """The frontend tests render the descriptors the API serves; regenerate the fixture when this fails:
+    .venv/Scripts/python.exe -c "import json; from matbodh_dashboard.cards.configure.families import descriptors;
+    open('web/src/test/fixtures/configure_families.json','w',encoding='utf-8').write(
+    json.dumps([d.model_dump(exclude_none=True) for d in descriptors()], indent=1)+'\n')"
+    """
+    import json
+    from pathlib import Path
+
+    fixture = Path(__file__).resolve().parents[2] / "web" / "src" / "test" / "fixtures" / "configure_families.json"
+    assert json.loads(fixture.read_text(encoding="utf-8")) == [d.model_dump(exclude_none=True) for d in descriptors()]

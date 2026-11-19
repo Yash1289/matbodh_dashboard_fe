@@ -1,0 +1,1633 @@
+[
+ {
+  "family": "distribution",
+  "label": "Party vote share",
+  "description": "Vote share for one or more party questions, split by the cuts you choose.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Questions",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "all",
+     "of": [
+      {
+       "op": "not",
+       "of": {
+        "op": "equals",
+        "path": "comparison.mode",
+        "value": "compare"
+       }
+      },
+      {
+       "op": "not",
+       "of": {
+        "op": "equals",
+        "path": "all_party_scenarios",
+        "value": true
+       }
+      }
+     ]
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {
+     "max_items": 12
+    },
+    "multiple": true
+   },
+   {
+    "path": "comparison.mode",
+    "label": "Show",
+    "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "choices": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "default": "standalone",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.scenario",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.scenario",
+    "label": "Compared with",
+    "help": "A party question compared with an opinion question is a Shakti comparison",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.round",
+    "label": "Question's round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "anchor",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.round",
+    "label": "Compared with, round",
+    "help": "Same round as the question: compare two questions within one round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "compare",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "cuts",
+    "label": "Split by",
+    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "widget": "cut_builder",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "cut"
+     }
+    },
+    "default": [
+     []
+    ],
+    "limits": {
+     "max_items": 8
+    },
+    "multiple": false
+   },
+   {
+    "path": "all_party_scenarios",
+    "label": "Every party question of the anchor round",
+    "widget": "toggle",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "standalone"
+    },
+    "default": false,
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.delta_measures",
+    "label": "Change in",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "all",
+     "of": [
+      {
+       "op": "equals",
+       "path": "comparison.mode",
+       "value": "compare"
+      },
+      {
+       "op": "kind_of",
+       "path": "comparison.reference.scenario",
+       "kind": "party"
+      }
+     ]
+    },
+    "choices": [
+     "support_share"
+    ],
+    "default": [
+     "support_share"
+    ],
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "filters",
+    "label": "Only respondents where",
+    "widget": "filter_list",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "filter"
+     }
+    },
+    "limits": {
+     "max_items": 8,
+     "max_values": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "caste_clubbing",
+    "label": "Club small castes",
+    "widget": "toggle",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "contains",
+     "path": "cuts",
+     "value": "caste"
+    },
+    "default": false,
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "trend"
+    },
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   },
+   {
+    "path": "display_parties",
+    "label": "Show only these parties",
+    "help": "Hides rows after calculation; bases are unchanged",
+    "widget": "party_picker",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "hide"
+     }
+    },
+    "limits": {},
+    "multiple": true
+   }
+  ],
+  "meta": {
+   "family": "distribution",
+   "lenses": [
+    {
+     "id": "support_share",
+     "label": "Support %",
+     "unit": "percentage",
+     "has_delta": true
+    },
+    {
+     "id": "composition_share",
+     "label": "Population share %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "contribution_share",
+     "label": "Contribution %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "scenario_composition_share",
+     "label": "Scenario share %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "joint_share",
+     "label": "Joint %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "size_of_impact_pp",
+     "label": "Impact pp",
+     "unit": "percentage_points",
+     "has_delta": true
+    }
+   ],
+   "default_lens": "support_share",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "transpose": true,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "opinion",
+  "label": "Opinion",
+  "description": "Ratings and yes/no questions: positive, negative and net shares.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Questions",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "equals",
+      "path": "comparison.mode",
+      "value": "compare"
+     }
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "opinion"
+     }
+    },
+    "limits": {
+     "max_items": 12
+    },
+    "multiple": true
+   },
+   {
+    "path": "comparison.mode",
+    "label": "Show",
+    "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "choices": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "default": "standalone",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.scenario",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "opinion"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.scenario",
+    "label": "Compared with",
+    "help": "A party question compared with an opinion question is a Shakti comparison",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "opinion"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.round",
+    "label": "Question's round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "anchor",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.round",
+    "label": "Compared with, round",
+    "help": "Same round as the question: compare two questions within one round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "compare",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "cuts",
+    "label": "Split by",
+    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "widget": "cut_builder",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "cut"
+     }
+    },
+    "default": [
+     []
+    ],
+    "limits": {
+     "max_items": 8
+    },
+    "multiple": false
+   },
+   {
+    "path": "comparison.delta_measures",
+    "label": "Change in",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "all",
+     "of": [
+      {
+       "op": "equals",
+       "path": "comparison.mode",
+       "value": "compare"
+      },
+      {
+       "op": "kind_of",
+       "path": "comparison.target.scenario",
+       "kind": "opinion"
+      },
+      {
+       "op": "kind_of",
+       "path": "comparison.reference.scenario",
+       "kind": "opinion"
+      }
+     ]
+    },
+    "choices": [
+     "net_score",
+     "positive_share",
+     "negative_share"
+    ],
+    "default": [
+     "net_score"
+    ],
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "filters",
+    "label": "Only respondents where",
+    "widget": "filter_list",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "filter"
+     }
+    },
+    "limits": {
+     "max_items": 8,
+     "max_values": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "caste_clubbing",
+    "label": "Club small castes",
+    "widget": "toggle",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "contains",
+     "path": "cuts",
+     "value": "caste"
+    },
+    "default": false,
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "trend"
+    },
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   }
+  ],
+  "meta": {
+   "family": "opinion",
+   "lenses": [
+    {
+     "id": "net_score",
+     "label": "Net score",
+     "unit": "percentage_points",
+     "has_delta": true
+    },
+    {
+     "id": "positive_share",
+     "label": "Positive %",
+     "unit": "percentage",
+     "has_delta": true
+    },
+    {
+     "id": "negative_share",
+     "label": "Negative %",
+     "unit": "percentage",
+     "has_delta": true
+    },
+    {
+     "id": "net_size_of_impact_pp",
+     "label": "Net impact pp",
+     "unit": "percentage_points",
+     "has_delta": true
+    },
+    {
+     "id": "positive_size_of_impact_pp",
+     "label": "Positive impact pp",
+     "unit": "percentage_points",
+     "has_delta": true
+    },
+    {
+     "id": "negative_size_of_impact_pp",
+     "label": "Negative impact pp",
+     "unit": "percentage_points",
+     "has_delta": true
+    },
+    {
+     "id": "option_support_share",
+     "label": "Answer distribution",
+     "unit": "percentage",
+     "has_delta": false
+    }
+   ],
+   "default_lens": "net_score",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "transpose": true,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "gender_differential",
+  "label": "Gender gap",
+  "description": "How women and men differ in party support.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Questions",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {
+     "max_items": 12
+    },
+    "multiple": true
+   },
+   {
+    "path": "comparison.mode",
+    "label": "Show",
+    "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "choices": [
+     "standalone",
+     "trend"
+    ],
+    "default": "standalone",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "cuts",
+    "label": "Split by",
+    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "widget": "cut_builder",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "cut",
+      "family": "gender_differential"
+     }
+    },
+    "default": [
+     []
+    ],
+    "limits": {
+     "max_items": 8
+    },
+    "multiple": false
+   },
+   {
+    "path": "filters",
+    "label": "Only respondents where",
+    "widget": "filter_list",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "filter"
+     }
+    },
+    "limits": {
+     "max_items": 8,
+     "max_values": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "caste_clubbing",
+    "label": "Club small castes",
+    "widget": "toggle",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "contains",
+     "path": "cuts",
+     "value": "caste"
+    },
+    "default": false,
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "trend"
+    },
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   },
+   {
+    "path": "display_parties",
+    "label": "Show only these parties",
+    "help": "Hides rows after calculation; bases are unchanged",
+    "widget": "party_picker",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "hide"
+     }
+    },
+    "limits": {},
+    "multiple": true
+   }
+  ],
+  "meta": {
+   "family": "gender_differential",
+   "lenses": [
+    {
+     "id": "gender_differential_pp",
+     "label": "Differential pp",
+     "unit": "percentage_points",
+     "has_delta": false
+    },
+    {
+     "id": "female_support_share",
+     "label": "Female %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "male_support_share",
+     "label": "Male %",
+     "unit": "percentage",
+     "has_delta": false
+    },
+    {
+     "id": "size_of_impact_pp",
+     "label": "Impact pp",
+     "unit": "percentage_points",
+     "has_delta": false
+    }
+   ],
+   "default_lens": "gender_differential_pp",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "trend"
+    ],
+    "transpose": true,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "seat_ranking",
+  "label": "Seat ranking",
+  "description": "Rank ACs or PCs by a party's support or an opinion score.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "rank.level",
+    "label": "Seats",
+    "widget": "choice",
+    "required": true,
+    "tier": "primary",
+    "choices": [
+     "ac",
+     "pc"
+    ],
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "equals",
+      "path": "comparison.mode",
+      "value": "compare"
+     }
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.metric",
+    "label": "Rank by",
+    "widget": "metric_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "metrics",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.party_id",
+    "label": "Party",
+    "widget": "party_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "rank.metric",
+     "value": "support_share"
+    },
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "rank"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.mode",
+    "label": "Show",
+    "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "choices": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "default": "standalone",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.scenario",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.scenario",
+    "label": "Compared with",
+    "help": "A party question compared with an opinion question is a Shakti comparison",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.round",
+    "label": "Question's round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "anchor",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.round",
+    "label": "Compared with, round",
+    "help": "Same round as the question: compare two questions within one round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "compare",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.top_k",
+    "label": "Top N in each group",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   },
+   {
+    "path": "rank.partition_by",
+    "label": "Rank within",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "seat_attribute"
+     }
+    },
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "rank.filters",
+    "label": "Only seats where",
+    "widget": "filter_list",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "seat_attribute"
+     }
+    },
+    "limits": {
+     "max_items": 8,
+     "max_values": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "trend"
+    },
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   }
+  ],
+  "meta": {
+   "family": "seat_ranking",
+   "lenses": [],
+   "default_lens": "",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "transpose": false,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "demographic_ranking",
+  "label": "Group ranking",
+  "description": "Rank groups such as castes or ages within each area by a party's support or an opinion score.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "rank.level",
+    "label": "Groups",
+    "widget": "choice",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "level"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "equals",
+      "path": "comparison.mode",
+      "value": "compare"
+     }
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.metric",
+    "label": "Rank by",
+    "widget": "metric_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "metrics",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.party_id",
+    "label": "Party",
+    "widget": "party_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "rank.metric",
+     "value": "support_share"
+    },
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "rank"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.mode",
+    "label": "Show",
+    "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "choices": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "default": "standalone",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.scenario",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.scenario",
+    "label": "Compared with",
+    "help": "A party question compared with an opinion question is a Shakti comparison",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "any"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.target.round",
+    "label": "Question's round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "anchor",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "comparison.reference.round",
+    "label": "Compared with, round",
+    "help": "Same round as the question: compare two questions within one round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
+    "choices": [
+     "anchor",
+     "compare"
+    ],
+    "default": "compare",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "rank.top_k",
+    "label": "Top N in each group",
+    "widget": "number",
+    "required": true,
+    "tier": "primary",
+    "default": 3,
+    "limits": {
+     "min": 1,
+     "max": 5
+    },
+    "multiple": false
+   },
+   {
+    "path": "rank.partition_by",
+    "label": "Rank within",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "partition"
+     }
+    },
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "filters",
+    "label": "Only respondents where",
+    "widget": "filter_list",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "filter"
+     }
+    },
+    "limits": {
+     "max_items": 8,
+     "max_values": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "trend"
+    },
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   }
+  ],
+  "meta": {
+   "family": "demographic_ranking",
+   "lenses": [],
+   "default_lens": "",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "compare",
+     "trend"
+    ],
+    "transpose": false,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "seat_benchmark",
+  "label": "Seat benchmark",
+  "description": "Seats won and vote share, against the comparison round or a past election.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "scenarios",
+    "label": "Question",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "benchmark.reference",
+    "label": "Compared with",
+    "help": "Nothing, the comparison round (when left empty), or a past election",
+    "widget": "election_picker",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "elections",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "benchmark.grouping_sets",
+    "label": "Group seats by",
+    "widget": "cut_builder",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "seat_attribute"
+     }
+    },
+    "default": [
+     []
+    ],
+    "limits": {
+     "max_items": 8
+    },
+    "multiple": false
+   },
+   {
+    "path": "benchmark.focal_party",
+    "label": "Focal party",
+    "help": "Gives margins and seat flips",
+    "widget": "party_picker",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "focal"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "benchmark.contenders",
+    "label": "Parties shown",
+    "help": "Parties left out still compete and win seats; they count in Other",
+    "widget": "party_picker",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "contenders"
+     }
+    },
+    "limits": {},
+    "multiple": true
+   }
+  ],
+  "meta": {
+   "family": "seat_benchmark",
+   "lenses": [],
+   "default_lens": "",
+   "capabilities": {
+    "modes": [
+     "standalone"
+    ],
+    "transpose": false,
+    "sort": true,
+    "details": true
+   }
+  }
+ },
+ {
+  "family": "relationship",
+  "label": "Vote movement",
+  "description": "How answers to one party question carry over to another, such as past vote to current vote.",
+  "fields": [
+   {
+    "path": "title",
+    "label": "Title",
+    "widget": "text",
+    "required": true,
+    "tier": "primary",
+    "limits": {
+     "max_length": 200
+    },
+    "multiple": false
+   },
+   {
+    "path": "relationship.origin",
+    "label": "From",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "relationship.destination",
+    "label": "To",
+    "widget": "scenario_picker",
+    "required": true,
+    "tier": "primary",
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "cuts",
+    "label": "Split by",
+    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "widget": "cut_builder",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "fields",
+     "params": {
+      "use": "cut"
+     }
+    },
+    "default": [
+     []
+    ],
+    "limits": {
+     "max_items": 8
+    },
+    "multiple": false
+   },
+   {
+    "path": "relationship.focal_party",
+    "label": "Focal party",
+    "help": "Gives retention, loss and gains",
+    "widget": "party_picker",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "parties",
+     "params": {
+      "use": "focal"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "relationship.include_recalled.origin",
+    "label": "Also count (from)",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "kind_of",
+     "path": "relationship.origin",
+     "kind": "recalled"
+    },
+    "choices": [
+     "Did Not Vote",
+     "Do Not Remember"
+    ],
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "relationship.include_recalled.destination",
+    "label": "Also count (to)",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "kind_of",
+     "path": "relationship.destination",
+     "kind": "recalled"
+    },
+    "choices": [
+     "Did Not Vote",
+     "Do Not Remember"
+    ],
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "relationship.joint_weight.source",
+    "label": "Pair answers with",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "choices": [
+     "base",
+     "scenario"
+    ],
+    "default": "base",
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "relationship.joint_weight.scenario",
+    "label": "Weight from question",
+    "widget": "scenario_picker",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "relationship.joint_weight.source",
+     "value": "scenario"
+    },
+    "options": {
+     "source": "joint_weight_scenarios",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "pipe_rounds",
+    "label": "Rounds to show",
+    "help": "The last N pipe rounds up to the anchor; empty = all of them",
+    "widget": "number",
+    "required": false,
+    "tier": "more",
+    "limits": {
+     "min": 1
+    },
+    "multiple": false
+   }
+  ],
+  "meta": {
+   "family": "relationship",
+   "lenses": [],
+   "default_lens": "",
+   "capabilities": {
+    "modes": [
+     "standalone",
+     "trend"
+    ],
+    "transpose": false,
+    "sort": true,
+    "details": true
+   }
+  }
+ }
+]

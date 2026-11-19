@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiGet, fetchOptions, getRun, planCard, startRun } from "./client";
 import type {
@@ -75,6 +75,8 @@ export const useOptions = (
     queryFn: () => fetchOptions(source, params, draft, ctx as StateContext),
     enabled: ctx !== null,
     staleTime: 60_000,
+    // Keep the last list while a changed draft asks again, so the panel never flashes empty or remounts.
+    placeholderData: keepPreviousData,
   });
 
 /** `P` is the payload type the card's family returns; grid cards are the default. */
