@@ -4,7 +4,7 @@ The single living list of small pending items and small decisions for the dashbo
 
 IDs are stable: `O-` open item, `Q-` question for the product owner, `D-` decision. Owners: **owner** = product owner decides; **eng** = engineering can just do it; **engine** = needs a MatBodh-Dash change; **infra** = environment or DevOps.
 
-Last reviewed: 2026-11-18.
+Last reviewed: 2026-11-19.
 
 ## 1. Roadmap
 
@@ -17,7 +17,9 @@ Last reviewed: 2026-11-18.
 | 4 | Benchmark (`seat_benchmark`) | Done, live-verified (UP) |
 | 5a | Relationship cards | Done, live-verified |
 | 5b | Seat cohorts (session-only) | Done: merged to main and pushed 2026-11-18, live-verified |
-| 6 | Configure modal, Duplicate card, live option lists | Not started |
+| 6a | Card configure: per-family configure panel, option lists, validate, inline cards, copy card/config | Built 2026-11-19 on `feat/card-configure` (spec `docs/specs/2026-11-19-card-configure-design.md`, plan `docs/plans/2026-11-19-card-configure.md`); not live-checked |
+| 6b | Canvas and tabs: place and resize cards, tabs like sheets | Not started |
+| 6c | Context step (anchor, comparison, pipe rounds for all tabs) and saving (browser now, database with access control) | Not started |
 | last | Access control (Postgres, state + configuration permissions) | Not started |
 
 ## 2. Open items
@@ -101,6 +103,19 @@ Last reviewed: 2026-11-18.
 | O-P8 | Engine repo has uncommitted `compiler.py` / `validation.py` changes (`binding_observation` validation scope) with no test seen | engine | open |
 | O-P9 | `npm run e2e` has no journey for benchmark or relationship cards | eng | open |
 
+### 2.1b Configure (6a)
+
+| ID | Item | Owner | Status |
+|---|---|---|---|
+| O-K1 | Seat segmentation (seat type/score from a past election; NDA/BJP+ view only; seat ranking and benchmark; data in MySQL `acDashboard_retrosegement`) deferred. Proposed shape: seat type as a seat attribute plus a "Seat type from" election picker, `segmentation_party` in the preset | owner | deferred 2026-11-19 |
+| O-K2 | Derived categories (engine `conditional_variables`) as a rule-editor widget; the descriptor model leaves room (`slot` widget, one more condition use) | owner | deferred 2026-11-19 |
+| O-K3 | Benchmark seat filters (`benchmark.filters`) are not offered in configure; the compiler sends none | owner | deferred 2026-11-19 |
+| O-K4 | The "showing 2 of the 3 rounds asked for" note is shown in the configure summary and the plan response, not yet in the card footer | eng | open (with the 6b card redesign) |
+| O-K5 | Live check of one card per family configured end to end, plus hide parties, contenders, config reference, joint weight scenario and the filter-values run | eng | open (needs VPN and the owner's go-ahead) |
+| O-K6 | Cards a user configures live only in this browser (localStorage per state). The workspace format and the move to the database belong to 6c / the access-control phase | owner | open |
+| O-K7 | A card shared with everyone is added by pasting "Copy config" output under `cards:` in `config/cards/cards.yaml` (which ships empty); no publish action | owner | decided |
+| O-K8 | Scenario display names (the pickers show scenario ids) still need the owner's names (O-G6) | owner | open |
+
 ## 3. Questions for the product owner
 
 | ID | Question | Blocks |
@@ -132,6 +147,16 @@ Newest first inside each group. A decision changes only when the owner says so.
 - D-C5 (2026-11-18, owner): creation starts from the seat ranking and benchmark cards themselves (no separate dialog). Ranking cards: `rank_max` (and metric bounds) on any seat ranking card; benchmark cards: margin range, status, flip class and endpoint. The card's own config is the selection source. The creation query is fixed: overall vote share in the anchor round for all available party scenarios. The cohort then opens a new blank canvas holding just that overall vote-share table; every further card on it is filtered by the cohort's AC/PC list. UI/UX is the owner's and not part of this design.
 - D-C4 (2026-11-18, author calls in `docs/specs/2026-11-18-seat-cohorts-design.md`, PENDING owner review; the dialog and v2-shortcut parts are SUPERSEDED by D-C5): cohort is immutable, rename and delete allowed, name unique per state; URL carries only the cohort id; no fingerprint change needed because the filter is in the compiled config (to be proven by test); preview before save; empty selection never saved; PC cohorts limited to single-round cards until the membership prerequisite is built; method drawer shows the cohort's creation-time metadata revision.
 - D-C2 (2026-11-12): creation runs an engine `EntitySelection` with a clean `selection.source_request` and a minimal fixed downstream cut; the stored rows are `selection_rows` plus the contract. Store is SQLite behind a narrow interface now, Postgres at the access-control phase.
+
+### Configure (6a)
+- D-K1 (2026-11-19, owner): configure is a backend-described form per family (descriptor + generic renderer + `POST /cards/validate`); the frontend holds no card rules. A new card type is mostly data (one descriptor); a new input kind is one widget.
+- D-K2 (2026-11-19, owner): relationship joint weights may come from a scenario (`relationship.joint_weight`), REPLACING the 5a decision "base joint weight only". The scenario must have embedded weights and exist in every round the card reads; the weight mode is the preset's.
+- D-K3 (2026-11-19, owner): context (anchor, comparison, pipe rounds) is global for all tabs; a card may read fewer pipe rounds, stored as a COUNT ("the last N up to the anchor"), so it follows the context. Anchor and comparison rounds always follow the context. A per-card full context override is later.
+- D-K4 (2026-11-19, owner): `config/cards/cards.yaml` ships empty; picking a library card gives the analyst a COPY (no live link); the shared set grows by pasting copied config.
+- D-K5 (2026-11-19, review fix, eng): the ranking operation id is the constant "ranking" (it was the card id), so client card ids never reach the fingerprint and analysts' identical cards share a cached run. Tested for every family and for cohort previews.
+- D-K6 (2026-11-19, eng): filter values come from an ordinary engine distribution job cut by the field (reporting-mapped, FINAL/final_valid/readiness applied, cached by fingerprint), not from new SQL or an engine helper. Plan amendment to spec 7.3.
+- D-K7 (2026-11-19, eng): the benchmark reference lives in the card config (`benchmark.reference`); the on-card reference picker is removed and requests send no reference.
+- D-K8 (2026-11-19, eng): hide-party options are the party rows a grid card has (`preset.keep` plus Other), not the alliance majors; inline cards are bounded (12 scenarios, 8 cuts, 8 filters, 200 values per filter, 200-character title).
 
 ### Cards and display
 - D-1: the engine owns every number; Python and TypeScript only reshape. A missing value is a dash with a reason, never 0.

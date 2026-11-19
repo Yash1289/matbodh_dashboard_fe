@@ -73,7 +73,7 @@ rq worker engine --with-scheduler --url "$DASHBOARD_REDIS_URL"
 
 ## Live smoke check (one card)
 
-`scripts/smoke_card.py` runs one card from `config/cards/cards.yaml` through the real
+`scripts/smoke_card.py` runs one card (from `--cards`, default `tests/fixtures/cards.yaml`, since `config/cards/cards.yaml` ships empty) through the real
 engine and `CardRunService` synchronously (`InlineQueue`) and prints the payload shape
 (family, mode, cuts, columns), per-job timings, per-cut row, cell and delta counts, and
 any errors. A grid card compiles to a single engine job, `grid`; a ranking card is one
@@ -107,8 +107,9 @@ Prerequisites:
 
 ## Cards
 
-The card foundation replaces the State Pulse page. One card is one `CardConfig` in
-`config/cards/cards.yaml` (family, scenarios, cuts, filters, comparison). The card
+The card foundation replaces the State Pulse page. One card is one `CardConfig` (family, scenarios, cuts, filters, comparison): an analyst builds it in
+Configure (`matbodh_dashboard/cards/configure/`, `web/src/configure/`) and it is kept in the browser;
+the shared library `config/cards/cards.yaml` ships empty and takes pasted "Copy config" output. The card
 compiles to one engine job (`matbodh_dashboard/cards/compile.py`), runs through the
 existing queue, cache and fingerprint, and `matbodh_dashboard/cards/translate.py`
 turns the engine result into a typed long-format `GridPayload`. Each family
@@ -289,7 +290,8 @@ owner's go-ahead every time. Nothing in the automated suites runs against them.
 4. One worker: `rq worker engine --with-scheduler --worker-class rq.worker.SimpleWorker --url "$DASHBOARD_REDIS_URL"`.
 5. `cd web && npm run dev`, open the printed URL.
 6. Choose Uttar Pradesh, level AC, tick 2027 VS CAPI R1 and R2, compare R1, Apply.
-7. The cards page lists the cards from `config/cards/cards.yaml`. For each, check that the lens,
+7. The cards page starts empty. Use Add card to configure one of each family (the seeded cards in
+   `tests/fixtures/cards.yaml` can be pasted into `config/cards/cards.yaml` to compare). For each, check that the lens,
    cut, sort, transpose and format controls change the display without a network request,
    that a missing value shows `—` with a reason, and that the numbers match the engine
    result for the same selection (compare against `scripts/smoke_card.py` output).

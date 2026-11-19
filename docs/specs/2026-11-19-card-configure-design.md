@@ -1,7 +1,7 @@
 # Card configure (sub-project 6a) — design
 
 Date: 2026-11-19. Status: draft for owner review.
-Repos: `matbodh-dashboard` (most work), `MatBodh-Dash` engine (one read-only helper, section 7.3).
+Repos: `matbodh-dashboard` (all of the work; the plan found no engine change was needed, section 7.3).
 Ledger: every decision below that opens, closes or changes an item is recorded in `docs/open-items.md` in the same change.
 
 ## 1. Intent
@@ -303,7 +303,7 @@ scenario present in the anchor but not in every pipe round, disabled for trend).
   plus Other (the grid's party rows; no alliance lookup); `rank` = `preset.keep`.
 - `elections` — `config/elections.yaml` for the state (UP only today; other states list none, Q-7).
 
-### 7.3 Filter values (needs one engine helper)
+### 7.3 Filter values (amended in the plan: no engine helper; an ordinary engine distribution job cut by the field, cached by fingerprint, D-K6)
 `filter_values?field=` returns the distinct **reporting** values of a field across the rounds read.
 Values must be reporting-mapped and respect FINAL, final_valid and readiness, so they cannot come
 from the reporting-mapping table alone (it lists mapped columns only) and the dashboard must not
@@ -414,6 +414,4 @@ per 8.1.
 ## 12. Left to the builder
 
 - Exact descriptor JSON field names and the module layout.
-- Whether the filter-values helper lives on `MetadataSession` or in `matbodh_views`, and how the
-  dashboard worker exposes it (synchronous call vs short RQ job), within section 7.3's rules.
 - Natural sort order for values and the disabled-reason wording.
