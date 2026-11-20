@@ -5,6 +5,7 @@ import { ApiError } from "./api/client";
 import { backoff } from "./api/queries";
 import { CohortTab } from "./cohorts/CohortTab";
 import { CardsPage } from "./pages/CardsPage";
+import { HomePage } from "./pages/HomePage";
 import { Shell } from "./shell/AppShell";
 import { cssVariablesResolver, theme } from "./theme";
 
@@ -31,6 +32,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<CardsPage />} />
+        <Route path="home" element={<HomePage />} />
         <Route path="cohort" element={<CohortTab />} />
         <Route path="*" element={<ToCards />} />
       </Route>

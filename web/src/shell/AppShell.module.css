@@ -1,0 +1,48 @@
+/* The top bar is the product's deep ink: the brand and the context it carries stand out from the white canvas below. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--mb-deep-ink);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12), 0 6px 16px -10px rgba(22, 33, 58, 0.6);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 4px 8px 4px 4px;
+  margin-left: -4px;
+  border-radius: 10px;
+  color: var(--mb-surface);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: background-color 160ms ease-out;
+}
+
+.brand:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--mb-saffron);
+  outline-offset: 2px;
+}
+
+.brandMark {
+  width: 28px;
+  height: 28px;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand:hover .brandMark {
+  transform: rotate(-6deg) scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand:hover .brandMark { transform: none; }
+}

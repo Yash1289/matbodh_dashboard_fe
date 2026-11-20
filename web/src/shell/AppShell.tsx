@@ -1,12 +1,14 @@
-import { AppShell, Burger, Drawer, Text } from "@mantine/core";
+import { AppShell, Burger, Drawer } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { TabBar } from "../canvas/TabBar";
 import { useWorkspace } from "../canvas/workspaceStore";
 import { useDashboardContext } from "../context/urlContext";
 import { ContextBar } from "../context/ContextBar";
 import { tokens } from "../theme";
+import { Mark } from "./Mark";
+import styles from "./AppShell.module.css";
 
 const NAV_KEY = "mb.nav.open";
 /** Below this the sidebar would take a fifth of the page from the cards, so it opens over the page instead. */
@@ -36,7 +38,8 @@ export function Shell() {
   const { ctx } = useDashboardContext();
   const workspace = useWorkspace(ctx?.state ?? "");
   // Tabs belong to a state's context; before one is chosen there is nothing to manage.
-  const hasNav = ctx !== null;
+  const onHome = pathname === "/home";
+  const hasNav = ctx !== null && !onHome;
   const tabs = ctx === null ? null : (
     <TabBar state={ctx.state} workspace={workspace}
       cohort={ctx.cohort ? { label: ctx.cohort.label, open: pathname === "/cohort", onOpen: () => { setDrawerOpen(false); navigate({ pathname: "/cohort", search }); } } : undefined}
@@ -47,13 +50,14 @@ export function Shell() {
       header={{ height: tokens.layout.topBar }} navbar={{ width: tokens.layout.nav, breakpoint: 0, collapsed: { desktop: narrow || !wideOpen || !hasNav, mobile: narrow || !wideOpen || !hasNav } }} padding={0}
       styles={{ main: { background: "var(--mb-page)", color: "var(--mb-text)" } }}
     >
-      <AppShell.Header
-        px={24} py={12}
-        style={{ display: "flex", alignItems: "center", gap: 14, background: "var(--mb-surface)", borderBottom: "1px solid var(--mb-border)" }}
-      >
-        {hasNav && <Burger size="sm" opened={navOpen} onClick={() => setNavOpen(!navOpen)} aria-controls={navOpen ? "sections-nav" : undefined}
+      <AppShell.Header px={24} py={12} className={styles.header}>
+        {hasNav && <Burger size="sm" color="white" opened={navOpen} onClick={() => setNavOpen(!navOpen)} aria-controls={navOpen ? "sections-nav" : undefined}
           aria-expanded={navOpen} aria-label={navOpen ? "Hide sidebar" : "Show sidebar"} />}
-        <Text fz={tokens.font.brand} fw={700}>MatBodh</Text>
+        {/* The brand leads home; the context it carries (if any) stays in the address so Home can offer it back. */}
+        <Link to={{ pathname: "/home", search }} className={styles.brand} title="Home" aria-current={onHome ? "page" : undefined}>
+          <Mark className={styles.brandMark} onDark />
+          <span>MatBodh</span>
+        </Link>
         <ContextBar />
       </AppShell.Header>
       {hasNav && !narrow && wideOpen && (

@@ -36,6 +36,30 @@ describe("shell", () => {
     await screen.findByRole("table");
   });
 
+  it("the brand leads to Home, which offers the open context and the context setup", async () => {
+    mountCard();
+    renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
+    await screen.findByRole("table");
+    await userEvent.click(screen.getByRole("link", { name: "MatBodh" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Your survey workspace" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Tabs" })).toBeNull(); // no tab sidebar on Home
+    expect(await screen.findByRole("region", { name: "Resume" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open workspace" }));
+    expect(await screen.findByRole("table")).toBeInTheDocument(); // back on the canvas with the same context
+    await userEvent.click(screen.getByRole("link", { name: "MatBodh" }));
+    await userEvent.click(await screen.findByRole("link", { name: /Set up context/ }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Survey context" })).toBeInTheDocument();
+  });
+
+  it("clicking anywhere on the context bar, a chip included, opens the editor", async () => {
+    mountCard();
+    renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
+    const pill = await screen.findByTestId("context-pill");
+    await waitFor(() => expect(pill).toHaveTextContent(/Geo: whole state/));
+    await userEvent.click(within(pill).getByText("Extrapolated"));
+    expect(await screen.findByRole("dialog", { name: /Survey context/ })).toBeInTheDocument();
+  });
+
   it("the sidebar manages tabs: no Cards link, the active tab is marked, New tab adds and opens one", async () => {
     mountCard();
     const user = userEvent.setup();

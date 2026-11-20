@@ -1,0 +1,257 @@
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 40px 44px 44px;
+  border-radius: 18px;
+  background: var(--mb-deep-ink);
+  color: var(--mb-surface);
+  box-shadow: var(--mb-elev-panel);
+  animation: rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.mark {
+  width: 48px;
+  height: 48px;
+}
+
+.title {
+  margin: 4px 0 0;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.82);
+  text-wrap: pretty;
+}
+
+.actions {
+  margin-top: 10px;
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--mb-saffron);
+  color: var(--mb-deep-ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+.primary svg {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primary:hover {
+  box-shadow: 0 6px 18px -6px rgba(244, 162, 89, 0.7);
+}
+
+.primary:hover svg {
+  transform: translateX(3px);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--mb-saffron);
+  outline-offset: 3px;
+}
+
+.resume {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border: 1px solid var(--mb-border);
+  border-radius: 14px;
+  background: var(--mb-surface);
+  box-shadow: var(--mb-elev-card);
+  animation: rise 360ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.resumeText {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The same chips as the top bar, on a white panel: the deep ink gives them their contrast. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--mb-deep-ink);
+}
+
+.secondary {
+  padding: 10px 18px;
+  border: 1px solid var(--mb-deep-ink);
+  border-radius: 10px;
+  background: var(--mb-surface);
+  color: var(--mb-deep-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, color 160ms ease-out;
+}
+
+.secondary:hover {
+  background: var(--mb-deep-ink);
+  color: var(--mb-surface);
+}
+
+.h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--mb-deep-ink);
+}
+
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--mb-border);
+  border-radius: 14px;
+  background: var(--mb-surface);
+  box-shadow: var(--mb-lift);
+  animation: rise 360ms calc(160ms + var(--i, 0) * 70ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stepNo {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--mb-accent-soft);
+  color: var(--mb-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stepTitle {
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mb-deep-ink);
+}
+
+.stepText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mb-muted);
+  text-wrap: pretty;
+}
+
+.families {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mb-muted);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero, .resume, .step { animation-name: fade; }
+  .primary:hover svg { transform: none; }
+  @keyframes fade { from { opacity: 0; } }
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 28px 22px 30px; }
+  .title { font-size: 30px; }
+}
+
+/* Decorative: three ghost cards with bar rows, at the right of the hero. */
+.sketch {
+  position: absolute;
+  right: 44px;
+  top: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 150px);
+  gap: 12px;
+  transform: rotate(3deg);
+  opacity: 0.95;
+}
+
+.sketch i {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 108px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.sketch i:first-child {
+  grid-row: span 2;
+  height: 228px;
+}
+
+.sketch b {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--tone);
+  opacity: 0.85;
+}
+
+.sketch i[data-tone="saffron"] { --tone: var(--mb-saffron); }
+.sketch i[data-tone="mint"] { --tone: var(--mb-mint); }
+.sketch i[data-tone="sky"] { --tone: var(--mb-sky); }
+.sketch b:nth-child(2) { width: 72%; }
+.sketch b:nth-child(3) { width: 46%; }
+
+@media (max-width: 900px) {
+  .sketch { display: none; }
+}
