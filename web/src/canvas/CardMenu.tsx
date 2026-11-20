@@ -16,13 +16,15 @@ interface Props {
   announce?(message: string): void;
   /** Called after the card has left this tab (removed or moved), so the page can put focus somewhere sensible. */
   onGone?(cardId: string): void;
+  /** Called after Remove with the way to take it back, so the page can offer Undo. */
+  onRemoved?(undo: () => void): void;
 }
 
 const DIRECTIONS: Direction[] = ["left", "right", "up", "down"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Everything an analyst does with one card. The grid library's drag has no keyboard route, so Move, Size and Fit are here. */
-export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows, announce, onGone }: Props) {
+export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows, announce, onGone, onRemoved }: Props) {
   const [own, setOwn] = useState("");
   const setSaid = announce ?? setOwn;
   const itemsNow = () => workspaceStore.get(state).tabs.find((t) => t.id === tab.id)?.items ?? tab.items;
@@ -58,13 +60,21 @@ export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows, a
     Promise.resolve(navigator.clipboard?.writeText(copyConfigText(config))).then(() => setSaid("Config copied"), () => setSaid("Could not copy the config"));
   };
 
+  const title = cardStore.list(state).find((c) => c.id === cardId)?.config.title;
+  const remove = () => {
+    const removal = workspaceStore.removeCard(state, cardId);
+    setSaid("Card removed");
+    if (removal !== null) onRemoved?.(() => workspaceStore.restoreCard(state, removal));
+    onGone?.(cardId);
+  };
+
   const others = tabs.filter((t) => t.id !== tab.id);
 
   return (
     <>
       <Menu position="bottom-end" withinPortal>
         <Menu.Target>
-          <ActionIcon variant="subtle" size="sm" aria-label="Card actions">⋯</ActionIcon>
+          <ActionIcon variant="subtle" size={28} aria-label={title ? `Card actions for ${title}` : "Card actions"}>⋯</ActionIcon>
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Item onClick={() => onConfigure(cardId)}>Configure</Menu.Item>
@@ -82,7 +92,7 @@ export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows, a
             <Menu.Item key={t.id} onClick={() => { workspaceStore.moveCardToTab(state, cardId, t.id); setSaid(`Moved to ${t.name}`); onGone?.(cardId); }}>Move to tab: {t.name}</Menu.Item>
           ))}
           <Menu.Divider />
-          <Menu.Item color="red" onClick={() => { workspaceStore.removeCard(state, cardId); setSaid("Card removed"); onGone?.(cardId); }}>Remove</Menu.Item>
+          <Menu.Item color="red" onClick={remove}>Remove</Menu.Item>
         </Menu.Dropdown>
       </Menu>
       {announce === undefined && <VisuallyHidden role="status" aria-live="polite">{own}</VisuallyHidden>}

@@ -7,6 +7,7 @@ import states from "../test/fixtures/states.json";
 import surveysJson from "../test/fixtures/surveys.json";
 import { renderWithProviders } from "../test/render";
 import { ContextBar } from "./ContextBar";
+import { ContextStep } from "./ContextStep";
 import { parseContext } from "./urlContext";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -30,6 +31,7 @@ function stubApi(opts: { surveys?: SurveysResponse; planResponse?: Response; sta
 function Probe() {
   return <div data-testid="search">{useLocation().search}</div>;
 }
+const renderStep = () => renderWithProviders(<><ContextBar /><ContextStep /><Probe /></>, { route: "/" });
 const renderBar = (route = "/") => renderWithProviders(<><ContextBar /><Probe /></>, { route });
 const URL_CTX = `/?state=Uttar+Pradesh&level=ac&rounds=${encodeURIComponent(R1)}&rounds=${encodeURIComponent(R2)}&compare=${encodeURIComponent(R1)}`;
 
@@ -40,17 +42,16 @@ async function chooseLevel(user: ReturnType<typeof userEvent.setup>, level: stri
 afterEach(() => vi.unstubAllGlobals());
 
 describe("ContextBar", () => {
-  it("empty URL opens editor with prompt", async () => {
+  it("with no context the bar shows no dialog and no Edit button; the step owns the choice", async () => {
     const fetchMock = stubApi();
     renderBar();
-    expect(await screen.findByRole("dialog", { name: "Survey context" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
-    await waitFor(() => expect(screen.getByRole("button", { name: "Close survey context" })).toHaveFocus());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit context" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("context-pill")).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/cards/run"))).toBe(false);
-    expect(screen.getByRole("button", { name: "Apply selection" })).toBeDisabled();
   });
 
-  it("going back to an empty URL reopens the editor with the prompt", async () => {
+  it("going back to an empty URL drops the context pill and Edit button without opening a dialog", async () => {
     stubApi();
     const user = userEvent.setup();
     function Clear() {
@@ -59,16 +60,15 @@ describe("ContextBar", () => {
     }
     renderWithProviders(<><ContextBar /><Clear /></>, { route: URL_CTX });
     await screen.findByRole("button", { name: "Edit context" });
-    expect(screen.queryByRole("dialog", { name: "Survey context" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "clear url" }));
-    expect(await screen.findByRole("dialog", { name: "Survey context" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Edit context" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("level options come from the catalogue", async () => {
     const user = userEvent.setup();
     stubApi();
-    renderBar();
+    renderStep();
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
     await user.click(screen.getByRole("textbox", { name: "Survey level" }));
     expect(await screen.findByRole("option", { name: "Zone" })).toBeInTheDocument();
@@ -78,14 +78,14 @@ describe("ContextBar", () => {
   it("changing level clears rounds", async () => {
     stubApi();
     const user = userEvent.setup();
-    renderBar();
+    renderStep();
     await chooseLevel(user, "Assembly constituency (AC)");
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     expect(screen.getByRole("checkbox", { name: R1 })).toBeChecked();
     await chooseLevel(user, "Zone");
     expect(screen.queryByText("Seat coverage", { exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Apply selection" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
   });
 
   it("compare cannot be the anchor", async () => {
@@ -109,7 +109,7 @@ describe("ContextBar", () => {
     };
     stubApi({ surveys: { ...surveys, levels: { ...surveys.levels, ac: [first, other] } } });
     const user = userEvent.setup();
-    renderBar();
+    renderStep();
     await chooseLevel(user, "Assembly constituency (AC)");
     const boxes = await screen.findAllByRole("checkbox", { name: /^2027 VS (CAPI|CATI) R1$/ });
     expect(screen.queryByText(/^Different survey series\./)).not.toBeInTheDocument();
@@ -121,12 +121,12 @@ describe("ContextBar", () => {
   it("apply writes the URL", async () => {
     stubApi();
     const user = userEvent.setup();
-    renderBar();
+    renderStep();
     await chooseLevel(user, "Assembly constituency (AC)");
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     await user.click(screen.getByRole("checkbox", { name: R2 }));
     expect(screen.getByTestId("search").textContent).toBe("");
-    await user.click(screen.getByRole("button", { name: "Apply selection" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => {
       const ctx = parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""));
       expect(ctx).toEqual({
@@ -148,7 +148,7 @@ describe("ContextBar", () => {
   it("changing state clears the level choice", async () => {
     stubApi({ states: ["Uttar Pradesh", "Bihar"] });
     const user = userEvent.setup();
-    renderBar();
+    renderStep();
     await user.click(await screen.findByRole("textbox", { name: "State" }));
     await user.click(await screen.findByRole("option", { name: "Uttar Pradesh" }));
     await chooseLevel(user, "Assembly constituency (AC)");
@@ -167,7 +167,7 @@ describe("ContextBar", () => {
     }));
     stubApi({ surveys: { ...surveys, levels: { ac: [{ ...first, rounds }] } } as unknown as SurveysResponse });
     const user = userEvent.setup();
-    renderBar();
+    renderStep();
     await chooseLevel(user, "Assembly constituency (AC)");
     expect(await screen.findByRole("checkbox", { name: R1 })).toBeInTheDocument();
     expect(screen.queryByText(/\b(?:undefined|\d+) seats\b/)).not.toBeInTheDocument();

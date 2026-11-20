@@ -35,13 +35,16 @@ function roundMetadata(round: SurveyRound, mode: VersionMode, seatLevel: boolean
 }
 
 interface Props {
+  /** "step" is the first screen: no Cancel, and the action reads Continue. */
+  variant?: "dialog" | "step";
   context: StateContext | null;
   planError: string | null;
   onCancel(): void;
   onApply(context: StateContext): void;
 }
 
-export function ContextDialog({ context, planError, onCancel, onApply }: Props) {
+export function ContextDialog({ variant = "dialog", context, planError, onCancel, onApply }: Props) {
+  const step = variant === "step";
   const [draft, setDraft] = useState<Draft>(context ?? EMPTY);
   const roundId = useId();
   const states = useStates();
@@ -71,6 +74,8 @@ export function ContextDialog({ context, planError, onCancel, onApply }: Props) 
   const invalidCoverage = matched && missingNormal.length > 0;
   const canApply = !states.isError && !surveys.isError && draft.level !== null && selected.length > 0 && !invalidCoverage;
   const selectionCount = `${selected.length} ${selected.length === 1 ? "round" : "rounds"} selected`;
+  const status = step && (draft.level === null || selected.length === 0)
+    ? "Choose a survey level and at least one round to continue." : selectionCount;
 
   const toggleRound = (name: string, checked: boolean) => {
     const next = checked ? [...names, name] : names.filter((value) => value !== name);
@@ -89,9 +94,11 @@ export function ContextDialog({ context, planError, onCancel, onApply }: Props) 
   return (
     <>
       <div className={styles.scrollBody}>
-        <Text className={styles.intro}>
-          {context ? "Choose the survey rounds the dashboard should show." : "Choose a state, survey level and rounds to begin."}
-        </Text>
+        {!step && (
+          <Text className={styles.intro}>
+            {context ? "Choose the survey rounds the dashboard should show." : "Choose a state, survey level and rounds to begin."}
+          </Text>
+        )}
         {planError && <Alert color="red" role="alert" mb="md">{planError}</Alert>}
         <div className={styles.filters}>
           <div>
@@ -186,15 +193,15 @@ export function ContextDialog({ context, planError, onCancel, onApply }: Props) 
       </div>
 
       <footer className={styles.footer}>
-        <Text size="sm" fw={600} role="status">{selectionCount}</Text>
+        <Text size="sm" fw={600} role="status">{status}</Text>
         <div className={styles.actions}>
-          <Button variant="default" onClick={onCancel}>Cancel</Button>
+          {!step && <Button variant="default" onClick={onCancel}>Cancel</Button>}
           <Button disabled={!canApply} onClick={() => {
             if (canApply && draft.level) onApply({
               ...draft, level: draft.level, rounds: names, anchor_round: explicitAnchor, compare_round: compare,
               version_mode: matched ? "matched" : "extrapolated",
             });
-          }}>Apply selection</Button>
+          }}>{step ? "Continue" : "Apply selection"}</Button>
         </div>
       </footer>
     </>

@@ -1,5 +1,5 @@
-import { Group, Modal, Skeleton, Stack, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Button, Group, Modal, Skeleton, Stack, Text, Title } from "@mantine/core";
+import { useEffect, useState } from "react";
 import { useCards, useFamilies } from "../api/queries";
 import {
   isBenchmarkFamily, isRankingFamily, isRelationshipFamily,
@@ -11,10 +11,10 @@ import { RankingCard } from "../cards/ranking/RankingCard";
 import { RelationshipCard } from "../cards/relationship/RelationshipCard";
 import { AddCardMenu } from "../configure/AddCardMenu";
 import { Canvas } from "../canvas/Canvas";
-import { TabBar } from "../canvas/TabBar";
 import { useWorkspace, workspaceStore } from "../canvas/workspaceStore";
 import { cardStore, configOfInfo, useStoredCards, type StoredCard } from "../configure/cardStore";
 import { ConfigurePanel } from "../configure/ConfigurePanel";
+import { ContextStep } from "../context/ContextStep";
 import { useDashboardContext } from "../context/urlContext";
 import { tokens } from "../theme";
 
@@ -37,6 +37,8 @@ const renderCard = (c: CardInfo, ctx: StateContext) => (isBenchmarkFamily(c.fami
       ? <RankingCard key={c.id} info={c} ctx={ctx} />
       : <CardShell key={c.id} info={c} ctx={ctx} />);
 
+const UNDO_MS = 10_000;
+
 type Editing = { kind: "new"; descriptor: FamilyDescriptor } | { kind: "edit"; stored: StoredCard };
 
 function CardsList({ ctx }: { ctx: StateContext }) {
@@ -46,12 +48,30 @@ function CardsList({ ctx }: { ctx: StateContext }) {
   const workspace = useWorkspace(ctx.state);
   const tab = workspace.tabs.find((t) => t.id === workspace.activeTab) ?? workspace.tabs[0];
   const [editing, setEditing] = useState<Editing | null>(null);
+  // The way to take back the last Remove; offered for a while, then forgotten.
+  const [undo, setUndo] = useState<(() => void) | null>(null);
+  useEffect(() => {
+    if (undo === null) return undefined;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+  /** Close Configure and put focus back on what opened it (its menu unmounts, so the modal cannot do it). */
+  const closeEditing = () => {
+    const opener = editing;
+    setEditing(null);
+    requestAnimationFrame(() => {
+      const el = opener?.kind === "edit"
+        ? document.querySelector(`[data-card-body="${CSS.escape(opener.stored.id)}"]`)?.parentElement?.querySelector<HTMLElement>('button[aria-label^="Card actions"]')
+        : document.querySelector<HTMLElement>("[data-add-card]");
+      el?.focus();
+    });
+  };
   const metaOf = (family: string): FamilyMeta | undefined => families.data?.find((d) => d.family === family)?.meta;
 
   const apply = (config: CardConfigJson) => {
     if (editing?.kind === "new") workspaceStore.addCard(ctx.state, config);
     else if (editing?.kind === "edit") cardStore.replace(ctx.state, editing.stored.id, config);
-    setEditing(null);
+    closeEditing();
   };
 
   const renderStored = (cardId: string) => {
@@ -66,6 +86,7 @@ function CardsList({ ctx }: { ctx: StateContext }) {
     if (tab.items.length === 0) return <Text>This tab is empty. Add a card to start.</Text>;
     return (
       <Canvas state={ctx.state} tab={tab} renderCard={renderStored}
+        onRemoved={(restore) => setUndo(() => restore)}
         onConfigure={(cardId) => { const s = stored.find((c) => c.id === cardId); if (s !== undefined) setEditing({ kind: "edit", stored: s }); }} />
     );
   })();
@@ -73,15 +94,21 @@ function CardsList({ ctx }: { ctx: StateContext }) {
   return (
     <Stack gap={tokens.layout.gap}>
       <Group justify="space-between">
-        <Title order={1} fz={tokens.font.pageTitle} fw={700}>Cards</Title>
+        <Title order={1} fz={tokens.font.pageTitle} fw={700}>{tab.name}</Title>
         <AddCardMenu families={families.data ?? []} library={libraryCards}
           onPickFamily={(descriptor) => setEditing({ kind: "new", descriptor })}
           onPickLibrary={(info) => workspaceStore.addCard(ctx.state, configOfInfo(info))} />
       </Group>
       {library.isError && <Text c="red" role="alert">{library.error.message}</Text>}
-      <TabBar state={ctx.state} workspace={workspace} />
+      {undo !== null && (
+        <Group gap="xs" role="status">
+          <Text size="sm">Card removed</Text>
+          <Button variant="light" size="compact-sm" onClick={() => { undo(); setUndo(null); }}>Undo</Button>
+        </Group>
+      )}
       {body}
-      <Modal opened={editing !== null} onClose={() => setEditing(null)} title="Configure card" size="lg" centered>
+      <Modal opened={editing !== null} onClose={closeEditing} title="Configure card" size="lg" centered
+        closeOnClickOutside={false} returnFocus={false} closeButtonProps={{ "aria-label": "Close" }}>
         {editing !== null && (
           <ConfigurePanel
             key={editing.kind === "new" ? `new:${editing.descriptor.family}` : editing.stored.id}
@@ -89,7 +116,7 @@ function CardsList({ ctx }: { ctx: StateContext }) {
             initial={editing.kind === "new"
               ? { id: "draft", family: editing.descriptor.family as CardConfigJson["family"], title: editing.descriptor.label }
               : editing.stored.config}
-            ctx={ctx} onApply={apply} onCancel={() => setEditing(null)} />
+            ctx={ctx} onApply={apply} onCancel={closeEditing} />
         )}
       </Modal>
     </Stack>
@@ -99,6 +126,6 @@ function CardsList({ ctx }: { ctx: StateContext }) {
 /** The analyst's own cards for the current context, plus any library cards the owner has shared. */
 export function CardsPage() {
   const { ctx } = useDashboardContext();
-  // Without a context the context bar's prompt is the only content; nothing runs.
-  return ctx === null ? null : <CardsList ctx={ctx} />;
+  // Without a context the first step is the only content; nothing runs until it is chosen.
+  return ctx === null ? <ContextStep /> : <CardsList ctx={ctx} />;
 }

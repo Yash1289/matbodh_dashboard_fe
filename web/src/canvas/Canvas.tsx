@@ -1,4 +1,4 @@
-import { VisuallyHidden } from "@mantine/core";
+import { Button, Group, VisuallyHidden } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { useState } from "react";
 import { GridLayout } from "react-grid-layout";
@@ -8,7 +8,7 @@ import { tokens } from "../theme";
 import { CanvasCell } from "./CanvasCell";
 import styles from "./canvas.module.css";
 import { CardMenu } from "./CardMenu";
-import { COLUMNS, ROW_HEIGHT, readingOrder, rowsFor, type Item } from "./layout";
+import { COLUMNS, ROW_HEIGHT, fitAllHeights, readingOrder, rowsFor, type Item } from "./layout";
 import { useWorkspace, workspaceStore, type Tab } from "./workspaceStore";
 
 /** Below this page width the grid gives way to one column in reading order, with no dragging. */
@@ -19,13 +19,15 @@ interface Props {
   tab: Tab;
   renderCard(cardId: string): ReactNode;
   onConfigure(cardId: string): void;
+  /** Told after a Remove, with the way to undo it. */
+  onRemoved?(undo: () => void): void;
 }
 
 type GridItem = { i: string; x: number; y: number; w: number; h: number };
 const fromGrid = (layout: readonly GridItem[]): Item[] => layout.map((l) => ({ cardId: l.i, x: l.x, y: l.y, w: l.w, h: l.h }));
 
 /** The tab's cards on a snapped 12-column grid; the arrangement is saved when a drag or resize ends. */
-export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
+export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props) {
   const { ref, width } = useElementSize();
   const { tabs } = useWorkspace(state);
   // One live region for the whole canvas: a card that is removed or moved away takes its own menu with it.
@@ -38,6 +40,12 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
     const content = ref.current?.querySelector(`[data-card-body="${CSS.escape(cardId)}"]`)?.firstElementChild;
     return rowsFor(content?.getBoundingClientRect().height ?? 0, gap);
   };
+  /** Every card to its own content height in one save, so the blank bands under short cards close. */
+  const fitAll = () => {
+    const rows = Object.fromEntries(tab.items.map((i) => [i.cardId, measureRows(i.cardId)()]));
+    workspaceStore.setItems(state, tab.id, fitAllHeights(tab.items, rows));
+    setSaid(`Fitted ${tab.items.length} ${tab.items.length === 1 ? "card" : "cards"} to their content`);
+  };
   /** After a card leaves the tab, focus the next card's menu (or the previous one's, or the active tab). */
   const focusAfterLeaving = (cardId: string) => {
     const order = readingOrder(tab.items).map((i) => i.cardId);
@@ -45,14 +53,14 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
     const next = order[at + 1] ?? order[at - 1];
     requestAnimationFrame(() => {
       const menu = next === undefined ? null
-        : (ref.current as HTMLElement | null)?.querySelector(`[data-card-body="${CSS.escape(next)}"]`)?.parentElement?.querySelector<HTMLElement>('button[aria-label="Card actions"]');
+        : (ref.current as HTMLElement | null)?.querySelector(`[data-card-body="${CSS.escape(next)}"]`)?.parentElement?.querySelector<HTMLElement>('button[aria-label^="Card actions"]');
       (menu ?? document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]'))?.focus();
     });
   };
   const cell = (cardId: string, draggable: boolean) => (
     <CanvasCell cardId={cardId} draggable={draggable}
       menu={<CardMenu state={state} tab={tab} tabs={tabs} cardId={cardId} onConfigure={onConfigure} measureRows={measureRows(cardId)}
-        announce={setSaid} onGone={focusAfterLeaving} />}>
+        announce={setSaid} onGone={focusAfterLeaving} onRemoved={onRemoved} />}>
       {renderCard(cardId)}
     </CanvasCell>
   );
@@ -67,17 +75,24 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
       );
     }
     return (
-      <GridLayout
-        width={width === 0 ? tokens.layout.content : width}
-        layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: i.h }))}
-        gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, gap], containerPadding: [0, 0] }}
-        dragConfig={{ enabled: true, handle: ".canvas-handle" }}
-        resizeConfig={{ enabled: true }}
-        onDragStop={save}
-        onResizeStop={save}
-      >
-        {tab.items.map((i) => <div key={i.cardId}>{cell(i.cardId, true)}</div>)}
-      </GridLayout>
+      <>
+        {tab.items.length > 1 && (
+          <Group justify="flex-end" mb={4}>
+            <Button variant="subtle" size="compact-sm" onClick={fitAll}>Fit all heights</Button>
+          </Group>
+        )}
+        <GridLayout
+          width={width === 0 ? tokens.layout.content : width}
+          layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: i.h }))}
+          gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, gap], containerPadding: [0, 0] }}
+          dragConfig={{ enabled: true, handle: ".canvas-handle" }}
+          resizeConfig={{ enabled: true }}
+          onDragStop={save}
+          onResizeStop={save}
+        >
+          {tab.items.map((i) => <div key={i.cardId}>{cell(i.cardId, true)}</div>)}
+        </GridLayout>
+      </>
     );
   })();
 

@@ -54,11 +54,13 @@ describe("CardsPage", () => {
     expect(await screen.findByRole("table", { name: /Flow summary/ })).toBeInTheDocument();
   });
 
-  it("shows nothing and requests nothing without a context", () => {
+  it("shows the context step, not the canvas, and runs no card without a context", async () => {
     const f = stubCardApi({ payloads: [PAYLOADS.distributionStandalone()] });
     renderWithProviders(<CardsPage />, { route: "/" });
-    expect(screen.queryByRole("heading")).toBeNull();
-    expect(f).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1, name: "Survey context" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add card" })).toBeNull();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "State" })).toBeInTheDocument());
+    expect(f.mock.calls.some(([u]) => /\/cards\/(plan|run)/.test(String(u)))).toBe(false);
   });
 
   it("an empty tab says so and offers Add card", async () => {
@@ -84,7 +86,7 @@ describe("CardsPage", () => {
     const old = cardStore.add(STATE, MINE); // written by the card store alone, as before tabs
     renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
     expect(await screen.findByTestId(`card:${old.id}`)).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Tab 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { level: 1, name: "Tab 1" })).toBeInTheDocument();
   });
 
   it("shows only the active tab's cards", async () => {
@@ -95,7 +97,7 @@ describe("CardsPage", () => {
     renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
     expect(await screen.findByRole("heading", { name: "Second" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "First" })).toBeNull();
-    await userEvent.click(screen.getByRole("tab", { name: "Tab 1" }));
+    workspaceStore.setActiveTab(STATE, workspaceStore.get(STATE).tabs[0].id);
     expect(await screen.findByRole("heading", { name: "First" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Second" })).toBeNull();
     expect(screen.getByTestId(`card:${first.id}`)).toBeInTheDocument();
@@ -120,7 +122,7 @@ describe("CardsPage: the analyst's own cards", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: /Party vote share/ }));
   };
   const act = async (cardTestId: string, item: string) => {
-    await userEvent.click(within(cellOf(cardTestId)).getByRole("button", { name: "Card actions" }));
+    await userEvent.click(within(cellOf(cardTestId)).getByRole("button", { name: /^Card actions/ }));
     await userEvent.click(await screen.findByRole("menuitem", { name: item }));
   };
 
@@ -174,6 +176,52 @@ describe("CardsPage: the analyst's own cards", () => {
     expect(cardStore.list(STATE)[1].config.title).toBe("Mine (copy)");
     await act(id, "Remove");
     await waitFor(() => expect(cardStore.list(STATE).map((c) => c.id)).not.toContain(stored.id));
+  });
+
+  it("Remove can be undone: the card comes back with its config", async () => {
+    mount();
+    const stored = workspaceStore.addCard(STATE, MINE);
+    const id = `card:${stored.id}`;
+    await screen.findByTestId(id);
+    await act(id, "Remove");
+    await waitFor(() => expect(cardStore.list(STATE)).toHaveLength(0));
+    expect(await screen.findByText("Card removed")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(cardStore.list(STATE).map((c) => c.id)).toEqual([stored.id]);
+    expect(await screen.findByTestId(id)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
+  it("a click outside Configure does not discard the draft; Cancel does", async () => {
+    mount();
+    await addPartyCard();
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(document.querySelector(".mantine-Modal-overlay")!);
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("Configure opens with focus in the Title field, and its close button has a name", async () => {
+    mount();
+    await addPartyCard();
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveFocus());
+    expect(within(dialog).getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
+  it("closing Configure puts focus back on what opened it", async () => {
+    mount();
+    await addPartyCard();
+    await userEvent.click(await within(await screen.findByRole("dialog")).findByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Add card" })).toHaveFocus());
+
+    const stored = workspaceStore.addCard(STATE, MINE);
+    const id = `card:${stored.id}`;
+    await screen.findByTestId(id);
+    await act(id, "Configure");
+    await userEvent.click(await within(await screen.findByRole("dialog")).findByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(within(cellOf(id)).getByRole("button", { name: /^Card actions/ })).toHaveFocus());
   });
 
   it("Configure edits the stored card in place", async () => {

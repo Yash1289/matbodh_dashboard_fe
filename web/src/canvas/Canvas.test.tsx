@@ -65,20 +65,20 @@ describe("Canvas", () => {
     expect(grid!.dragConfig).toMatchObject({ enabled: true, handle: ".canvas-handle" });
     expect(grid!.resizeConfig.enabled).toBe(true);
     expect(grid!.layout.map((l) => l.i)).toEqual(tab.items.map((i) => i.cardId));
-    expect(screen.getAllByLabelText("Drag card")).toHaveLength(2);
+    expect(document.querySelectorAll(".canvas-handle")).toHaveLength(2);
   });
 
   it(`below ${NARROW_PAGE}px the cards are one column in reading order, with no grid and no handle`, async () => {
     const { a, b } = setup(500);
     await waitFor(() => expect(screen.queryByTestId("grid")).toBeNull());
-    expect(screen.queryByLabelText("Drag card")).toBeNull();
+    expect(document.querySelector(".canvas-handle")).toBeNull();
     const text = screen.getAllByText(/^card /).map((p) => p.textContent);
     expect(text).toEqual([`card ${a.id}`, `card ${b.id}`]);
   });
 
   it("every cell has the card menu, on the grid and in one column", async () => {
     setup(900);
-    expect(await screen.findAllByRole("button", { name: "Card actions" })).toHaveLength(2);
+    expect(await screen.findAllByRole("button", { name: /^Card actions/ })).toHaveLength(2);
   });
 
   it("lays out at the usual page width until the width is known", () => {
@@ -122,11 +122,11 @@ describe("Canvas: keyboard focus and announcements after a card leaves", () => {
     const user = userEvent.setup();
     renderWithProviders(<Live />);
     await screen.findByText(`card ${a.id}`);
-    await user.click(screen.getAllByRole("button", { name: "Card actions" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /^Card actions/ })[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Remove" }));
     await waitFor(() => expect(screen.queryByText(`card ${a.id}`)).toBeNull());
     expect(screen.getByRole("status")).toHaveTextContent("Card removed");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Card actions" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Card actions/ })).toHaveFocus());
     expect(screen.getByText(`card ${b.id}`)).toBeInTheDocument();
   });
 
@@ -138,9 +138,25 @@ describe("Canvas: keyboard focus and announcements after a card leaves", () => {
     const user = userEvent.setup();
     renderWithProviders(<Live />);
     await screen.findByText(`card ${a.id}`);
-    await user.click(screen.getAllByRole("button", { name: "Card actions" })[0]);
+    await user.click(screen.getAllByRole("button", { name: /^Card actions/ })[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Move to tab: Tab 2" }));
     expect(screen.getByRole("status")).toHaveTextContent("Moved to Tab 2");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Card actions" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Card actions/ })).toHaveFocus());
+  });
+
+  it("Fit all heights fits every card to its content in one save, and is absent on the one-column layout", async () => {
+    const user = userEvent.setup();
+    const { tab } = setup(900);
+    await screen.findByTestId("grid");
+    expect(tab.items.every((i) => i.h === 8)).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Fit all heights" }));
+    expect(workspaceStore.get(STATE).tabs[0].items.every((i) => i.h === 1)).toBe(true);
+    expect(screen.getByRole("status")).toHaveTextContent("Fitted 2 cards to their content");
+  });
+
+  it("offers no Fit all on the one-column layout", async () => {
+    setup(400);
+    await waitFor(() => expect(screen.queryByTestId("grid")).toBeNull());
+    expect(screen.queryByRole("button", { name: "Fit all heights" })).toBeNull();
   });
 });

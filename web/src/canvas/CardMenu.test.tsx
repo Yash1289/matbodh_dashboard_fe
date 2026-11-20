@@ -24,7 +24,7 @@ function Harness({ cardId, onConfigure, rows = 7 }: { cardId: string; onConfigur
 }
 
 const item = (id: string) => workspaceStore.get(STATE).tabs.flatMap((t) => t.items).find((i) => i.cardId === id)!;
-const open = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: "Card actions" }));
+const open = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: /^Card actions/ }));
 const choose = async (user: ReturnType<typeof userEvent.setup>, name: RegExp | string) => {
   await open(user);
   await user.click(await screen.findByRole("menuitem", { name }));
@@ -36,7 +36,7 @@ describe("CardMenu", () => {
     const card = workspaceStore.addCard(STATE, CONFIG);
     const onConfigure = vi.fn();
     renderWithProviders(<Harness cardId={card.id} onConfigure={onConfigure} />);
-    screen.getByRole("button", { name: "Card actions" }).focus();
+    screen.getByRole("button", { name: /^Card actions/ }).focus();
     await user.keyboard("{Enter}");
     const names = (await screen.findAllByRole("menuitem")).map((m) => m.textContent);
     for (const expected of [/Configure/, /Copy card/, /Copy config/, /Move left/, /Move right/, /Move up/, /Move down/, /Size: Small/, /Size: Medium/, /Size: Wide/, /Size: Full/, /Fit to content/, /Remove/]) {

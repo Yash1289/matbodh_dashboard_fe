@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLUMNS, ROW_HEIGHT, defaultSize, firstFreeSpot, fitHeight, moveBy, normalise, readingOrder, resizeTo, rowsFor, settle, type Item } from "./layout";
+import { COLUMNS, ROW_HEIGHT, defaultSize, firstFreeSpot, fitAllHeights, fitHeight, moveBy, normalise, readingOrder, resizeTo, rowsFor, settle, type Item } from "./layout";
 
 const item = (cardId: string, x: number, y: number, w: number, h: number): Item => ({ cardId, x, y, w, h });
 const byId = (items: Item[], id: string): Item => items.find((i) => i.cardId === id)!;
@@ -123,5 +123,28 @@ describe("rowsFor", () => {
     expect(rowsFor(height(5), gap)).toBe(5);
     expect(rowsFor(height(5) + 1, gap)).toBe(6);
     expect(rowsFor(0, gap)).toBe(1);
+  });
+});
+
+describe("defaultSize", () => {
+  it("lets two grid or ranking cards sit side by side, and gives wide families the full width", () => {
+    expect(defaultSize("distribution").w).toBe(6);
+    expect(defaultSize("distribution").w * 2).toBeLessThanOrEqual(COLUMNS);
+    expect(defaultSize("seat_ranking").w).toBe(6);
+    expect(defaultSize("seat_benchmark").w).toBe(COLUMNS);
+  });
+});
+
+describe("fitAllHeights", () => {
+  it("sets every card to its own measured rows, closes the gaps, and leaves widths alone", () => {
+    const items = [item("a", 0, 0, 6, 8), item("b", 6, 0, 6, 8), item("c", 0, 8, 12, 8)];
+    const out = fitAllHeights(items, { a: 3, b: 5, c: 2 });
+    expect(byId(out, "a")).toMatchObject({ w: 6, h: 3, y: 0 });
+    expect(byId(out, "b")).toMatchObject({ w: 6, h: 5, y: 0 });
+    expect(byId(out, "c")).toMatchObject({ w: 12, h: 2, y: 5 });
+  });
+
+  it("keeps the current height for a card with no measurement", () => {
+    expect(byId(fitAllHeights([item("a", 0, 0, 6, 8)], {}), "a").h).toBe(8);
   });
 });
