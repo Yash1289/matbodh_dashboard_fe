@@ -59,7 +59,7 @@ export function RelationshipSummaryTable({ payload, view }: Props) {
     <TableFrame minWidthEm={14 + 9 * columns.length}>
     <table>
       <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>
-        Flow summary · {payload.origin} → {payload.destination}
+        Flow summary · {payload.rounds.items.find((i) => i.obs_id === payload.rounds.anchor)?.label ?? ""} · {payload.origin} → {payload.destination}
         {payload.focal_party !== null && ` · focal ${payload.focal_party}`}
       </caption>
       <thead>

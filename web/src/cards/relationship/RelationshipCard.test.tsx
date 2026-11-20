@@ -117,12 +117,11 @@ describe("RelationshipCard", () => {
     const runs: Record<string, RunStatus> = {};
     mount(p, { payloads: [p], runs });
     await screen.findByRole("table", { name: /Flow summary/ });
-    expect(screen.getByTestId("card-subtitle")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /Flow summary/ })).toBeInTheDocument();
     runs[p.card_id] = { state: "running", done: 0, total: 1, result: null, errors: {} };
     await userEvent.click(screen.getByRole("button", { name: "⋯" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Refresh" }));
     expect(await screen.findByText(/Running/)).toBeInTheDocument();
-    expect(screen.queryByTestId("card-subtitle")).toBeNull();
     expect(screen.queryByRole("button", { name: /Search/ })).toBeNull();
     expect(screen.queryByRole("table")).toBeNull();
   });

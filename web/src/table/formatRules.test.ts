@@ -27,8 +27,8 @@ describe("formatRules", () => {
   it("tint is a soft wash: alpha runs from 0.04 to 0.16 and never beyond", () => {
     expect(alpha({ background: tint("gain", 1) })).toBeCloseTo(0.16);
     expect(alpha({ background: tint("loss", 0) })).toBeCloseTo(0.04);
-    expect(alpha({ background: tint("primary", 5) })).toBeCloseTo(0.16);
-    expect(alpha({ background: tint("primary", -3) })).toBeCloseTo(0.04);
+    expect(alpha({ background: tint("gain", 5) })).toBeCloseTo(0.16);
+    expect(alpha({ background: tint("gain", -3) })).toBeCloseTo(0.04);
   });
 
   it("heat never exceeds the soft ceiling at any strength", () => {

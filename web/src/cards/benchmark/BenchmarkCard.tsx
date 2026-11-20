@@ -4,6 +4,7 @@ import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { BenchmarkPayload, BenchmarkReference, BenchmarkTable, CardInfo, RunError, StateContext } from "../../api/types";
+import chrome from "../card.module.css";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
@@ -15,7 +16,7 @@ import { TableChooser } from "../TableChooser";
 import { benchmarkToCsv } from "./benchmarkCsv";
 import { initialBenchmarkView, type BenchmarkView } from "./benchmarkRows";
 import { CohortDialog } from "../../cohorts/CohortDialog";
-import { anchorLabel, BenchmarkTables, referenceLabel, TABLE_LABELS } from "./BenchmarkTables";
+import { BenchmarkTables, referenceLabel, TABLE_LABELS } from "./BenchmarkTables";
 
 /** Infrastructure messages are never shown raw; other kinds carry a client-safe message. */
 function errorText(e: RunError): string {
@@ -91,21 +92,12 @@ function BenchmarkCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext })
     body = <Progress>Running the benchmark — a state takes about a minute…</Progress>;
   }
 
-  const subtitle = shown && !errored
-    ? [`anchor round ${anchorLabel(shown)}`, shown.reference.kind === "none" ? null : `vs ${referenceLabel(shown)}`,
-      shown.focal_party ? `focal ${shown.focal_party}` : null].filter((p) => p !== null).join(" · ")
-    : "";
-
   return (
-    <div ref={boxRef} data-testid={`card:${info.id}`} style={{
-      background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
-      padding: "17px 19px",
-    }}>
+    <div ref={boxRef} data-testid={`card:${info.id}`} className={chrome.card}>
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
-            {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           <Group gap={8} wrap="wrap" justify="flex-end">
             {shown && shown.reference.kind !== "none" && (

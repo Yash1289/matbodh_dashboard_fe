@@ -4,6 +4,7 @@ import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { CardInfo, RelationshipPayload, RelationshipTable, RunError, StateContext } from "../../api/types";
+import chrome from "../card.module.css";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
@@ -116,23 +117,15 @@ function RelationshipCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext
     body = <Progress>Running the relationship…</Progress>;
   }
 
-  const subtitle = shown && !errored
-    ? [`anchor round ${roundLabel(shown, shown.rounds.anchor)}`, `${shown.origin} → ${shown.destination}`,
-      shown.focal_party ? `focal ${shown.focal_party}` : null].filter((p) => p !== null).join(" · ")
-    : "";
   const cuts = shown ? cutsOf(shown) : [];
   const dimensions = shown && view ? cuts.find((c) => c.key === view.cut)?.dimensions ?? [] : [];
 
   return (
-    <div ref={boxRef} data-testid={`card:${info.id}`} style={{
-      background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
-      padding: "17px 19px",
-    }}>
+    <div ref={boxRef} data-testid={`card:${info.id}`} className={chrome.card}>
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
-            {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           {shown && view && (
             <Group gap={8} wrap="wrap" justify="flex-end">

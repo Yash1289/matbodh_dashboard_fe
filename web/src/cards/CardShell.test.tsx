@@ -89,7 +89,8 @@ describe("CardShell", () => {
     stubCardApi({ payloads: [p] });
     mount(p);
     await screen.findByRole("table");
-    expect(screen.getByTestId("card-subtitle")).toHaveTextContent(/^anchor round 2027 VS CAPI R2 · Δ vs 2027 VS CAPI R1$/);
+    expect(screen.queryByTestId("card-subtitle")).toBeNull(); // said once, in the table's own caption
+    expect(screen.getByRole("table", { name: /^Anchor round: 2027 VS CAPI R2 · Δ vs 2027 VS CAPI R1$/ })).toBeInTheDocument();
     expect(within(await screen.findByRole("table")).getByText(/Δ vs 2027 VS CAPI R1/)).toBeInTheDocument();
   });
 
@@ -99,7 +100,7 @@ describe("CardShell", () => {
     stubCardApi({ payloads: [p] });
     mount(p);
     await screen.findByRole("table");
-    expect(screen.getByTestId("card-subtitle")).toHaveTextContent(/^anchor round 2027 VS CAPI R2 · Δ vs ls_past$/);
+    expect(screen.getByRole("table", { name: /^Anchor round: 2027 VS CAPI R2 · Δ vs ls_past$/ })).toBeInTheDocument();
   });
 
   it("opens the method drawer with the contract from the payload", async () => {

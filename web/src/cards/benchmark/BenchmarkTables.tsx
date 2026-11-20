@@ -43,9 +43,9 @@ const tone = (v: number | null): "gain" | "loss" | "neutral" => (v === null || v
 const arrow = (v: number): string => (v > 0 ? "▲" : v < 0 ? "▼" : "");
 
 /** A value, or a dash that says why (never a synthesised zero). */
-function Cell({ text, absent, className }: { text: string | null; absent: boolean; className?: string }) {
+function Cell({ text, absent, className, delta }: { text: string | null; absent: boolean; className?: string; delta?: number | null }) {
   return (
-    <td className={[styles.num, className].filter(Boolean).join(" ")}>
+    <td className={[styles.num, className].filter(Boolean).join(" ")} data-tone={delta === undefined ? undefined : tone(delta)}>
       {text === null ? <span title={absent ? ABSENT_REASON : "no value"}>–</span> : text}
     </td>
   );
@@ -100,7 +100,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
     return (
       <TableFrame minWidthEm={38}>
         <table>
-          <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>Summary</caption>
+          <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>{`Summary · ${anchorLabel(p)}${p.reference.kind === "none" ? "" : ` vs ${referenceLabel(p)}`}`}</caption>
           <thead>
             <tr><th scope="col" className={PIN}>Seat group</th>{m.parties.map((x) => <th key={x} scope="col">{x}</th>)}</tr>
           </thead>
@@ -148,11 +148,11 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
                   <Head pin>{x.party}</Head>
                   <Cell text={pct(x.target_vote_share)} absent={x.absent_sides.includes("target")} />
                   <Cell text={pct(x.reference_vote_share)} absent={x.absent_sides.includes("reference")} />
-                  <Cell text={pp(x.vote_share_delta_pp)} absent={x.absent_sides.length > 0} />
+                  <Cell text={pp(x.vote_share_delta_pp)} absent={x.absent_sides.length > 0} delta={x.vote_share_delta_pp} />
                   <Cell text={count(x.target_seats)} absent={x.absent_sides.includes("target")} className={styles.vl} />
                   <Cell text={count(x.reference_seats)} absent={x.absent_sides.includes("reference")} />
-                  <Cell text={signed(x.seat_delta)} absent={x.absent_sides.length > 0} />
-                  <Cell text={pp(x.seat_share_delta_pp)} absent={x.absent_sides.length > 0} />
+                  <Cell text={signed(x.seat_delta)} absent={x.absent_sides.length > 0} delta={x.seat_delta} />
+                  <Cell text={pp(x.seat_share_delta_pp)} absent={x.absent_sides.length > 0} delta={x.seat_share_delta_pp} />
                 </tr>
               ))}
             </tbody>

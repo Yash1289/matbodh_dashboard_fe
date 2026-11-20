@@ -68,7 +68,7 @@ export function RelationshipMatrixTable({ payload, view }: Props) {
               // The origin share is the matrix's headline: a soft wash that grows with the share (never the browser's own arithmetic).
               const share = m.head === "Origin share" && r.cell.absent === null ? r.cell.origin_share : null;
               return (
-                <td key={m.head} style={{ ...cell, ...(share !== null ? { background: tint("primary", share / 100) } : {}) }}
+                <td key={m.head} style={{ ...cell, ...(share !== null ? { background: tint("gain", share / 100) } : {}) }}
                   {...(share !== null ? { "data-share": "" } : {})}>
                   {r.cell.absent !== null ? <span title={reason(r.stayed)} aria-label={reason(r.stayed)}>—</span> : m.text(r.cell)}
                 </td>

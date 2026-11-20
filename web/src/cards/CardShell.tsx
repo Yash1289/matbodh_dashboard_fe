@@ -5,6 +5,7 @@ import { useCardPlan, useCardRun, useFieldScopes } from "../api/queries";
 import { toCardRef } from "../api/types";
 import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
+import chrome from "./card.module.css";
 import { tokens } from "../theme";
 import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
@@ -135,36 +136,12 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
     );
   }
 
-  const items = errored ? [] : shown?.rounds.items ?? plan.data?.rounds ?? [];
-  const roundsTitle = items
-    .map((r) => `${r.base_name} · ${r.version}${r.fallback ? " (no Extrapolated version)" : ""} · ${r.seats} seats · ${r.dataset_id}`)
-    .join("\n");
-  const nameOf = (id: string | null) => items.find((r) => r.obs_id === id)?.base_name;
-  // Round names are series-qualified; the bare R1/R2 labels only head columns inside the table.
-  const anchor = nameOf(shown && !errored ? shown.rounds.anchor : ctx.anchor_round);
-  // The reference is whatever the engine's deltas were measured against: another round, or another scenario in the same round.
-  const firstDelta = shown?.mode === "compare" ? shown.cuts.flatMap((c) => c.deltas)[0] : undefined;
-  const compare = firstDelta === undefined ? undefined : (() => {
-    const [targetObs] = firstDelta.target.split(":");
-    const [referenceObs, ...scenario] = firstDelta.reference.split(":");
-    return referenceObs !== targetObs ? nameOf(referenceObs) : scenario.join(":");
-  })();
-  const subtitle = anchor === undefined ? null : [
-    `anchor round ${anchor}`,
-    compare === undefined ? null : `Δ vs ${compare}`,
-    shown?.mode === "trend" ? `trend ${items.map((r) => r.base_name).join(" | ")}` : null,
-  ].filter((p) => p !== null).join(" · ");
-
   return (
-    <div ref={ref} data-testid={`card:${info.id}`} style={{
-      background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
-      padding: "17px 19px",
-    }}>
+    <div ref={ref} data-testid={`card:${info.id}`} className={chrome.card}>
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
-            {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" title={roundsTitle} data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           {shown && view && grid && (
             <ControlStrip
