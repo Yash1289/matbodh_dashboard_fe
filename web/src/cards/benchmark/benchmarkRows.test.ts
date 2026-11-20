@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BenchmarkGroup, BenchmarkSummaryRow } from "../../api/types";
 import { BENCHMARK } from "../../test/cardApi";
-import { groupLabel, groupedRows, initialBenchmarkView } from "./benchmarkRows";
+import { groupLabel, groupedRows, initialBenchmarkView, summaryMatrix } from "./benchmarkRows";
 
 const group = (set_id: string, dims: Record<string, string> = {}): BenchmarkGroup => ({ set_id, dimensions: dims });
 const row = (g: BenchmarkGroup, party: string, endpoint: "target" | "reference" = "target") =>
@@ -41,5 +41,41 @@ describe("benchmarkRows", () => {
     const p = BENCHMARK.surveyVs2022();
     expect(initialBenchmarkView(p).table).toBe(p.default_table);
     expect(initialBenchmarkView({ ...p, tables_available: ["summary"], default_table: "summary" }).table).toBe("summary");
+  });
+});
+
+describe("summaryMatrix", () => {
+  it("has the parties as columns with Other last, and All seats as the first row", () => {
+    const p = BENCHMARK.surveyVs2022();
+    const m = summaryMatrix(p, "");
+    expect(m.parties).toEqual([...p.parties, p.other_label]);
+    expect(m.rows[0].label).toBe("All seats");
+    expect(m.rows[0].eligible).toBe(403);
+    expect(m.rows.length).toBeGreaterThan(1);
+  });
+
+  it("merges vote share and seats with their changes from the comparison row", () => {
+    const p = BENCHMARK.surveyVs2022();
+    const nda = p.comparisons.find((r) => r.group.set_id === "g0" && r.party === "NDA")!;
+    const cell = summaryMatrix(p, "").rows[0].cells.NDA!;
+    expect(cell).toEqual({
+      voteShare: nda.target_vote_share, voteDelta: nda.vote_share_delta_pp,
+      seats: nda.target_seats, seatDelta: nda.seat_delta, absent: false,
+    });
+    expect(cell.seats).toBe(154);
+    expect(cell.seatDelta).toBe(-119);
+  });
+
+  it("leaves a cell empty, never zero, for a party a group has no row for", () => {
+    const p = BENCHMARK.surveyVs2022();
+    p.comparisons = p.comparisons.filter((r) => !(r.group.set_id === "g0" && r.party === "BSP"));
+    expect(summaryMatrix(p, "").rows[0].cells.BSP).toBeNull();
+  });
+
+  it("falls back to the target summary rows, with no changes, when there is no reference", () => {
+    const p = { ...BENCHMARK.surveyVs2022(), comparisons: [] };
+    const nda = p.summaries.find((r) => r.endpoint === "target" && r.group.set_id === "g0" && r.party === "NDA")!;
+    const cell = summaryMatrix(p, "").rows[0].cells.NDA!;
+    expect(cell).toEqual({ voteShare: nda.vote_share, voteDelta: null, seats: nda.seats, seatDelta: null, absent: nda.absent !== null });
   });
 });

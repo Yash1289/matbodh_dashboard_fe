@@ -1,4 +1,5 @@
-import { Button, Drawer, Group, Menu, NativeSelect, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Drawer, Group, Menu, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
@@ -7,7 +8,9 @@ import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
 import { MethodDrawer } from "../MethodDrawer";
-import { PopoverChip } from "../PopoverChip";
+import { PopoverChip, chipProps, chipStyle } from "../PopoverChip";
+import { sizeClass } from "../sizeClass";
+import { TableChooser } from "../TableChooser";
 import { benchmarkToCsv } from "./benchmarkCsv";
 import { initialBenchmarkView, type BenchmarkView } from "./benchmarkRows";
 import { CohortDialog } from "../../cohorts/CohortDialog";
@@ -44,6 +47,8 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
   // Never the previous run's payload: its reference, subtitle and method text would describe the old choice.
   const shown = blocked || errored ? null : run.current;
 
+  const { ref: boxRef, width } = useElementSize();
+  const size = width === 0 ? "wide" : sizeClass(width);
   const [chosen, setChosen] = useState<Partial<BenchmarkView>>({});
   const [methodOpen, setMethodOpen] = useState(false);
   const [cohortOpen, setCohortOpen] = useState(false);
@@ -97,7 +102,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
     : "";
 
   return (
-    <div data-testid={`card:${info.id}`} style={{
+    <div ref={boxRef} data-testid={`card:${info.id}`} style={{
       background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
       padding: "17px 19px",
     }}>
@@ -108,12 +113,15 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
             {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           <Group gap={8} wrap="wrap" justify="flex-end">
+            {shown && shown.reference.kind !== "none" && (
+              <span {...chipProps(true)} style={chipStyle(true)} data-testid="reference-tag">
+                Reference {referenceLabel(shown)}
+              </span>
+            )}
             {shown && view && (
-              <PopoverChip label="Table ▾" selected={false}>
-                <NativeSelect size="xs" aria-label="Table" value={view.table}
-                  data={shown.tables_available.map((t: BenchmarkTable) => ({ value: t, label: TABLE_LABELS[t] }))}
-                  onChange={(e) => { const table = e.currentTarget.value as BenchmarkTable; setChosen((c) => ({ ...c, table })); }} />
-              </PopoverChip>
+              <TableChooser label="Table" value={view.table} size={size}
+                options={shown.tables_available.map((t: BenchmarkTable) => ({ value: t, label: TABLE_LABELS[t] }))}
+                onChange={(table) => setChosen((c) => ({ ...c, table }))} />
             )}
             {shown && view && (
               <>
