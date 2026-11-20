@@ -67,6 +67,22 @@ def catalogue_loader(settings: Settings) -> Callable[[], Catalogue]:
     return load
 
 
+def values_query_loader(settings: Settings) -> Callable[[str, dict[str, Any]], Any]:
+    """Run one read-only lookup (filter values) over a short-lived connection."""
+
+    def run(sql: str, params: dict[str, Any]) -> Any:
+        from matbodh_views.connections import create_clickhouse_client
+
+        client = create_clickhouse_client(settings.engine_env_file)
+        try:
+            return client.query(sql, parameters=params,
+                                settings={"readonly": 1, "max_execution_time": 30, "max_result_rows": 5000}).result_rows
+        finally:
+            client.close()
+
+    return run
+
+
 def seat_snapshot_loader(settings: Settings) -> Callable[[str, str, tuple[str, ...]], Any]:
     """Seat master snapshots over a short-lived, read-only MySQL connection.
 
@@ -117,4 +133,5 @@ def build_service_from_settings(settings: Settings) -> CardRunService:
 
 def create_production_app() -> FastAPI:
     settings = load_settings()
-    return create_app(build_service_from_settings(settings), catalogue_loader(settings))
+    return create_app(build_service_from_settings(settings), catalogue_loader(settings),
+                      values_query=values_query_loader(settings))

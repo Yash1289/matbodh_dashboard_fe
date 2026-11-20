@@ -18,11 +18,13 @@ from fastapi.responses import JSONResponse
 
 from matbodh_dashboard.api.schemas import (
     CardRequest, MetadataRefreshed, OptionsRequest, PreviewRequest, RunStarted, StatesResponse,
-    ValidateRequest, ValuesRequest,
+    DistinctValuesRequest, ValidateRequest, ValuesRequest,
 )
 from matbodh_dashboard.capability import validate_context
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable
+from matbodh_dashboard.cards.configure.distinct_values import (
+    DistinctUnavailable, DistinctValues, QueryFn, distinct_values, rounds_read)
 from matbodh_dashboard.cards.configure.families import descriptors
 from matbodh_dashboard.cards.configure.options import options_for
 from matbodh_dashboard.cards.configure.validate import rounds_payload, validate_draft
@@ -131,8 +133,10 @@ def create_app(
     service: CardRunService,
     catalogue_loader: Callable[[], Catalogue] | None = None,
     config_dir: Path | None = None,
+    values_query: QueryFn | None = None,
 ) -> FastAPI:
     app = FastAPI(title="MatBodh dashboard API")
+    distinct_cache: dict[tuple, DistinctValues] = {}
 
     @app.middleware("http")
     async def copy_principal(request: Request, call_next):
@@ -220,6 +224,31 @@ def create_app(
         except RoundNotFound:
             raise _catalogue_changed() from None
         return [item.model_dump() for item in found]
+
+    @app.post("/configure/values/distinct", response_model=DistinctValues)
+    def configure_values_distinct(body: DistinctValuesRequest):
+        """A filter's values without an engine run; `source: "engine"` tells the caller to use /configure/values."""
+        errors = validate_context(body.context, service.catalogue)
+        if errors:
+            return _invalid(errors)
+        if values_query is None:
+            return DistinctValues(field=body.field, values=[], source="engine")
+        catalogue = service.catalogue
+        try:
+            rounds = rounds_read(body.mode, body.context, catalogue, body.pipe_rounds)
+            key = (catalogue.revision, body.context.state, body.field, tuple(r.dataset.dataset_id for r in rounds))
+            if key not in distinct_cache:
+                if len(distinct_cache) >= 256:
+                    distinct_cache.clear()
+                distinct_cache[key] = distinct_values(body.field, body.context, body.mode, body.pipe_rounds, catalogue, values_query)
+            return distinct_cache[key]
+        except DistinctUnavailable as exc:
+            return _invalid([str(exc)])
+        except RoundNotFound:
+            raise _catalogue_changed() from None
+        except Exception:  # the cause may carry hosts or SQL: log it, do not show it
+            log.warning("filter values lookup failed", exc_info=True)
+            raise HTTPException(503, "The values could not be loaded; try again shortly") from None
 
     @app.post("/configure/values", response_model=RunStarted)
     def configure_values(body: ValuesRequest):

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
@@ -70,6 +72,17 @@ class ValuesRequest(BaseModel):
 
     field: str
     scenario: str | None = None
+    context: StateContext
+    pipe_rounds: int | None = Field(default=None, ge=1)
+
+
+class DistinctValuesRequest(BaseModel):
+    """Body of /configure/values/distinct: the field, the card's mode (which rounds it reads) and its context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    mode: Literal["standalone", "compare", "trend"] | None = None
     context: StateContext
     pipe_rounds: int | None = Field(default=None, ge=1)
 
