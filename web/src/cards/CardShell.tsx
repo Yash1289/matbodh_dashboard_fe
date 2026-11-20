@@ -11,6 +11,7 @@ import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
 import { payloadToGrid } from "./grid/payloadToGrid";
 import { MethodDrawer } from "./MethodDrawer";
+import { sizeClass } from "./sizeClass";
 import { initialView, settled, type FamilyView } from "./view";
 
 interface Props {
@@ -20,8 +21,6 @@ interface Props {
   order?: { rows?: string[]; columns?: string[]; pinLast?: string[] };
   colors?: Record<string, string>;
 }
-
-const NARROW_PX = 720;
 
 /** Infrastructure messages are never shown raw; other kinds carry a client-safe message. */
 function errorText(e: RunError): string {
@@ -156,7 +155,7 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
           </div>
           {shown && view && grid && (
             <ControlStrip
-              payload={shown} view={view} onView={onView} narrow={width > 0 && width < NARROW_PX}
+              payload={shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
               onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
               onExport={() => downloadCsv(`${info.id}.csv`, toCsv(grid))}
             />

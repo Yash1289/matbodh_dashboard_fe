@@ -6,17 +6,18 @@ import compareFixture from "../test/fixtures/cards/distribution_compare.json";
 import standaloneFixture from "../test/fixtures/cards/distribution_standalone.json";
 import genderFixture from "../test/fixtures/cards/gender_differential_standalone.json";
 import { renderWithProviders } from "../test/render";
-import { ControlStrip } from "./ControlStrip";
+import { ControlStrip, lensPresentation } from "./ControlStrip";
+import type { SizeClass } from "./sizeClass";
 import { cutLabel, initialView, type FamilyView } from "./view";
 
 const load = (fixture: unknown): GridPayload => structuredClone(fixture) as GridPayload;
 
-function mount(payload: GridPayload, over: Partial<FamilyView> = {}, narrow = false) {
+function mount(payload: GridPayload, over: Partial<FamilyView> = {}, size: SizeClass = "wide") {
   const onView = vi.fn();
   const view = { ...initialView(payload), ...over };
   renderWithProviders(
     <ControlStrip payload={payload} view={view} onView={onView} onMethod={vi.fn()}
-      onExport={vi.fn()} canExport onRefresh={vi.fn()} narrow={narrow} />,
+      onExport={vi.fn()} canExport onRefresh={vi.fn()} size={size} />,
   );
   return onView;
 }
@@ -64,7 +65,9 @@ describe("ControlStrip capabilities", () => {
 
   it("offers Δ controls only in compare mode", async () => {
     mount(load(compareFixture));
-    expect(screen.getByText(/Cell:/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    expect(await screen.findByText("Cell parts")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByText(/Sort/));
     expect(screen.getAllByText(/Δ .* high to low/).length).toBeGreaterThan(0);
   });
@@ -86,11 +89,10 @@ describe("ControlStrip capabilities", () => {
 });
 
 describe("ControlStrip layout and access", () => {
-  it("collapses the secondary controls into a +n menu when narrow", async () => {
-    mount(load(standaloneFixture), {}, true);
-    expect(screen.queryByText(/Density:/)).not.toBeInTheDocument();
-    const overflow = screen.getByText(/^\+\d+$/);
-    await userEvent.click(overflow);
+  it("keeps Density inside the View menu when narrow", async () => {
+    mount(load(standaloneFixture), {}, "narrow");
+    expect(screen.queryByText(/Density/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
     expect(await screen.findByText(/Density/)).toBeInTheDocument();
   });
 
@@ -113,16 +115,80 @@ describe("ControlStrip layout and access", () => {
     await userEvent.click(screen.getByText(/Lens: Support %/));
     await userEvent.click(screen.getByText("Contribution %"));
     await userEvent.click(screen.getByText(/Transpose/));
-    await userEvent.click(screen.getByText(/Details/));
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    await userEvent.click(await screen.findByText(/Details/));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("offers the method, export and refresh actions in the more menu", async () => {
+  it("offers the method, export and refresh actions in the View menu", async () => {
     mount(load(standaloneFixture));
-    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
-    const menu = await screen.findByRole("menu");
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    const menu = await screen.findByRole("dialog");
     expect(within(menu).getByText("How this was calculated")).toBeInTheDocument();
     expect(within(menu).getByText("Export CSV")).toBeInTheDocument();
     expect(within(menu).getByText("Refresh")).toBeInTheDocument();
+  });
+});
+
+describe("lens presentation", () => {
+  it("is tabs only for a wide card with three lenses or fewer", () => {
+    expect(lensPresentation(3, "wide")).toBe("tabs");
+    expect(lensPresentation(2, "wide")).toBe("tabs");
+    expect(lensPresentation(4, "wide")).toBe("chip");
+    expect(lensPresentation(3, "medium")).toBe("chip");
+    expect(lensPresentation(3, "narrow")).toBe("chip");
+    expect(lensPresentation(1, "wide")).toBe("none");
+  });
+
+  it("draws three lenses as tabs on a wide card and selects one", async () => {
+    const p = load(standaloneFixture);
+    p.meta.lenses = p.meta.lenses.slice(0, 3);
+    const onView = mount(p, {}, "wide");
+    const tabs = screen.getByRole("tablist", { name: "Lens" });
+    expect(within(tabs).getAllByRole("tab")).toHaveLength(3);
+    expect(within(tabs).getByRole("tab", { selected: true })).toHaveTextContent(p.meta.lenses[0].label);
+    await userEvent.click(within(tabs).getByRole("tab", { name: p.meta.lenses[1].label }));
+    expect(onView).toHaveBeenCalledWith({ lens: p.meta.lenses[1].id });
+  });
+
+  it("draws the same three lenses as a chip on a narrow card", () => {
+    const p = load(standaloneFixture);
+    p.meta.lenses = p.meta.lenses.slice(0, 3);
+    mount(p, {}, "narrow");
+    expect(screen.queryByRole("tablist", { name: "Lens" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Lens: Support %/)).toBeInTheDocument();
+  });
+});
+
+describe("changed-from-default state", () => {
+  it("shows a plain chip at the default and a marked one when changed", () => {
+    const p = load(standaloneFixture);
+    mount(p);
+    expect(screen.getByText(/Lens: Support %/)).not.toHaveAttribute("data-changed");
+  });
+
+  it("marks the chip as changed once the view differs from its default", () => {
+    const p = load(standaloneFixture);
+    mount(p, { lens: "contribution_share" });
+    expect(screen.getByText(/Lens: Contribution %/)).toHaveAttribute("data-changed", "true");
+  });
+});
+
+describe("View menu", () => {
+  it("shows each setting's current value and how many are changed", async () => {
+    const p = load(standaloneFixture);
+    mount(p, { density: "compact" }, "medium");
+    const view = screen.getByRole("button", { name: /^View/ });
+    expect(within(view).getByText("1")).toBeInTheDocument();
+    await userEvent.click(view);
+    const menu = await screen.findByRole("dialog");
+    expect(within(menu).getByTestId("view-row-density")).toHaveTextContent("Compact");
+    expect(within(menu).getByTestId("view-row-format")).toHaveTextContent("None");
+  });
+
+  it("moves Format into the View menu below the wide size", async () => {
+    mount(load(standaloneFixture), {}, "wide");
+    expect(screen.getByText(/Format/)).toBeInTheDocument();
+    expect(screen.queryByTestId("view-row-format")).not.toBeInTheDocument();
   });
 });

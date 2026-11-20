@@ -1,10 +1,11 @@
-import { Button, Checkbox, Group, Menu, NativeSelect, SegmentedControl, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { Checkbox, Group, NativeSelect, SegmentedControl, Stack, TextInput, UnstyledButton } from "@mantine/core";
 import type { ReactNode } from "react";
 import type { Density, GridPayload } from "../api/types";
 import type { ShowPreset } from "../cells/parts";
 import type { SortSpec } from "../table/grid";
-import { tokens } from "../theme";
-import { PopoverChip, chipStyle } from "./PopoverChip";
+import { PopoverChip, chipProps, chipStyle } from "./PopoverChip";
+import type { SizeClass } from "./sizeClass";
+import { ViewMenu, type ViewRow } from "./ViewMenu";
 import { cutLabel, initialView, type FamilyView, type Within } from "./view";
 
 interface Props {
@@ -15,12 +16,24 @@ interface Props {
   onExport: () => void;
   canExport: boolean;
   onRefresh: () => void;
-  /** Collapse the secondary controls into a +n menu (set from the container width). */
-  narrow?: boolean;
+  /** Size class of the card (from its own width): decides which controls stay on the strip. */
+  size: SizeClass;
 }
+
+/** Tabs only on a wide card with three lenses or fewer; a chip otherwise; nothing when there is one lens or none. */
+export function lensPresentation(count: number, size: SizeClass): "tabs" | "chip" | "none" {
+  if (count <= 1) return "none";
+  return size === "wide" && count <= 3 ? "tabs" : "chip";
+}
+
+const ON_OFF = (on: boolean) => (on ? "On" : "Off");
 
 interface Control {
   id: string;
+  /** Row title in the View menu. */
+  name: string;
+  /** The setting's current value, shown in the View menu. */
+  value: string;
   label: string;
   selected: boolean;
   primary: boolean;
@@ -46,7 +59,7 @@ const labelOf = <T extends { value: string; label: string }>(options: T[], value
   options.find((o) => o.value === value)?.label ?? value;
 
 /** Display-only controls: none of them triggers a request. Which ones show comes from the payload. */
-export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, narrow = false }: Props) {
+export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size }: Props) {
   const initial = initialView(payload);
   const { meta, mode } = payload;
   const caps = meta.capabilities;
@@ -57,7 +70,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
 
   if (meta.lenses.length > 1) {
     controls.push({
-      id: "lens", primary: true, label: `Lens: ${lens?.label ?? view.lens} ▾`,
+      id: "lens", name: "Lens", value: lens?.label ?? view.lens, primary: true, label: `Lens: ${lens?.label ?? view.lens} ▾`,
       selected: view.lens !== initial.lens,
       content: (
         <SegmentedControl size="xs" aria-label="Lens" orientation={meta.lenses.length > 4 ? "vertical" : "horizontal"}
@@ -73,7 +86,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
     ...(divergingOk ? [{ value: "diverging", label: mode === "compare" ? "Diverging on Δ" : "Diverging on value" }] : []),
   ];
   controls.push({
-    id: "format", primary: true, label: "Format ▾",
+    id: "format", name: "Format", value: labelOf(formats, view.format), primary: true, label: "Format ▾",
     selected: view.format !== initial.format || view.within !== initial.within,
     content: (
       <Stack gap="xs">
@@ -97,7 +110,8 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
       ]),
     ];
     controls.push({
-      id: "sort", primary: true, label: "Sort ▾", selected: view.sort !== null,
+      id: "sort", name: "Sort", value: view.sort ? options.find((o) => o.value === current)?.label ?? "Sorted" : "None",
+      primary: true, label: "Sort ▾", selected: view.sort !== null,
       content: (
         <NativeSelect size="xs" aria-label="Sort" data={options} value={current}
           onChange={(e) => {
@@ -111,7 +125,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
   const presets = PRESETS_BY_MODE[mode];
   if (presets) {
     controls.push({
-      id: "cell", primary: false, label: `Cell: ${PRESET_LABELS[view.preset]} ▾`, selected: view.preset !== initial.preset,
+      id: "cell", name: "Cell parts", value: PRESET_LABELS[view.preset], primary: false, label: `Cell: ${PRESET_LABELS[view.preset]} ▾`, selected: view.preset !== initial.preset,
       content: (
         <SegmentedControl size="xs" aria-label="Cell parts" data={presets.map((p) => ({ value: p, label: PRESET_LABELS[p] }))}
           value={view.preset} onChange={(v) => onView({ preset: v as ShowPreset })} />
@@ -120,25 +134,27 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
   }
 
   controls.push({
-    id: "density", primary: false, label: `Density: ${labelOf(DENSITIES, view.density)} ▾`, selected: view.density !== initial.density,
+    id: "density", name: "Density", value: labelOf(DENSITIES, view.density), primary: false, label: `Density: ${labelOf(DENSITIES, view.density)} ▾`, selected: view.density !== initial.density,
     content: <SegmentedControl size="xs" aria-label="Density" data={DENSITIES} value={view.density} onChange={(v) => onView({ density: v as Density })} />,
   });
 
   if (caps.details) {
     controls.push({
-      id: "details", primary: false, label: "Details", selected: view.showDetails,
+      id: "details", name: "Details", value: ON_OFF(view.showDetails), primary: false, label: "Details", selected: view.showDetails,
       toggle: { pressed: view.showDetails, onToggle: () => onView({ showDetails: !view.showDetails }) },
     });
   }
   if (caps.transpose) {
     controls.push({
-      id: "transpose", primary: false, label: "⇄ Transpose", selected: view.transposed,
+      id: "transpose", name: "Transpose", value: ON_OFF(view.transposed), primary: size === "wide", label: "⇄ Transpose", selected: view.transposed,
       toggle: { pressed: view.transposed, onToggle: () => onView({ transposed: !view.transposed, sort: null }) },
     });
   }
 
   controls.push({
-    id: "find", primary: false, label: view.hidden.length ? `Find & hide (${view.hidden.length}) ▾` : "Find & hide ▾",
+    id: "find", name: "Find & hide",
+    value: view.search !== "" ? `“${view.search}”` : view.hidden.length > 0 ? `${view.hidden.length} hidden` : "None",
+    primary: false, label: view.hidden.length ? `Find & hide (${view.hidden.length}) ▾` : "Find & hide ▾",
     selected: view.search !== "" || view.hidden.length > 0,
     content: (
       <Stack gap="xs">
@@ -154,47 +170,62 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
 
   const draw = (c: Control) =>
     c.toggle ? (
-      <UnstyledButton key={c.id} style={chipStyle(c.toggle.pressed)} aria-pressed={c.toggle.pressed} onClick={c.toggle.onToggle}>{c.label}</UnstyledButton>
+      <UnstyledButton key={c.id} {...chipProps(c.toggle.pressed)} style={chipStyle(c.toggle.pressed)} aria-pressed={c.toggle.pressed} onClick={c.toggle.onToggle}>{c.label}</UnstyledButton>
     ) : (
       <PopoverChip key={c.id} label={c.label} selected={c.selected}>{c.content}</PopoverChip>
     );
-  const primary = controls.filter((c) => c.primary);
-  const secondary = controls.filter((c) => !c.primary);
+
+  // The lens is outside the View menu at every size; the rest stays on the strip only on a wide card.
+  const lensControl = controls.find((c) => c.id === "lens");
+  const onStrip = controls.filter((c) => c.id !== "lens" && c.primary && size === "wide");
+  const inView = controls.filter((c) => c.id !== "lens" && !onStrip.includes(c));
+  const lensMode = lensPresentation(meta.lenses.length, size);
+  const rows: ViewRow[] = inView.map((c) => ({
+    id: c.id, label: c.name, value: c.value, selected: c.selected,
+    node: c.toggle ? undefined : c.content, toggle: c.toggle,
+  }));
+  const cutChip = payload.cuts.length > 1 && (
+    size === "narrow" ? (
+      <PopoverChip label={`Cut: ${cutLabel(payload.cuts.find((c) => c.id === view.cut)?.dimensions ?? [])} ▾`} selected={false}>
+        <SegmentedControl size="xs" aria-label="Cut" orientation="vertical" value={view.cut}
+          data={payload.cuts.map((c) => ({ value: c.id, label: cutLabel(c.dimensions) }))}
+          onChange={(v) => onView({ cut: v })} />
+      </PopoverChip>
+    ) : (
+      <SegmentedControl size="xs" aria-label="Cut" value={view.cut}
+        data={payload.cuts.map((c) => ({ value: c.id, label: cutLabel(c.dimensions) }))}
+        onChange={(v) => onView({ cut: v })} />
+    )
+  );
 
   return (
     <Group gap={8} wrap="wrap" justify="flex-end">
-      {payload.cuts.length > 1 && (
-        <SegmentedControl size="xs" aria-label="Cut" value={view.cut}
-          data={payload.cuts.map((c) => ({ value: c.id, label: cutLabel(c.dimensions) }))}
-          onChange={(v) => onView({ cut: v })} />
+      {cutChip}
+      {lensMode === "tabs" && (
+        <div role="tablist" aria-label="Lens" style={{ display: "flex", gap: 4 }}>
+          {meta.lenses.map((l) => {
+            const active = l.id === (lens?.id ?? view.lens);
+            return (
+              <UnstyledButton key={l.id} role="tab" aria-selected={active} className={chipProps(false).className}
+                onClick={() => onView({ lens: l.id })}
+                style={{
+                  padding: "6px 10px", fontSize: 13, fontWeight: active ? 600 : 500, whiteSpace: "nowrap",
+                  color: active ? "var(--mb-ink)" : "var(--mb-muted)",
+                  borderBottom: `2px solid ${active ? "var(--mb-primary)" : "transparent"}`, borderRadius: "6px 6px 0 0",
+                }}>
+                {l.label}
+              </UnstyledButton>
+            );
+          })}
+        </div>
       )}
-      {primary.map(draw)}
-      {narrow
-        ? secondary.length > 0 && (
-          <PopoverChip label={`+${secondary.length}`} selected={secondary.some((c) => c.selected)}>
-            <Stack gap="sm">
-              {secondary.map((c) => (
-                <div key={c.id}>
-                  <Text size="xs" fw={600} mb={4}>{c.label.replace(" ▾", "")}</Text>
-                  {c.toggle ? (
-                    <Checkbox size="xs" label={c.label} checked={c.toggle.pressed} onChange={c.toggle.onToggle} />
-                  ) : c.content}
-                </div>
-              ))}
-            </Stack>
-          </PopoverChip>
-        )
-        : secondary.map(draw)}
-      <Menu position="bottom-end">
-        <Menu.Target>
-          <Button variant="default" style={{ border: "1px solid var(--mb-chip-border)", padding: "8px 14px", fontSize: tokens.font.button, fontWeight: 500, height: "auto" }}>⋯</Button>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item onClick={onMethod}>How this was calculated</Menu.Item>
-          <Menu.Item onClick={onExport} disabled={!canExport}>Export CSV</Menu.Item>
-          <Menu.Item onClick={onRefresh}>Refresh</Menu.Item>
-        </Menu.Dropdown>
-      </Menu>
+      {lensMode === "chip" && lensControl && draw(lensControl)}
+      {onStrip.map(draw)}
+      <ViewMenu rows={rows} actions={[
+        { id: "method", label: "How this was calculated", onSelect: onMethod },
+        { id: "export", label: "Export CSV", onSelect: onExport, disabled: !canExport },
+        { id: "refresh", label: "Refresh", onSelect: onRefresh },
+      ]} />
     </Group>
   );
 }
