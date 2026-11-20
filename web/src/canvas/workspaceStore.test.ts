@@ -228,3 +228,43 @@ describe("persistence", () => {
     expect(read().tabs[0].items.map((i) => i.cardId)).toEqual(["from-elsewhere"]);
   });
 });
+
+describe("removeCard and restoreCard", () => {
+  it("restores the card with its id, config, tab and size, and in its old place in the list", () => {
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, { ...CONFIG, title: "Second" });
+    const c = workspaceStore.addCard(STATE, CONFIG);
+    const placed = read().tabs[0].items.find((i) => i.cardId === b.id)!;
+    const removal = workspaceStore.removeCard(STATE, b.id);
+    expect(removal).not.toBeNull();
+    expect(cardStore.list(STATE).map((x) => x.id)).toEqual([a.id, c.id]);
+    workspaceStore.restoreCard(STATE, removal!);
+    expect(cardStore.list(STATE).map((x) => x.id)).toEqual([a.id, b.id, c.id]);
+    expect(cardStore.list(STATE)[1].config.title).toBe("Second");
+    const items = read().tabs[0].items;
+    expect(items).toHaveLength(3);
+    expect(items.find((i) => i.cardId === b.id)).toMatchObject({ w: placed.w, h: placed.h });
+  });
+
+  it("removeCard returns null for a card that is not stored, and restoring twice adds it once", () => {
+    expect(workspaceStore.removeCard(STATE, "nope")).toBeNull();
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const removal = workspaceStore.removeCard(STATE, a.id)!;
+    workspaceStore.restoreCard(STATE, removal);
+    workspaceStore.restoreCard(STATE, removal);
+    expect(cardStore.list(STATE)).toHaveLength(1);
+    expect(read().tabs[0].items).toHaveLength(1);
+  });
+
+  it("puts a card back into the first tab when the tab it left has been deleted", () => {
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    workspaceStore.addTab(STATE);
+    const second = read().tabs[1];
+    workspaceStore.moveCardToTab(STATE, a.id, second.id);
+    const removal = workspaceStore.removeCard(STATE, a.id)!;
+    workspaceStore.deleteTab(STATE, second.id);
+    workspaceStore.restoreCard(STATE, removal);
+    expect(read().tabs).toHaveLength(1);
+    expect(read().tabs[0].items.map((i) => i.cardId)).toEqual([a.id]);
+  });
+});

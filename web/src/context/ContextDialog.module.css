@@ -8,9 +8,47 @@
   border-radius: 8px;
   background: var(--mb-header-bg);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
+/* The state leads; the qualifiers read as detail. */
+.pillState { font-weight: 650; }
+.pillSep { color: var(--mb-faint); }
+
 .trigger { flex-shrink: 0; }
+
+/* First step: a page, not a dialog. It sits where the canvas will. */
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 920px;
+}
+
+.stepHeader { display: flex; flex-direction: column; gap: 6px; }
+.stepHeader h1 { text-wrap: balance; }
+.stepLead {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--mb-muted);
+  font-size: 14px;
+  text-wrap: pretty;
+}
+
+/* The sidebar is always present, so the step answers to its own width, not the viewport's. */
+.stepPanel {
+  container: step / inline-size;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--mb-border);
+  border-radius: var(--mantine-radius-lg);
+  background: var(--mb-surface);
+  box-shadow: var(--mb-elev-panel);
+  color: var(--mb-text);
+}
+
+.stepPanel > .scrollBody { overflow: visible; }
+.stepPanel .filters { padding-top: 24px; border-top: 0; }
 
 .dialog {
   display: flex;
@@ -80,6 +118,7 @@
 .empty,
 .notice {
   margin: 0;
+  text-wrap: pretty;
   color: var(--mb-muted);
   font-size: 13px;
 }
@@ -139,7 +178,7 @@
 }
 
 .roundDetails { flex: 1; min-width: 0; font-size: 14px; }
-.roundMetadata { display: block; margin-top: 2px; color: var(--mb-muted); font-size: 12px; }
+.roundMetadata { display: block; margin-top: 2px; color: var(--mb-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
 .roundRole {
   flex: none;
@@ -226,4 +265,10 @@
   .round { flex-wrap: wrap; gap: 6px 10px; }
   .roundRole { margin-inline-start: 28px; }
   .roundDetails { flex-basis: calc(100% - 28px); }
+}
+
+@container step (max-width: 660px) {
+  .scrollBody { padding: 4px 18px 18px; }
+  .footer { padding: 12px 18px; }
+  .filters, .columns { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 }

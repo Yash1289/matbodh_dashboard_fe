@@ -11,11 +11,11 @@ export const SIZE_PRESETS = { small: 4, medium: 6, wide: 8, full: 12 } as const;
 export type SizePreset = keyof typeof SIZE_PRESETS;
 export type Direction = "left" | "right" | "up" | "down";
 
-/** Wide tables get the full width; grid and ranking cards start narrower. */
+/** Wide tables get the full width; grid and ranking cards take half, so two sit side by side. */
 export function defaultSize(family: Family): { w: number; h: number } {
   if (isBenchmarkFamily(family) || isRelationshipFamily(family)) return { w: 12, h: 10 };
   if (isRankingFamily(family)) return { w: 6, h: 10 };
-  return { w: 8, h: 8 };
+  return { w: 6, h: 8 };
 }
 
 const FALLBACK = defaultSize("distribution");
@@ -80,6 +80,11 @@ export function resizeTo(items: Item[], cardId: string, preset: SizePreset): Ite
 export function fitHeight(items: Item[], cardId: string, rows: number): Item[] {
   const h = Math.max(1, Math.round(rows));
   return settle(items.map((i) => (i.cardId === cardId ? { ...i, h } : i)));
+}
+
+/** Every card to its own content height (rows by card id; a card with no measurement keeps its height); gaps close. */
+export function fitAllHeights(items: Item[], rows: Record<string, number>): Item[] {
+  return settle(items.map((i) => (i.cardId in rows ? { ...i, h: Math.max(1, Math.round(rows[i.cardId])) } : i)));
 }
 
 /** Rows top to bottom, then columns left to right: the order of the one-column layout. */

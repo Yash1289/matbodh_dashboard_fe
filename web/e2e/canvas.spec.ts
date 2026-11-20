@@ -56,7 +56,7 @@ const cell = (page: Page, id: string): Locator => page.getByTestId(`card:${id}`)
 const box = async (l: Locator) => (await l.boundingBox())!;
 
 async function menu(page: Page, id: string, item: string | RegExp): Promise<void> {
-  await cell(page, id).getByRole("button", { name: "Card actions" }).click();
+  await cell(page, id).getByRole("button", { name: /^Card actions/ }).click();
   await page.getByRole("menuitem", { name: item }).click();
 }
 
@@ -99,7 +99,7 @@ test("drag a card beside another and the layout survives a reload", async ({ pag
   const twoBefore = await box(cell(page, "c2"));
   expect(twoBefore.y).toBeGreaterThan(one.y + one.height - 4); // below it
 
-  await dragBy(page, cell(page, "c2").getByLabel("Drag card"), one.width + GAP, -(twoBefore.y - one.y));
+  await dragBy(page, cell(page, "c2").locator(".canvas-handle"), one.width + GAP, -(twoBefore.y - one.y));
   // The grid animates cards into place and the page may have scrolled: compare with a fresh look at the first card.
   await expect.poll(async () => {
     const [c1, c2] = [await box(cell(page, "c1")), await box(cell(page, "c2"))];
@@ -180,7 +180,7 @@ test("a second tab keeps its own cards, and deleting a tab with cards asks first
 
 test("at a narrow width the cards are one column and cannot be dragged", async ({ page }) => {
   await open(page, 500);
-  await expect(page.getByLabel("Drag card")).toHaveCount(0);
+  await expect(page.locator(".canvas-handle")).toHaveCount(0);
   const one = await box(cell(page, "c1"));
   const two = await box(cell(page, "c2"));
   expect(Math.abs(two.x - one.x)).toBeLessThan(2);

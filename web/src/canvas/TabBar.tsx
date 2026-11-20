@@ -1,13 +1,23 @@
-import { ActionIcon, Button, Group, Menu, Modal, Tabs, Text, TextInput } from "@mantine/core";
-import { useState } from "react";
+import { ActionIcon, Button, Group, Menu, Modal, Stack, Tabs, Text, TextInput } from "@mantine/core";
+import { Fragment, useState } from "react";
+import styles from "./canvas.module.css";
 import { workspaceStore, type Tab, type Workspace } from "./workspaceStore";
 
-interface Props { state: string; workspace: Workspace }
+interface Props {
+  state: string;
+  workspace: Workspace;
+  /** Called when the analyst chooses a tab (not when tabs change), so a host can close a drawer or leave another page. */
+  onSelect?(): void;
+  /** The session cohort, shown as a sub-tab under the active tab while one exists. */
+  cohort?: { label: string; open: boolean; onOpen(): void };
+}
+
+const COHORT_TAB = "__cohort";
 
 const plural = (n: number) => `${n} card${n === 1 ? "" : "s"}`;
 
-/** Tabs like sheets: each holds its own cards. The active tab carries the menu (rename, order, delete). */
-export function TabBar({ state, workspace }: Props) {
+/** The sidebar's tabs, like sheets: each holds its own cards. The active tab carries the menu (rename, order, delete). */
+export function TabBar({ state, workspace, onSelect, cohort }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [confirming, setConfirming] = useState<Tab | null>(null);
@@ -22,14 +32,19 @@ export function TabBar({ state, workspace }: Props) {
 
   return (
     <>
-      <Group gap="xs" wrap="nowrap" style={{ overflowX: "auto" }}>
-        <Tabs value={activeTab} onChange={(id) => id !== null && workspaceStore.setActiveTab(state, id)} variant="outline">
-          <Tabs.List>
+      <Stack gap="sm">
+        <Tabs value={cohort?.open ? COHORT_TAB : activeTab} orientation="vertical" variant="pills" classNames={{ tab: styles.tab }}
+          onChange={(id) => {
+            if (id === COHORT_TAB) cohort?.onOpen();
+            else if (id !== null) { workspaceStore.setActiveTab(state, id); onSelect?.(); }
+          }}>
+          <Tabs.List style={{ width: "100%" }}>
             {tabs.map((tab, index) => (
-              <Group key={tab.id} gap={2} wrap="nowrap">
+              <Fragment key={tab.id}>
+              <Group gap={2} wrap="nowrap" justify="space-between">
                 {renaming === tab.id ? (
                   <TextInput
-                    aria-label="Tab name" size="xs" value={draft} autoFocus data-autofocus
+                    aria-label="Tab name" size="xs" value={draft} autoFocus data-autofocus style={{ flex: 1 }}
                     onChange={(e) => setDraft(e.currentTarget.value)}
                     onBlur={() => finishRename(true)}
                     onKeyDown={(e) => {
@@ -38,27 +53,31 @@ export function TabBar({ state, workspace }: Props) {
                     }}
                   />
                 ) : (
-                  <Tabs.Tab value={tab.id}>{tab.name}</Tabs.Tab>
+                  <Tabs.Tab value={tab.id} style={{ flex: 1, justifyContent: "flex-start" }}>{tab.name}</Tabs.Tab>
                 )}
                 {tab.id === activeTab && renaming !== tab.id && (
                   <Menu position="bottom-start" withinPortal>
                     <Menu.Target>
-                      <ActionIcon variant="subtle" size="sm" aria-label={`Tab actions for ${tab.name}`}>⋯</ActionIcon>
+                      <ActionIcon variant="subtle" size={28} aria-label={`Tab actions for ${tab.name}`}>⋯</ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
                       <Menu.Item onClick={() => startRename(tab)}>Rename</Menu.Item>
-                      <Menu.Item disabled={index === 0} onClick={() => workspaceStore.moveTab(state, tab.id, -1)}>Move left</Menu.Item>
-                      <Menu.Item disabled={index === tabs.length - 1} onClick={() => workspaceStore.moveTab(state, tab.id, 1)}>Move right</Menu.Item>
+                      <Menu.Item disabled={index === 0} onClick={() => workspaceStore.moveTab(state, tab.id, -1)}>Move up</Menu.Item>
+                      <Menu.Item disabled={index === tabs.length - 1} onClick={() => workspaceStore.moveTab(state, tab.id, 1)}>Move down</Menu.Item>
                       <Menu.Item color="red" disabled={tabs.length === 1} onClick={() => remove(tab)}>Delete</Menu.Item>
                     </Menu.Dropdown>
                   </Menu>
                 )}
               </Group>
+              {cohort !== undefined && tab.id === activeTab && (
+                <Tabs.Tab value={COHORT_TAB} style={{ marginLeft: 16, justifyContent: "flex-start" }}>Cohort · {cohort.label}</Tabs.Tab>
+              )}
+              </Fragment>
             ))}
           </Tabs.List>
         </Tabs>
-        <ActionIcon variant="default" size="md" aria-label="New tab" onClick={() => workspaceStore.addTab(state)}>+</ActionIcon>
-      </Group>
+        <Button variant="default" size="xs" onClick={() => workspaceStore.addTab(state)}>New tab</Button>
+      </Stack>
       <Modal opened={confirming !== null} onClose={() => setConfirming(null)} title="Delete tab?" centered size="sm">
         {confirming !== null && (
           <>

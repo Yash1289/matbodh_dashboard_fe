@@ -68,6 +68,7 @@ test("the cohort journey: make a cohort from a ranking card, use it, reload, cle
   await expect(page).toHaveURL(/\/cohort\?/);
   await expect(page.getByRole("heading", { name: "Cohort" })).toBeVisible();
   await expect(page.getByTestId("cohort-pill")).toContainText("3 AC seats");
+  await expect(page.getByRole("tab", { name: /^Cohort/ })).toHaveAttribute("aria-selected", "true"); // the sidebar sub-tab
   await expect(page.getByTestId(`card:${OVERALL.card_id}`)).toBeVisible();
   const run = bodies.filter((b) => b.path === "/cards/run").at(-1)!;
   expect(run.context.cohort.seat_ids).toEqual([3, 12, 57]);

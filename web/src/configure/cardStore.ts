@@ -61,6 +61,13 @@ export const cardStore = {
     write(state, load(state).filter((c) => c.id !== id));
   },
 
+  /** Put a removed card back under its own id, at its old place in the list; nothing happens if it is stored already. */
+  restore(state: string, card: StoredCard, index: number): void {
+    const cards = load(state);
+    if (cards.some((c) => c.id === card.id)) return;
+    write(state, [...cards.slice(0, index), card, ...cards.slice(index)]);
+  },
+
   /** A new card with the same config (its title says "copy"); null if the card is not stored. */
   copy(state: string, id: string): StoredCard | null {
     const source = load(state).find((c) => c.id === id);

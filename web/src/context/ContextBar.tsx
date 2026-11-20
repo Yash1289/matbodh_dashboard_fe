@@ -15,36 +15,41 @@ const CONTEXT_CARD: CardRef = {
   card: { id: "context", family: "distribution", title: "Context", all_party_scenarios: true },
 };
 
+// The state leads in weight; the rest is the detail it qualifies. The text stays one string for readers and copy.
 function pillParts(summary: string) {
   return summary.split(" · ").map((part, i) => (
     <Fragment key={i}>
-      {i > 0 && <span style={{ color: "var(--mb-muted)" }}> · </span>}
-      <span>{part}</span>
+      {i > 0 && <span className={styles.pillSep}> · </span>}
+      <span className={i === 0 ? styles.pillState : undefined}>{part}</span>
     </Fragment>
   ));
 }
 
 export function ContextBar() {
   const { ctx, setCtx } = useDashboardContext();
-  const [open, setOpen] = useState(ctx === null);
+  const [open, setOpen] = useState(false);
   const surveys = useSurveys(ctx?.state ?? null);
   const plan = useCardPlan(CONTEXT_CARD, ctx);
   const close = () => setOpen(false);
 
+  // Back to a URL without a context must not leave the editor armed to reopen with the next one.
   useEffect(() => {
-    if (ctx === null) setOpen(true);
+    if (ctx === null) setOpen(false);
   }, [ctx]);
 
   const summary = ctx && surveys.data ? contextSummary(ctx, surveys.data) : null;
   const planError = plan.error instanceof ApiError ? (plan.error.errors.join("; ") || plan.error.message) : null;
 
+  // Before a context exists the first step owns the choice; the bar has nothing to summarise or edit.
+  if (ctx === null) return null;
+
   return (
     <>
       <Group justify="space-between" wrap="nowrap" gap={14} style={{ flex: 1, minWidth: 0 }}>
         <div data-testid="context-pill" className={styles.contextPill} title={summary ?? undefined}>
-          {summary ? pillParts(summary) : ctx ? "Loading context…" : "No context chosen"}
+          {summary ? pillParts(summary) : "Loading context…"}
         </div>
-        {ctx?.cohort && (
+        {ctx.cohort && (
           <Group gap={8} wrap="nowrap" data-testid="cohort-pill">
             <div className={styles.contextPill} title={ctx.cohort.label}>
               Cohort · {ctx.cohort.label} · {ctx.cohort.seat_ids.length} {ctx.cohort.seat_level.toUpperCase()} seats
@@ -54,9 +59,9 @@ export function ContextBar() {
             </Button>
           </Group>
         )}
-        <Button className={styles.trigger} px={14} py={8} h="auto" fz={tokens.font.button} fw={600}
+        <Button className={styles.trigger} variant="default" px={14} py={8} h="auto" fz={tokens.font.button} fw={600}
           aria-haspopup="dialog" onClick={() => setOpen(true)}>
-          {ctx ? "Edit context" : "Choose surveys"}
+          Edit context
         </Button>
       </Group>
       <Modal

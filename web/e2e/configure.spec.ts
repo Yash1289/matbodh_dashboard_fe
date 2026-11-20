@@ -93,7 +93,7 @@ test("an analyst adds, configures, applies and copies a card", async ({ page }) 
   expect(seen.runs[0].id).not.toBe("draft");
 
   // Copy card: a second card appears, titled as a copy.
-  await page.getByRole("button", { name: "Card actions" }).click();
+  await page.getByRole("button", { name: /^Card actions/ }).click();
   await page.getByRole("menuitem", { name: "Copy card" }).click();
   await expect(page.getByRole("table")).toHaveCount(2);
   await expect(page.getByRole("heading", { name: "Party vote share (copy)" })).toBeVisible();

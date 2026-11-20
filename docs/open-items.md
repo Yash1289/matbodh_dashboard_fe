@@ -19,7 +19,7 @@ Last reviewed: 2026-11-19.
 | 5b | Seat cohorts (session-only) | Done: merged to main and pushed 2026-11-18, live-verified |
 | 6a | Card configure: per-family configure panel, option lists, validate, inline cards, copy card/config | Built 2026-11-19 on `feat/card-configure` (spec `docs/specs/2026-11-19-card-configure-design.md`, plan `docs/plans/2026-11-19-card-configure.md`); not live-checked |
 | 6b | Canvas and tabs: place and resize cards, tabs like sheets | Built 2026-11-20 on `feat/canvas-and-tabs` (spec `docs/specs/2026-11-20-canvas-and-tabs-design.md`, plan `docs/plans/2026-11-20-canvas-and-tabs.md`); deviations in section 2.1c |
-| 6c | Context step (anchor, comparison, pipe rounds for all tabs) and saving (browser now, database with access control) | Not started |
+| 6c | Context step (anchor, comparison, pipe rounds for all tabs) and saving (browser now, database with access control) | Context step built 2026-11-20 (first screen before the canvas; the bar edits it later). Per-card round override and saving: not started, see O-C1 |
 | last | Access control (Postgres, state + configuration permissions) | Not started |
 
 ## 2. Open items
@@ -233,3 +233,13 @@ Newest first inside each group. A decision changes only when the owner says so.
 | O-H1 | Git remote added and `main` pushed; merged branches deleted | 2026-11-18 |
 | O-H2 | ClickHouse dictionary `warehouse.ac_population_factor_dict_v2` was misconfigured (infra); fixed, live smoke of five cards passed | 2026-11-18 |
 | (2026-11-12) | Benchmark polish, ranking polish, stale-sort fix | 2026-11-12 |
+
+### 2.1d Context step (6c, first part) - IDs O-C
+
+| ID | Item | Owner | Status |
+|---|---|---|---|
+| O-C1 | Owner decision 2026-11-20: rounds (up to four, the pipe `R1\|R2`) are chosen once in the context and every card follows them; an individual card may override them. The override is not built: it needs a rounds field in Configure and the card's request to carry its own rounds instead of the context's | owner | open |
+| O-C2 | The context step is the page shown while the URL has no context (`ContextStep`, same form as the bar's dialog, action Continue). Nothing else is gated on it; a bookmarked URL with a context skips it | built | closed |
+| O-C3 | The app shell keeps the 220px sidebar at every width, so below about 700px the page is unusable. The step answers to its own width (container query), but the shell needs its own pass | owner | open |
+| O-C4 | Critique 2026-11-20: grid and ranking cards now open 6 columns wide (two per row) and the canvas has Fit all heights. A new card still starts at its family's fixed row height until Fit is used; fitting on first render is not built. Cards placed by the unplaced-card rule (stored before this change) keep full width | owner | open |
+| O-C5 | Owner decision 2026-11-20: the sidebar is tab management (list, add, rename, reorder, delete, open) and has no Cards link; Add card stays on the page, whose title is the active tab's name. Below 1100px the sidebar is a drawer. With no context there is no sidebar. The session cohort (one per session, not per tab) shows as a "Cohort" sub-tab under the active tab while it exists, and opens the cohort view | owner | open |

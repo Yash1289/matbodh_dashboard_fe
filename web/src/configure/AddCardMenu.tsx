@@ -14,7 +14,7 @@ export function AddCardMenu({ families, library, onPickFamily, onPickLibrary }: 
   return (
     <Menu position="bottom-end" width={340}>
       <Menu.Target>
-        <Button size="sm" disabled={families.length === 0}>Add card</Button>
+        <Button size="sm" data-add-card disabled={families.length === 0}>Add card</Button>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Label>New card</Menu.Label>

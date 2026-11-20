@@ -3,7 +3,7 @@ import type { WidgetProps } from "./types";
 
 export function TextField({ field, value, onChange, error }: WidgetProps) {
   return (
-    <TextInput label={field.label} description={field.help} error={error} value={typeof value === "string" ? value : ""}
+    <TextInput data-autofocus={field.path === "title" || undefined} autoFocus={field.path === "title"} label={field.label} description={field.help} error={error} value={typeof value === "string" ? value : ""}
       maxLength={field.limits?.max_length} onChange={(e) => onChange(e.currentTarget.value)} />
   );
 }

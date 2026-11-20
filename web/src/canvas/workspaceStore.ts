@@ -87,6 +87,9 @@ const current = (state: string): Workspace => reconcile(loadRaw(state), cardStor
 const tabOf = (ws: Workspace, cardId: string): Tab | undefined => ws.tabs.find((t) => t.items.some((i) => i.cardId === cardId));
 const withTab = (ws: Workspace, tabId: string, change: (t: Tab) => Tab): Workspace => ({ ...ws, tabs: ws.tabs.map((t) => (t.id === tabId ? change(t) : t)) });
 
+/** Everything needed to put a removed card back: the stored card, its place in the list, and its tab and size. */
+export interface Removal { card: StoredCard; index: number; tabId: string; item: Item }
+
 export const workspaceStore = {
   get: (state: string): Workspace => reconcile(readRaw(state), cardStore.list(state)),
 
@@ -113,11 +116,33 @@ export const workspaceStore = {
     return copy;
   },
 
-  removeCard(state: string, cardId: string): void {
+  removeCard(state: string, cardId: string): Removal | null {
     const ws = current(state);
+    const index = cardStore.list(state).findIndex((c) => c.id === cardId);
+    const home = tabOf(ws, cardId);
+    const item = home?.items.find((i) => i.cardId === cardId);
+    if (index < 0 || home === undefined || item === undefined) return null;
+    const card = cardStore.list(state)[index];
     cardStore.remove(state, cardId);
     // Close the gap, so the stored layout is what the grid shows.
     write(state, { ...ws, tabs: ws.tabs.map((t) => ({ ...t, items: settle(t.items.filter((i) => i.cardId !== cardId)) })) });
+    return { card, index, tabId: home.id, item };
+  },
+
+  /** Undo a removal: the card returns under its own id to its tab (the first, if that tab is gone) and is settled into the layout. */
+  restoreCard(state: string, removal: Removal): void {
+    if (cardStore.list(state).some((c) => c.id === removal.card.id)) return;
+    cardStore.restore(state, removal.card, removal.index);
+    // The store now holds a card no tab does; place it where it was instead of where reconcile would put it.
+    const ws = current(state);
+    const home = ws.tabs.find((t) => t.id === removal.tabId) ?? ws.tabs[0];
+    write(state, {
+      ...ws,
+      tabs: ws.tabs.map((t) => {
+        const rest = t.items.filter((i) => i.cardId !== removal.card.id);
+        return t.id === home.id ? { ...t, items: settle([...rest, removal.item]) } : { ...t, items: rest };
+      }),
+    });
   },
 
   /** A new layout for one tab (after a drag, resize or keyboard action). Unknown cards are ignored. */

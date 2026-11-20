@@ -61,3 +61,10 @@
   border-radius: var(--mantine-radius-default);
   opacity: 0.5;
 }
+
+/* Sidebar tabs: the active one is tinted like the old nav link, not a solid block. */
+.tab.tab[data-active] {
+  background: var(--mb-primary-soft);
+  color: var(--mb-primary);
+  font-weight: 600;
+}
