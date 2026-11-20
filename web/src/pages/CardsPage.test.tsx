@@ -31,9 +31,9 @@ describe("CardsPage", () => {
     expect(await screen.findByRole("heading", { name: `Card ${ranked.card_id}` })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: `Card ${grid.card_id}` })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("table")).toHaveLength(2));
-    // Rank pipes (data-segment) exist only in the ranking card's table.
-    expect(screen.getByTestId(`card:${ranked.card_id}`).querySelector("[data-segment]")).not.toBeNull();
-    expect(screen.getByTestId(`card:${grid.card_id}`).querySelector("[data-segment]")).toBeNull();
+    // Rank badges (data-rank) exist only in the ranking card's table.
+    expect(screen.getByTestId(`card:${ranked.card_id}`).querySelector("[data-rank]")).not.toBeNull();
+    expect(screen.getByTestId(`card:${grid.card_id}`).querySelector("[data-rank]")).toBeNull();
   });
 
   it("routes relationship cards to the relationship card", async () => {
