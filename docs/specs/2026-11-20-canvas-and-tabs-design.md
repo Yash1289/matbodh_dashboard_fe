@@ -1,6 +1,6 @@
 # Canvas and tabs (sub-project 6b): design
 
-Status: draft for approval, 2026-11-20. Roadmap row 6b in `docs/open-items.md`. Builds on the card visual design (`2026-11-20-card-visual-design.md`) and the card configure work (`2026-11-19-card-configure-design.md`).
+Status: approved 2026-11-20; built on branch `feat/canvas-and-tabs` (plan `docs/plans/2026-11-20-canvas-and-tabs.md`), with the deviations listed in `docs/open-items.md` section 2.1c. Roadmap row 6b in `docs/open-items.md`. Builds on the card visual design (`2026-11-20-card-visual-design.md`) and the card configure work (`2026-11-19-card-configure-design.md`).
 
 ## 1. Intent
 

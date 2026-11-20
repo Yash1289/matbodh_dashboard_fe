@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Skeleton, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Group, Modal, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
 import { useCards, useFamilies } from "../api/queries";
 import {
@@ -10,7 +10,10 @@ import { CardShell } from "../cards/CardShell";
 import { RankingCard } from "../cards/ranking/RankingCard";
 import { RelationshipCard } from "../cards/relationship/RelationshipCard";
 import { AddCardMenu } from "../configure/AddCardMenu";
-import { cardStore, configOfInfo, copyConfigText, useStoredCards, type StoredCard } from "../configure/cardStore";
+import { Canvas } from "../canvas/Canvas";
+import { TabBar } from "../canvas/TabBar";
+import { useWorkspace, workspaceStore } from "../canvas/workspaceStore";
+import { cardStore, configOfInfo, useStoredCards, type StoredCard } from "../configure/cardStore";
 import { ConfigurePanel } from "../configure/ConfigurePanel";
 import { useDashboardContext } from "../context/urlContext";
 import { tokens } from "../theme";
@@ -36,57 +39,34 @@ const renderCard = (c: CardInfo, ctx: StateContext) => (isBenchmarkFamily(c.fami
 
 type Editing = { kind: "new"; descriptor: FamilyDescriptor } | { kind: "edit"; stored: StoredCard };
 
-/** What an analyst does with one of their cards; the card itself is the ordinary card component. */
-function StoredCardView({ stored, info, ctx, onConfigure }: {
-  stored: StoredCard; info: CardInfo; ctx: StateContext; onConfigure(): void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const copyConfig = () => {
-    // A clipboard that is blocked or missing must not break the page.
-    Promise.resolve(navigator.clipboard?.writeText(copyConfigText(stored.config))).then(() => setCopied(true), () => setCopied(false));
-  };
-  return (
-    <Stack gap={4}>
-      <Group gap="xs" justify="flex-end">
-        <Button size="compact-xs" variant="subtle" onClick={onConfigure}>Configure</Button>
-        <Button size="compact-xs" variant="subtle" onClick={() => cardStore.copy(ctx.state, stored.id)}>Copy card</Button>
-        <Button size="compact-xs" variant="subtle" onClick={copyConfig}>{copied ? "Copied" : "Copy config"}</Button>
-        <Button size="compact-xs" variant="subtle" color="red" onClick={() => cardStore.remove(ctx.state, stored.id)}>Remove</Button>
-      </Group>
-      <div>{renderCard(info, ctx)}</div>
-    </Stack>
-  );
-}
-
 function CardsList({ ctx }: { ctx: StateContext }) {
   const library = useCards();
   const families = useFamilies();
   const stored = useStoredCards(ctx.state);
+  const workspace = useWorkspace(ctx.state);
+  const tab = workspace.tabs.find((t) => t.id === workspace.activeTab) ?? workspace.tabs[0];
   const [editing, setEditing] = useState<Editing | null>(null);
   const metaOf = (family: string): FamilyMeta | undefined => families.data?.find((d) => d.family === family)?.meta;
 
   const apply = (config: CardConfigJson) => {
-    if (editing?.kind === "new") cardStore.add(ctx.state, config);
+    if (editing?.kind === "new") workspaceStore.addCard(ctx.state, config);
     else if (editing?.kind === "edit") cardStore.replace(ctx.state, editing.stored.id, config);
     setEditing(null);
   };
 
+  const renderStored = (cardId: string) => {
+    const s = stored.find((c) => c.id === cardId);
+    const meta = s === undefined ? undefined : metaOf(s.config.family);
+    return s === undefined || meta === undefined ? null : renderCard(infoOfStored(s, meta), ctx);
+  };
+
   const libraryCards = library.data ?? [];
   const body = (() => {
-    if (library.isError) return <Text c="red" role="alert">{library.error.message}</Text>;
-    if (library.isPending || families.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
-    if (stored.length === 0 && libraryCards.length === 0) return <Text>No cards yet. Add a card to start.</Text>;
+    if (families.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
+    if (tab.items.length === 0) return <Text>This tab is empty. Add a card to start.</Text>;
     return (
-      <SimpleGrid cols={1} spacing={tokens.layout.gap}>
-        {stored.map((s) => {
-          const meta = metaOf(s.config.family);
-          return meta === undefined ? null : (
-            <StoredCardView key={s.id} stored={s} info={infoOfStored(s, meta)} ctx={ctx}
-              onConfigure={() => setEditing({ kind: "edit", stored: s })} />
-          );
-        })}
-        {libraryCards.map((c) => renderCard(c, ctx))}
-      </SimpleGrid>
+      <Canvas state={ctx.state} tab={tab} renderCard={renderStored}
+        onConfigure={(cardId) => { const s = stored.find((c) => c.id === cardId); if (s !== undefined) setEditing({ kind: "edit", stored: s }); }} />
     );
   })();
 
@@ -96,8 +76,10 @@ function CardsList({ ctx }: { ctx: StateContext }) {
         <Title order={1} fz={tokens.font.pageTitle} fw={700}>Cards</Title>
         <AddCardMenu families={families.data ?? []} library={libraryCards}
           onPickFamily={(descriptor) => setEditing({ kind: "new", descriptor })}
-          onPickLibrary={(info) => cardStore.add(ctx.state, configOfInfo(info))} />
+          onPickLibrary={(info) => workspaceStore.addCard(ctx.state, configOfInfo(info))} />
       </Group>
+      {library.isError && <Text c="red" role="alert">{library.error.message}</Text>}
+      <TabBar state={ctx.state} workspace={workspace} />
       {body}
       <Modal opened={editing !== null} onClose={() => setEditing(null)} title="Configure card" size="lg" centered>
         {editing !== null && (

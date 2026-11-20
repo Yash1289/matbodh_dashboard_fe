@@ -1,4 +1,6 @@
 import { vi } from "vitest";
+import { workspaceStore } from "../canvas/workspaceStore";
+import { configOfInfo, type StoredCard } from "../configure/cardStore";
 import { isBenchmarkPayload, isRankedPayload, isRelationshipPayload } from "../api/types";
 import type {
   BenchmarkPayload, CardInfo, CardPayload, CohortPreview, FamilyMeta, GridPayload, PlanResponse, RankedPayload,
@@ -65,6 +67,18 @@ export const planFor = (p: CardPayload, unavailable: PlanResponse["unavailable"]
   rounds: p.rounds.items.map(({ cycle: _cycle, series: _series, ...rest }) => rest),
 });
 
+// The stub serves a stored card's runs from the payload it was seeded with.
+const storedPayloads = new Map<string, CardPayload>();
+
+/** Put one analyst-owned card per payload on the canvas of `state` (the engine library no longer renders by itself). */
+export function seedStoredCards(state: string, payloads: CardPayload[]): StoredCard[] {
+  return payloads.map((p) => {
+    const stored = workspaceStore.addCard(state, configOfInfo(infoFor(p)));
+    storedPayloads.set(stored.id, p);
+    return stored;
+  });
+}
+
 export interface CardApiOptions {
   payloads: CardPayload[];
   /** Per-card overrides: the plan's unavailable list, or a custom run status. */
@@ -102,7 +116,7 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
     if (path.startsWith("/cards") && init?.method !== "POST") return reply([...byCard.values()].map((p) => infoFor(p)));
     // A card the stub has no payload for (the context bar's own) is planned like the first payload.
     if (path === "/cards/plan") {
-      return reply(planFor(byCard.get(body.card_id ?? "") ?? payloads[0], unavailable[body.card_id ?? ""] ?? []));
+      return reply(planFor(byCard.get(body.card_id ?? "") ?? storedPayloads.get(body.card_id ?? "") ?? payloads[0], unavailable[body.card_id ?? ""] ?? []));
     }
     if (path === "/cards/run") return runStatus === 200 ? reply({ run_id: body.card_id }) : reply({ detail: "boom" }, runStatus);
     if (path === "/cohorts/preview") {
@@ -115,7 +129,7 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
     if (path.startsWith("/runs/")) {
       const id = decodeURIComponent(path.replace(/^\/runs\//, ""));
       // An analyst's own card has no payload of its own in the stub: it gets the first one.
-      return reply(runs[id] ?? doneRun(byCard.get(id) ?? payloads[0]));
+      return reply(runs[id] ?? doneRun(byCard.get(id) ?? storedPayloads.get(id) ?? payloads[0]));
     }
     return reply({ detail: "not found" }, 404);
   });
