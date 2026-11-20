@@ -18,7 +18,7 @@ Last reviewed: 2026-11-19.
 | 5a | Relationship cards | Done, live-verified |
 | 5b | Seat cohorts (session-only) | Done: merged to main and pushed 2026-11-18, live-verified |
 | 6a | Card configure: per-family configure panel, option lists, validate, inline cards, copy card/config | Built 2026-11-19 on `feat/card-configure` (spec `docs/specs/2026-11-19-card-configure-design.md`, plan `docs/plans/2026-11-19-card-configure.md`); not live-checked |
-| 6b | Canvas and tabs: place and resize cards, tabs like sheets | Not started |
+| 6b | Canvas and tabs: place and resize cards, tabs like sheets | Built 2026-11-20 on `feat/canvas-and-tabs` (spec `docs/specs/2026-11-20-canvas-and-tabs-design.md`, plan `docs/plans/2026-11-20-canvas-and-tabs.md`); deviations in section 2.1c |
 | 6c | Context step (anchor, comparison, pipe rounds for all tabs) and saving (browser now, database with access control) | Not started |
 | last | Access control (Postgres, state + configuration permissions) | Not started |
 
@@ -61,6 +61,18 @@ Spec: `docs/specs/2026-11-20-card-visual-design.md`. Built on branch `feat/card-
 | O-V11 | The seat list, lens tabs and table tabs announce listbox and tab roles without arrow-key navigation or tab panels; the narrow Cut chip, the table chooser and the seat selector never show the changed-from-default mark | eng | open |
 | O-V12 | Tint rgb values in `formatRules.ts` duplicate the theme tokens and are outside the colour test; the last row of each table group loses its bottom rule; no test for a Summary group with no row for a party; `docs/testing.md` does not exist | eng | open |
 
+
+### 2.1c Canvas and tabs (6b) - IDs O-W
+
+| ID | Item | Owner | Status |
+|---|---|---|---|
+| O-W1 | Library cards (the shared set) no longer render in a list of their own: they appear only when added from Add card, as the analyst's own copy. `cards.yaml` is empty by default, so nothing visible is lost today | owner | decided in the spec; built |
+| O-W2 | Drag is by a slim toolbar row above each card (handle and card menu), so none of the four card components changed. It costs about 26px of height per card | eng | built |
+| O-W3 | Tabs are renamed from the tab menu only (no double-click); reordered from the menu (no dragging); a card moves between tabs with Move to tab in the card menu | eng | built |
+| O-W4 | Fit to content measures the card's first child element, so a card whose root is taller than its content (for example one with a trailing loading row) may fit slightly loose | eng | open (check in a live run) |
+| O-W5 | A failed library request (`GET /cards`) now shows an alert above the canvas instead of replacing the page, since the canvas no longer depends on the library | eng | built |
+| O-W6 | The grid is laid out at the usual page width (1220px) until the first width measurement, so the first frame can differ from the final one on a narrow window | eng | open (minor) |
+| O-W7 | Not run: a live check against the production engine. Manual steps: open Cards for a state, add two cards, drag, resize, reload; add a second tab and move a card to it | eng | open |
 
 ### 2.2 Relationship cards
 
@@ -132,7 +144,7 @@ Spec: `docs/specs/2026-11-20-card-visual-design.md`. Built on branch `feat/card-
 | O-F3 | Benchmark seat filters (`benchmark.filters`) are not offered in configure; the compiler sends none | owner | deferred 2026-11-19 |
 | O-F4 | The "showing 2 of the 3 rounds asked for" note is shown in the configure summary and the plan response, not yet in the card footer | eng | open (with the 6b card redesign) |
 | O-F5 | Live check of one card per family configured end to end, plus hide parties, contenders, config reference, joint weight scenario and the filter-values run | eng | VERIFIED live 2026-11-19 (UP, R1+R2, read-only, owner go-ahead): 31/31 checks. Option lists from the live catalogue and alliance table (7 party scenarios, Q-11 excluded, 28 cut fields, no seat type, 14 seat attributes, elections 2009-2024, contenders incl. INDI for 2022 VS); every family validated and ran from an inline config (distribution with hide parties, trend with pipe_rounds 3 -> note, opinion compare, gender gap, seat and demographic ranking, benchmark vs 2022 VS with contenders NDA+SP+, relationship with scenario joint weight); caste filter values from an engine run (66) and a filtered card ran; repeat run was a cache hit. Benchmark with contenders NDA+SP+: all 32 groups' vote shares sum to 100 and seats won = eligible seats (BSP counted in Other) |
-| O-F6 | Cards a user configures live only in this browser (localStorage per state). The workspace format and the move to the database belong to 6c / the access-control phase | owner | open |
+| O-F6 | Cards a user configures live only in this browser (localStorage per state). The workspace (tabs and card positions, `mb.workspace.<state>`, which references cards by id) is stored the same way; both move to the database in 6c / the access-control phase | owner | open |
 | O-F7 | A card shared with everyone is added by pasting "Copy config" output under `cards:` in `config/cards/cards.yaml` (which ships empty); no publish action | owner | decided |
 | O-F8 | Scenario display names (the pickers show scenario ids) still need the owner's names (O-G6) | owner | open |
 
