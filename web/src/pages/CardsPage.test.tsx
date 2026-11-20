@@ -63,6 +63,16 @@ describe("CardsPage", () => {
     expect(f.mock.calls.some(([u]) => /\/cards\/(plan|run)/.test(String(u)))).toBe(false);
   });
 
+  it("card titles are h2 under the page's h1, with no skipped level", async () => {
+    const p = PAYLOADS.distributionStandalone();
+    stubCardApi({ payloads: [p] });
+    seedStoredCards(STATE, [p]);
+    renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
+    expect(await screen.findByRole("heading", { level: 2, name: `Card ${p.card_id}` })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 4 })).toBeNull();
+  });
+
   it("an empty tab says so and offers Add card", async () => {
     stubCardApi({ payloads: [] });
     renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });

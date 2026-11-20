@@ -37,6 +37,11 @@ describe("CompositeTable", () => {
     expect(screen.getAllByTitle("Not applicable")[0].textContent).toBe("—");
   });
 
+  it("a column header's sort button is at least 24px tall, so it is a reachable target", () => {
+    show(["value"]);
+    expect(header()).toHaveStyle({ minHeight: "24px" });
+  });
+
   it("clicking a column header cycles desc, asc, none", async () => {
     const onSort = vi.fn();
     const user = userEvent.setup();

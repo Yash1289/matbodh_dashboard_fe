@@ -109,7 +109,7 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>
-            <Title order={4} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
+            <Title order={2} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
             {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           <Group gap={8} wrap="wrap" justify="flex-end">

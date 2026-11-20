@@ -162,3 +162,15 @@ test("the ranking cards journey", async ({ page }) => {
 
   expect(calls.length).toBe(requestsAfterLoad); // no request after any control change
 });
+
+test("table text stays readable on a narrow window", async ({ page }) => {
+  await serve(page);
+  await seed(page, PAYLOADS);
+  await page.setViewportSize({ width: 820, height: 800 });
+  await page.goto(CONTEXT);
+  await expect(page.getByRole("table")).toHaveCount(3);
+  const sizes = await page.locator("tbody td, thead th").evaluateAll((cells) => cells.map((c) => parseFloat(getComputedStyle(c).fontSize)));
+  expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
+  const notes = await page.locator("tbody small").evaluateAll((cells) => cells.map((c) => parseFloat(getComputedStyle(c).fontSize)));
+  for (const size of notes) expect(size).toBeGreaterThanOrEqual(11);
+});

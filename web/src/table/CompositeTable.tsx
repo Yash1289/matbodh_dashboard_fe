@@ -59,11 +59,11 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
         col.display({
           id: c.key,
           header: () => (
-            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={{ ...BUTTON_STYLE, color: "var(--mb-muted)", fontWeight: 600 }}>
+            <button type="button" onClick={() => onSort(nextSort(sort, c.key))} style={{ ...BUTTON_STYLE, minHeight: 24, minWidth: 24, color: "var(--mb-muted)", fontWeight: 600 }}>
               <Swatch colour={c.colour} />
               {c.label}
               {sort?.column === c.key && sort.part === "value" ? (sort.dir === "desc" ? " ↓" : " ↑") : ""}
-              {c.sub && <span style={{ display: "block", fontSize: ".85em", fontWeight: 400 }}>{c.sub}</span>}
+              {c.sub && <span style={{ display: "block", fontSize: "max(11px, .85em)", fontWeight: 400 }}>{c.sub}</span>}
               {c.note && <small style={{ display: "block", fontWeight: 400 }}>{c.note}</small>}
             </button>
           ),
