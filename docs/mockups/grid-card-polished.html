@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grid card: polished option A</title>
+<style>
+:root{
+  --text:#1c1f24;--muted:#5b6472;--faint:#8a919c;--border:#dfe2e7;--hair:#eceef1;--head:#f6f7f9;--page:#f1f2f5;--surface:#fff;
+  --primary:#2663eb;--primary-ink:#1b4fc2;--soft:#eaf0ff;--soft-line:#c4d4f8;
+  --gain:#0a6c41;--gain-tint:#0d804d14;--loss:#bf3333;--loss-tint:#bf333317;
+  --ring:0 0 0 3px #2663eb40;
+  --shadow:0 1px 2px #1c1f240d,0 4px 14px -6px #1c1f2420;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 28px 64px;background:var(--page);color:var(--text);font:13px/1.45 Inter,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+h1{font-size:20px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+.intro{color:var(--muted);max-width:720px;margin:0 0 28px}
+h2{font-size:14px;font-weight:650;margin:34px 0 2px}
+.cap{color:var(--muted);margin:0 0 12px;max-width:720px}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);container-type:inline-size;position:relative}
+.w1{width:920px;max-width:100%}.w2{width:600px;max-width:100%}.w3{width:340px;max-width:100%}
+
+/* header */
+.head{display:flex;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.title{font-size:16px;font-weight:650;letter-spacing:-.005em;line-height:1.25}
+.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.iconbtn{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:background .15s var(--ease),border-color .15s}
+.iconbtn:hover{background:var(--head);border-color:var(--border);color:var(--text)}
+.iconbtn:focus-visible,.chip:focus-visible,.tab:focus-visible,.seg button:focus-visible,.menu button:focus-visible{outline:none;box-shadow:var(--ring);border-color:var(--primary)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* lens tabs */
+.tabs{display:flex;gap:4px;padding:0 18px;margin-top:12px;border-bottom:1px solid var(--hair)}
+.tab{appearance:none;background:none;border:1px solid transparent;border-radius:6px 6px 0 0;padding:7px 10px;margin-bottom:-1px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;position:relative;transition:color .15s}
+.tab:hover{color:var(--text)}
+.tab[aria-selected=true]{color:var(--primary-ink);font-weight:600}
+.tab[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px 2px 0 0;background:var(--primary)}
+
+/* chip strip */
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 18px}
+.sp{flex:1}
+.seg{display:inline-flex;background:var(--head);border:1px solid var(--hair);border-radius:9px;padding:2px}
+.seg button{appearance:none;border:1px solid transparent;background:none;font:inherit;font-size:12px;padding:3px 11px;border-radius:7px;color:var(--muted);cursor:pointer;transition:background .15s var(--ease),color .15s}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px #1c1f2414}
+.chip{appearance:none;font:inherit;font-size:12px;height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border-radius:15px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap;transition:background .15s var(--ease),border-color .15s,box-shadow .15s}
+.chip:hover{background:var(--head);border-color:#cdd1d8}
+.chip .k{color:var(--muted)}
+.chip svg.i{width:13px;height:13px;color:var(--faint)}
+/* changed from default: tint + dot, never just colour */
+.chip.changed{background:var(--soft);border-color:var(--soft-line);color:var(--primary-ink)}
+.chip.changed .k{color:var(--primary-ink)}
+.chip.changed::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary)}
+.chip[aria-pressed=true]{background:var(--soft);border-color:var(--soft-line);color:var(--primary-ink)}
+.chip .n{min-width:18px;height:18px;border-radius:9px;background:var(--hair);color:var(--muted);font-size:11px;display:grid;place-items:center;padding:0 5px}
+.chip.changed .n{background:var(--surface)}
+
+/* more menu */
+.moreWrap{position:relative}
+.menu{position:absolute;top:36px;right:0;z-index:5;width:268px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 4px #1c1f240d,0 14px 32px -10px #1c1f2438;padding:6px;display:none}
+.menu.open{display:block;animation:pop .18s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.98)}}
+.menu button{appearance:none;width:100%;font:inherit;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:none;cursor:pointer;color:var(--text);text-align:left}
+.menu button:hover{background:var(--head)}
+.menu .val{color:var(--muted);font-size:12px}
+.menu .val.changed{color:var(--primary-ink);font-weight:600}
+.menu hr{border:0;border-top:1px solid var(--hair);margin:5px 4px}
+
+/* table */
+.scroller{container-type:inline-size;overflow-x:auto;margin:0 18px;border:1px solid var(--hair);border-radius:10px}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:100%;font-size:clamp(10.5px,8px + .57cqw,13px)}
+th,td{padding:0;text-align:left}
+thead th{background:var(--head);font-size:1em;font-weight:600;color:var(--muted);padding:.7em 1.1em;border-bottom:1px solid var(--hair);white-space:nowrap}
+tbody th,tbody td{border-bottom:1px solid var(--hair)}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+.pin{position:sticky;left:0;z-index:1;background:var(--surface);min-width:7.5em}
+thead .pin{background:var(--head)}
+.scrolled .pin{box-shadow:6px 0 8px -6px #1c1f2426}
+tbody th{font-weight:600;font-size:1em;padding:.9em 1.1em;text-align:left}
+td.c{padding:.5em;min-width:8.6em}
+.cell{display:flex;align-items:baseline;justify-content:space-between;gap:.8em;padding:.55em .8em;border-radius:.55em}
+.cell .v{font-size:1.2em;font-weight:620;letter-spacing:-.01em}
+.cell .d{font-size:.88em;font-weight:550}
+.g{background:var(--gain-tint)}.g .d{color:var(--gain)}
+.l{background:var(--loss-tint)}.l .d{color:var(--loss)}
+tbody tr:hover .pin{background:var(--head)}
+
+.legend{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;padding:10px 18px 0}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.foot{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;padding:12px 18px 16px}
+.foot a{color:var(--primary-ink);text-decoration:none;white-space:nowrap;border-radius:4px}
+.foot a:hover{text-decoration:underline;text-underline-offset:3px}
+.foot a:focus-visible{outline:none;box-shadow:var(--ring)}
+.lab{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="chev" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></symbol>
+ <symbol id="swap" viewBox="0 0 16 16"><path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13"/></symbol>
+ <symbol id="dots" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".8"/><circle cx="8" cy="8" r=".8"/><circle cx="12.5" cy="8" r=".8"/></symbol>
+ <symbol id="sort" viewBox="0 0 16 16"><path d="M5 3v10M5 13l-2-2M5 13l2-2M11 13V3M11 3 9 5M11 3l2 2"/></symbol>
+ <symbol id="sliders" viewBox="0 0 16 16"><path d="M2.5 5h6M11.5 5h2M2.5 11h2M7.5 11h6"/><circle cx="10" cy="5" r="1.5"/><circle cx="6" cy="11" r="1.5"/></symbol>
+</defs></svg>
+
+<h1>Grid card, polished</h1>
+<p class="intro">Option A with the review fixes. The lens is a row of tabs only when the card is wide and has three lenses or fewer. It is a chip when the card has more than three lenses, and always a chip on a narrow card. A control that differs from its default shows a blue tint and a dot. The narrow card scrolls sideways with the party column pinned. Everything here is clickable: the tabs, the cut selector, the Transpose toggle and the ⋯ More menu. Mock-up only, nothing is built.</p>
+
+<h2>Wide: three lenses, so the lens is tabs</h2>
+<p class="cap">Same Uttar Pradesh compare data as before. Format is changed from its default, so it is tinted; Sort is at its default, so it is not.</p>
+<div class="card w1" id="c1">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor 2027 VS CAPI R2 · Δ vs R1 · whole state</div></div>
+    <button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="tabs" role="tablist" aria-label="Lens">
+    <button class="tab" role="tab" aria-selected="true">Support %</button>
+    <button class="tab" role="tab" aria-selected="false">Size of impact (pp)</button>
+    <button class="tab" role="tab" aria-selected="false">Share of change</button></div>
+  <div class="strip">
+    <div class="seg" role="group" aria-label="Cut"><button aria-pressed="true">Overall</button><button aria-pressed="false">age_group</button><button aria-pressed="false">occupation</button></div>
+    <button class="chip changed"><span class="k">Format</span> Diverging on Δ <svg class="i"><use href="#chev"/></svg></button>
+    <button class="chip"><svg class="i"><use href="#sort"/></svg>Sort <svg class="i"><use href="#chev"/></svg></button>
+    <button class="chip" aria-pressed="false" data-toggle><svg class="i"><use href="#swap"/></svg>Transpose</button>
+    <span class="sp"></span>
+    <div class="moreWrap">
+      <button class="chip" aria-haspopup="menu" aria-expanded="false" data-more><svg class="i"><use href="#sliders"/></svg>View <span class="n">4</span></button>
+      <div class="menu" role="menu">
+        <button role="menuitem">Cell parts<span class="val">Values + Δ</span></button>
+        <button role="menuitem">Density<span class="val">Standard</span></button>
+        <button role="menuitem">Details<span class="val">Off</span></button>
+        <button role="menuitem">Find &amp; hide rows<span class="val">None</span></button>
+        <hr><button role="menuitem">How this was calculated</button><button role="menuitem">Export CSV</button>
+      </div></div>
+  </div>
+  <div class="scroller"><table>
+    <thead><tr><th class="pin" scope="col">Group</th><th scope="col">SP+</th><th scope="col">BSP</th><th scope="col">BJP+</th><th scope="col">Other</th></tr></thead>
+    <tbody>
+    <tr><th class="pin" scope="row">Overall</th>
+     <td class="c"><div class="cell g"><span class="v num">47%</span><span class="d num">▲ 3%</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">11%</span><span class="d num">▼ 0.99%</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">31%</span><span class="d num">▼ 3%</span></div></td>
+     <td class="c"><div class="cell g"><span class="v num">11%</span><span class="d num">▲ 0.55%</span></div></td></tr>
+    </tbody></table></div>
+  <div class="legend"><i style="background:var(--gain)"></i>Gain vs R1<i style="background:var(--loss);margin-left:10px"></i>Loss vs R1 · tint scaled within each column</div>
+  <div class="foot"><span>2027 VS CAPI R1 and R2 · 403 seats · Normal · engine 0.8.0</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+
+<h2>Medium: five lenses, so the lens is a chip</h2>
+<p class="cap">With more than three lenses the tabs would not fit, so the lens collapses into a chip, which turns blue only when it is not the default. Format moves into the View menu at this width. The menu is open, showing each setting's current value and floating over the table as a real popover would.</p>
+<div class="card w2" id="c2">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor R2 · Δ vs R1</div></div>
+    <button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip" style="padding-top:14px">
+    <div class="seg" role="group" aria-label="Cut"><button aria-pressed="true">Overall</button><button aria-pressed="false">age_group</button><button aria-pressed="false">occupation</button></div>
+    <button class="chip changed"><span class="k">Lens</span> Size of impact (pp) <svg class="i"><use href="#chev"/></svg></button>
+    <span class="sp"></span>
+    <div class="moreWrap">
+      <button class="chip changed" aria-haspopup="menu" aria-expanded="true" data-more><svg class="i"><use href="#sliders"/></svg>View <span class="n">2</span></button>
+      <div class="menu open" role="menu">
+        <button role="menuitem">Format<span class="val">None</span></button>
+        <button role="menuitem">Cell parts<span class="val">Values + Δ</span></button>
+        <button role="menuitem">Density<span class="val changed">Compact</span></button>
+        <button role="menuitem">Details<span class="val changed">On</span></button>
+        <button role="menuitem">Find &amp; hide rows<span class="val">None</span></button>
+        <hr><button role="menuitem">How this was calculated</button><button role="menuitem">Export CSV</button>
+      </div></div>
+  </div>
+  <div class="scroller" style="margin-top:6px"><table>
+    <thead><tr><th class="pin" scope="col">Group</th><th scope="col">SP+</th><th scope="col">BSP</th><th scope="col">BJP+</th><th scope="col">Other</th></tr></thead>
+    <tbody><tr><th class="pin" scope="row">Overall</th>
+     <td class="c"><div class="cell g"><span class="v num">+3 pp</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">−1 pp</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">−3 pp</span></div></td>
+     <td class="c"><div class="cell g"><span class="v num">+0.6 pp</span></div></td></tr></tbody></table></div>
+  <div class="foot"><span>403 seats · Normal</span><a href="#" onclick="return false">Method →</a></div>
+</div>
+
+<h2>Narrow: lens becomes a chip, scroll sideways, party column pinned</h2>
+<p class="cap">On a narrow card the lens is always a chip, even with three lenses, because tabs would crowd the card. It is plain here because Support % is the default. All four parties are still there. Scroll the table with a trackpad or shift plus the wheel: the shadow on the pinned column appears once content has moved under it.</p>
+<div class="card w3" id="c3">
+  <div class="head"><div><div class="title">Party vote share</div><div class="sub">R2 · Δ vs R1</div></div>
+    <button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip">
+    <button class="chip" aria-haspopup="listbox"><span class="k">Lens</span> Support % <svg class="i"><use href="#chev"/></svg></button>
+    <button class="chip">Cut: Overall <svg class="i"><use href="#chev"/></svg></button>
+    <span class="sp"></span>
+    <button class="chip" aria-haspopup="menu"><svg class="i"><use href="#sliders"/></svg>View <span class="n">4</span></button></div>
+  <div class="scroller" id="sc3" style="margin-bottom:0"><table style="min-width:440px">
+    <thead><tr><th class="pin" scope="col">Group</th><th scope="col">SP+</th><th scope="col">BSP</th><th scope="col">BJP+</th><th scope="col">Other</th></tr></thead>
+    <tbody><tr><th class="pin" scope="row">Overall</th>
+     <td class="c"><div class="cell g"><span class="v num">47%</span><span class="d num">▲3%</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">11%</span><span class="d num">▼1%</span></div></td>
+     <td class="c"><div class="cell l"><span class="v num">31%</span><span class="d num">▼3%</span></div></td>
+     <td class="c"><div class="cell g"><span class="v num">11%</span><span class="d num">▲1%</span></div></td></tr></tbody></table></div>
+  <div class="foot"><span>Scroll for 2 more parties →</span><a href="#" onclick="return false">Method →</a></div>
+</div>
+
+<script>
+document.querySelectorAll('[role=tablist]').forEach(l=>l.addEventListener('click',e=>{const t=e.target.closest('[role=tab]');if(!t)return;l.querySelectorAll('[role=tab]').forEach(x=>x.setAttribute('aria-selected',x===t))}));
+document.querySelectorAll('.seg').forEach(s=>s.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;s.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+document.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true')));
+document.querySelectorAll('[data-more]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const m=b.nextElementSibling,o=!m.classList.contains('open');document.querySelectorAll('.menu').forEach(x=>x.classList.remove('open'));m.classList.toggle('open',o);b.setAttribute('aria-expanded',o)}));
+document.addEventListener('click',()=>document.querySelectorAll('.menu').forEach(x=>x.classList.remove('open')));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.menu').forEach(x=>x.classList.remove('open'))});
+document.querySelectorAll('.scroller').forEach(s=>s.addEventListener('scroll',()=>s.classList.toggle('scrolled',s.scrollLeft>2)));
+</script>
+</body></html>

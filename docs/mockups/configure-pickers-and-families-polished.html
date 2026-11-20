@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configure: pickers and families</title>
+<style>
+:root{
+  --text:#1c1f24;--muted:#5b6472;--faint:#8a919c;--border:#dfe2e7;--hair:#eceef1;--head:#f6f7f9;--page:#f1f2f5;--surface:#fff;
+  --primary:#2663eb;--primary-ink:#1b4fc2;--soft:#eaf0ff;--soft-line:#c4d4f8;
+  --gain:#0a6c41;--loss:#b42d2d;--loss-tint:#bf33331a;--warn:#8a5a00;--warn-tint:#fff6e0;--warn-line:#f0d9a0;
+  --ring:0 0 0 3px #2663eb40;--shadow:0 1px 2px #1c1f240d,0 12px 32px -12px #1c1f2438;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 28px 72px;background:var(--page);color:var(--text);font:13px/1.45 Inter,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1{font-size:20px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+.intro{color:var(--muted);max-width:780px;margin:0 0 26px}
+h2{font-size:14px;font-weight:650;margin:0 0 2px}.cap{color:var(--muted);margin:0 0 12px;max-width:430px;font-size:12.5px}
+.row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.col{width:440px;max-width:100%}
+/* drawer */
+.drawer{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.dh{padding:18px 20px 14px;border-bottom:1px solid var(--hair);display:flex;gap:12px;align-items:flex-start}
+.dh .eyebrow{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.dh h3{margin:2px 0 3px;font-size:17px;font-weight:650;letter-spacing:-.005em}
+.dh p{margin:0;color:var(--muted);font-size:12.5px}
+.x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;flex:none}
+.x:hover{background:var(--head);border-color:var(--border);color:var(--text)}
+.db{padding:6px 20px 18px;display:flex;flex-direction:column}
+.f{padding:14px 0 2px}
+.f label,.f .lb{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;margin-bottom:6px}
+.req{color:var(--loss)}
+.count{margin-left:auto;font-weight:500;color:var(--muted)}
+.help{color:var(--muted);font-size:12px;margin-top:6px}
+.in,.sel{width:100%;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font:inherit;padding:0 11px;color:var(--text);display:flex;align-items:center}
+.in:hover,.sel:hover{border-color:#c6cad2}
+.in:focus,.sel:focus-visible,.in.focus{outline:none;border-color:var(--primary);box-shadow:var(--ring)}
+.sel{justify-content:space-between;cursor:pointer;text-align:left}
+.sel svg{color:var(--faint)}
+.sel.empty{color:var(--faint)}
+.err .in,.err .sel{border-color:var(--loss)}
+.msg{color:var(--loss);font-size:12px;margin-top:6px;display:flex;gap:5px;align-items:center}
+svg.i{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* multi pick */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 10px;border-radius:14px;background:var(--soft);border:1px solid var(--soft-line);color:var(--primary-ink);font-size:12.5px;font-weight:500}
+.tag button{appearance:none;border:0;background:none;color:inherit;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0}
+.tag button:hover{background:#2663eb26}
+.tag.plain{background:var(--head);border-color:var(--border);color:var(--text)}
+.add{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 11px;border-radius:14px;border:1px dashed #b9bfc9;background:none;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer}
+.add:hover{background:var(--head);color:var(--text);border-color:#9aa1ad}
+button:focus-visible{outline:none;box-shadow:var(--ring)}
+/* segmented */
+.seg{display:flex;background:var(--head);border:1px solid var(--hair);border-radius:10px;padding:3px;gap:2px}
+.seg button{flex:1;appearance:none;border:1px solid transparent;background:none;font:inherit;font-size:12.5px;padding:6px 8px;border-radius:7px;color:var(--muted);cursor:pointer}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px #1c1f2418}
+/* cut builder */
+.cut{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.cut .n{font-size:11px;font-weight:600;color:var(--muted);width:48px;flex:none}
+.cut .chips{flex:1;gap:4px;align-items:center}
+.times{color:var(--faint);font-size:12px}
+.cut .rm{margin-left:auto}
+/* conditional block */
+.cond{margin:14px 0 0;padding:2px 14px 14px;border:1px solid var(--soft-line);background:#f5f8ff;border-radius:12px}
+.cond .tag-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--primary-ink);padding-top:10px;letter-spacing:.03em;text-transform:uppercase}
+.note{display:flex;gap:8px;margin-top:12px;padding:9px 11px;border-radius:9px;background:var(--surface);border:1px solid var(--soft-line);color:var(--text);font-size:12.5px}
+.note svg{color:var(--primary);margin-top:1px}
+/* more options */
+.more{margin-top:18px;border-top:1px solid var(--hair)}
+.more>button{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:none;border:0;font:inherit;font-weight:600;padding:13px 0 4px;cursor:pointer;color:var(--text);text-align:left}
+.more>button svg{transition:transform .2s;color:var(--muted)}
+.more>button[aria-expanded=true] svg{transform:rotate(90deg)}
+.more .pill{font-weight:500;font-size:11.5px;color:var(--primary-ink);background:var(--soft);border-radius:10px;padding:1px 8px}
+.more .body{display:none}.more>button[aria-expanded=true]+.body{display:block}
+.frow{display:grid;grid-template-columns:1fr 78px 1.2fr 30px;gap:6px;align-items:center;margin-bottom:6px}
+.toggle{display:flex;align-items:center;gap:10px}
+.sw{width:34px;height:20px;border-radius:10px;background:#c9ced6;position:relative;flex:none;cursor:pointer;border:0;padding:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px #0003;transition:left .15s}
+.sw[aria-checked=true]{background:var(--primary)}.sw[aria-checked=true]::after{left:16px}
+.step{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;height:36px;overflow:hidden}
+.step b{min-width:44px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.step button{appearance:none;border:0;background:var(--head);width:32px;height:100%;cursor:pointer;color:var(--muted);font-size:15px}
+.step button:hover{color:var(--text)}
+/* footer */
+.df{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--hair);background:var(--head)}
+.df .st{font-size:12px;color:var(--muted);margin-right:auto;display:flex;align-items:center;gap:6px}
+.df .st.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gain)}
+.df .st.bad::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--loss)}
+.btn{appearance:none;font:inherit;font-weight:600;font-size:13px;height:34px;padding:0 16px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.btn:hover{background:var(--head);border-color:#c6cad2}
+.btn.p{background:var(--primary);border-color:var(--primary);color:#fff}.btn.p:hover{background:#1f55cf}
+.btn[disabled]{background:#e3e6ec;border-color:#e3e6ec;color:#7b8390;cursor:not-allowed}
+.alert{margin-top:16px;padding:10px 12px;border-radius:10px;background:var(--warn-tint);border:1px solid var(--warn-line);color:var(--warn);font-size:12.5px}
+.alert b{display:block;margin-bottom:2px;color:#6b4500}
+
+.illus{display:inline-block;margin:0 0 10px;padding:3px 9px;border-radius:10px;background:#fff6e0;border:1px solid #f0d9a0;color:#7a5200;font-size:12px}
+.fig{width:440px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px 20px 20px;position:relative}
+.fig .f{padding-top:6px}
+.pop{margin-top:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 4px #1c1f2412,0 14px 30px -10px #1c1f2438;padding:8px}
+.sbox{position:relative;margin-bottom:6px}.sbox svg{position:absolute;left:10px;top:10px;color:var(--faint)}
+.sbox input{width:100%;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px 0 32px;font:inherit;font-size:12.5px;color:var(--text)}
+.list{display:flex;flex-direction:column;gap:1px;max-height:260px;overflow:auto}
+.gh{font-size:11.5px;font-weight:600;color:var(--muted);padding:8px 10px 3px;display:flex;gap:8px;align-items:center}
+.gh em{font-style:normal;font-weight:500;margin-left:auto}
+.op{appearance:none;display:flex;align-items:center;gap:10px;border:1px solid transparent;background:none;font:inherit;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text);width:100%}
+.op:hover{background:var(--head)}.op[aria-selected=true]{background:var(--soft);color:var(--primary-ink);font-weight:600}
+.op:focus-visible{outline:none;box-shadow:var(--ring);border-color:var(--primary)}
+.op .id{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto}
+.op[aria-disabled=true]{color:var(--muted);cursor:not-allowed}.op[aria-disabled=true]:hover{background:none}
+.op .why{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.tick{width:15px;flex:none;color:var(--primary)}
+.bx{width:16px;height:16px;border-radius:4px;border:1.5px solid #9aa1ad;flex:none;display:grid;place-items:center;color:#fff}
+.op[aria-selected=true] .bx{background:var(--primary);border-color:var(--primary)}
+.rd{width:16px;height:16px;border-radius:50%;border:1.5px solid #9aa1ad;flex:none;display:grid;place-items:center}
+.op[aria-selected=true] .rd{border-color:var(--primary)}.op[aria-selected=true] .rd::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--primary)}
+.badge{font-size:11px;font-weight:600;padding:1px 7px;border-radius:9px;background:var(--hair);color:var(--muted);flex:none}
+.badge.seat{background:var(--soft);color:var(--primary-ink)}
+.pfoot{display:flex;align-items:center;gap:8px;padding:8px 10px 2px;color:var(--muted);font-size:12px;border-top:1px solid var(--hair);margin-top:6px}
+.pfoot .btn{margin-left:auto;height:28px;font-size:12.5px;padding:0 12px}
+.lbl{font-size:12.5px;font-weight:650;margin:0 0 6px}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.stp{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;height:36px;overflow:hidden;background:#fff}
+.stp b{min-width:48px;text-align:center;font-weight:650;font-variant-numeric:tabular-nums}.stp button{appearance:none;border:0;background:var(--head);width:34px;height:100%;cursor:pointer;color:var(--muted);font-size:15px}
+.stp button:hover{color:var(--text)}
+.sel .id{color:var(--muted);font-size:12px;margin-left:8px}
+.sel span{display:flex;align-items:baseline}
+.note2{display:flex;gap:8px;margin-top:8px;padding:9px 11px;border-radius:9px;background:#f5f8ff;border:1px solid var(--soft-line);font-size:12.5px}.note2 svg{color:var(--primary);margin-top:1px}
+.drawer{width:440px;max-width:100%}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+<symbol id="chev" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+<symbol id="down" viewBox="0 0 16 16"><path d="M3.5 6L8 10.5 12.5 6"/></symbol>
+<symbol id="plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+<symbol id="info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v3.6M8 5.2v.1"/></symbol>
+<symbol id="warn" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v4M8 11v.1"/></symbol>
+<symbol id="check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+<symbol id="search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></symbol>
+</defs></svg>
+
+<h1>Configure: pickers and the other families</h1>
+<p class="intro">The dropdowns behind the Configure fields, and the panels for the families not drawn before. The panels reuse the layout already approved: primary fields first, the rest under More options, conditions deciding what appears, Apply only when valid. Field names, choices and conditions come from <code>configure_families.json</code> and the options code. Question names show a friendly name with the engine id beside it; today the backend returns only the id, so a label source is needed.</p>
+
+<h2>1. Pickers</h2>
+<p class="cap">Every picker has the same shape: a field showing the current choice, a list under it, search when the list is long, grey rows with the reason when an option is unavailable, and one control style (radio for one, check box for several).</p>
+
+<div class="row">
+
+<div class="fig"><div class="lbl">Question picker (Compared with)</div>
+ <div class="f"><div class="lb">Compared with <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>PM satisfaction<span class="id">pm_satisfaction</span></span><svg class="i"><use href="#down"/></svg></button></div>
+ <div class="pop" role="listbox" aria-label="Compared with">
+  <div class="sbox"><svg class="i"><use href="#search"/></svg><input placeholder="Find a question" aria-label="Find a question"></div>
+  <div class="list">
+   <div class="gh">Party questions</div>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>VS voting intention</span><span class="id">vs_voting_intention</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>VS past vote</span><span class="badge">Recalled</span><span class="id">vs_past</span></button>
+   <button class="op" role="option" aria-selected="false" aria-disabled="true"><span class="tick"></span><span>MLA choice<span class="why">Not asked in 2027 VS CAPI R3</span></span><span class="id">mla_choice_party</span></button>
+   <div class="gh">Opinion questions</div>
+   <button class="op" role="option" aria-selected="true"><span class="tick"><svg class="i" style="width:14px;height:14px"><use href="#check"/></svg></span><span>PM satisfaction</span><span class="id">pm_satisfaction</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>CM satisfaction</span><span class="id">cm_satisfaction</span></button>
+  </div>
+  <div class="pfoot">A party question compared with an opinion question is a Shakti comparison.</div>
+ </div>
+ <p class="help" style="margin-top:10px">One choice. Questions are grouped by kind. A question some of the rounds read did not ask is listed but greyed, with the round that lacks it. The same list, set to multiple choice with check boxes, serves the Questions field.</p>
+</div>
+
+<div class="fig"><div class="lbl">Election picker (Compared with)</div>
+ <div class="f"><div class="lb">Compared with</div><button class="sel"><span>2022 VS</span><svg class="i"><use href="#down"/></svg></button></div>
+ <div class="pop" role="listbox" aria-label="Compared with">
+  <div class="list">
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>No reference</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>The comparison round</span><span class="id">2027 VS CAPI R1</span></button>
+   <button class="op" role="option" aria-selected="true"><span class="rd"></span><span>2022 VS</span><span class="id">assembly election</span></button>
+  </div>
+ </div>
+ <p class="help" style="margin-top:10px">The comparison round is offered only when the dashboard has one. Past elections come from the state's election list. The card is tinted as changed whenever this is not "No reference".</p>
+</div>
+
+<div class="fig"><div class="lbl">Party picker (Focal party)</div>
+ <div class="f"><div class="lb">Focal party</div><button class="sel"><span>NDA</span><svg class="i"><use href="#down"/></svg></button></div>
+ <div class="pop" role="listbox" aria-label="Focal party">
+  <div class="list">
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>BSP</span></button>
+   <button class="op" role="option" aria-selected="true"><span class="rd"></span><span>NDA</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>SP+</span></button>
+   <button class="op" role="option" aria-selected="false" aria-disabled="true"><span class="rd"></span><span>INDI<span class="why">Not mapped for every endpoint</span></span></button>
+  </div>
+ </div>
+ <p class="help" style="margin-top:10px">One choice for a focal party. A party that the survey or the reference election does not map is greyed with the reason. For "Parties shown" the same list has check boxes.</p>
+</div>
+
+<div class="fig"><div class="lbl">Field picker (inside Split by)</div>
+ <div class="cut" style="margin-bottom:6px"><span class="n">Table 1</span><div class="chips"><span class="tag plain">age_group</span><span class="times">×</span><span class="tag" style="border:1px dashed #9aa1ad;background:#fff;color:var(--muted)">Add field</span></div></div>
+ <div class="pop" role="listbox" aria-label="Add a field">
+  <div class="sbox"><svg class="i"><use href="#search"/></svg><input placeholder="Find a field" aria-label="Find a field"></div>
+  <div class="list">
+   <div class="gh">Respondent fields</div>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>gender</span></button>
+   <button class="op" role="option" aria-selected="false" aria-disabled="true"><span class="tick"></span><span>caste<span class="why">2027 VS CAPI R3 lacks this field</span></span></button>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>occupation</span></button>
+   <div class="gh">Seat fields <em>a seat field first in a table becomes a selector</em></div>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>ac_num</span><span class="badge seat">Seat</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>party_zone</span><span class="badge seat">Seat</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="tick"></span><span>incumbent_mla_party</span><span class="badge seat">Seat</span></button>
+  </div>
+ </div>
+ <p class="help" style="margin-top:10px">Fields are grouped by what they describe, using the new <code>scope</code> value. Seat fields carry a badge. Fields already in the table are not offered again.</p>
+</div>
+
+<div class="fig"><div class="lbl">Metric picker (Rank by)</div>
+ <div class="f"><div class="lb">Rank by <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>Net score</span><svg class="i"><use href="#down"/></svg></button></div>
+ <div class="pop" role="listbox" aria-label="Rank by">
+  <div class="list">
+   <button class="op" role="option" aria-selected="true"><span class="rd"></span><span>Net score</span><span class="id">positive minus negative</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>Positive share</span></button>
+   <button class="op" role="option" aria-selected="false"><span class="rd"></span><span>Negative share</span></button>
+  </div>
+ </div>
+ <p class="help" style="margin-top:10px">The choices follow the question: an opinion question offers these three, a party question offers support share. Nothing is listed until a question is chosen.</p>
+</div>
+
+</div>
+
+
+<h2 style="margin-top:40px">2. The other families</h2>
+<p class="cap">Gender gap in trend mode, seat ranking, group ranking, and vote movement with its recalled-vote options open. Opinion is not drawn: it is the Party vote share panel with opinion questions and net, positive or negative "Change in" choices, and without the party-only fields.</p>
+<div class="row"><div class="drawer" role="dialog" aria-label="Configure Gender gap"><div class="dh"><div><h3>Gender gap</h3><p>How women and men differ in party support.</p></div><button class="x" aria-label="Close"><svg class="i"><use href="#close"/></svg></button></div>
+ <div class="db"><div class="f"><label>Title <span class="req" aria-hidden="true">*</span></label><input class="in" value="Gender gap in party support, by round"></div>
+  <div class="f"><div class="lb">Questions <span class="req" aria-hidden="true">*</span><span class="count">1 of 12</span></div><div class="chips"><span class="tag">VS voting intention<button aria-label="Remove VS voting intention"><svg class="i" style="width:11px;height:11px"><use href="#close"/></svg></button></span><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add question</button></div></div>
+  <div class="f"><div class="lb">Show</div><div class="seg" role="group" aria-label="Show"><button aria-pressed="false">Standalone</button><button aria-pressed="true">Trend</button></div><div class="help">The last rounds up to the anchor. There is no Compare here.</div></div>
+  <div class="f"><div class="lb">Split by</div><div class="cut"><span class="n">Table 1</span><div class="chips"><span class="tag plain">age_group</span></div></div><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add table</button>
+   <div class="note2"><svg class="i"><use href="#info"/></svg><span>Gender is not offered. The gap between women and men is the result.</span></div></div>
+  <div class="more"><button aria-expanded="true"><svg class="i"><use href="#chev"/></svg>More options <span class="pill">2 set</span></button><div class="body"><div class="f"><div class="lb">Rounds to show</div><div class="stp"><button aria-label="Fewer">−</button><b>3</b><button aria-label="More">+</button></div><div class="help">The last 3 rounds up to the anchor. Empty means all of them.</div></div><div class="f"><div class="lb">Show only these parties</div><div class="chips"><span class="tag">SP+<button aria-label="Remove SP+"><svg class="i" style="width:11px;height:11px"><use href="#close"/></svg></button></span><span class="tag">BJP+<button aria-label="Remove BJP+"><svg class="i" style="width:11px;height:11px"><use href="#close"/></svg></button></span><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add party</button></div><div class="help">Hides rows after calculation. Bases are unchanged.</div></div></div></div>
+ </div><div class="df"><span class="st ok">Ready to apply</span><button class="btn">Cancel</button><button class="btn p">Apply</button></div></div><div class="drawer" role="dialog" aria-label="Configure Seat ranking"><div class="dh"><div><h3>Seat ranking</h3><p>Rank ACs or PCs by a party's support or an opinion score.</p></div><button class="x" aria-label="Close"><svg class="i"><use href="#close"/></svg></button></div>
+ <div class="db"><div class="f"><label>Title <span class="req" aria-hidden="true">*</span></label><input class="in" value="Seats where PM satisfaction is highest"></div>
+  <div class="f"><div class="lb">Seats</div><div class="seg" role="group" aria-label="Seats"><button aria-pressed="true">AC</button><button aria-pressed="false">PC</button></div></div>
+  <div class="f"><div class="lb">Question <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>PM satisfaction<span class="id">pm_satisfaction</span></span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Rank by <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>Net score</span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Show</div><div class="seg" role="group" aria-label="Show"><button aria-pressed="true">Standalone</button><button aria-pressed="false">Compare</button><button aria-pressed="false">Trend</button></div><div class="help">The anchor round on its own.</div></div>
+  <div class="more"><button aria-expanded="true"><svg class="i"><use href="#chev"/></svg>More options <span class="pill">2 set</span></button><div class="body"><div class="f"><div class="lb">Top N in each group</div><div class="stp"><button aria-label="Fewer">−</button><b>5</b><button aria-label="More">+</button></div><div class="help">Empty means every seat.</div></div><div class="f"><div class="lb">Rank within</div><button class="sel"><span>party_zone</span><svg class="i"><use href="#down"/></svg></button></div><div class="f"><div class="lb">Only seats where</div><div class="frow"><button class="sel">incumbent_mla_party<svg class="i"><use href="#down"/></svg></button><button class="sel">is<svg class="i"><use href="#down"/></svg></button><button class="sel"><span class="chips"><span class="tag" style="height:24px">SP+</span></span><svg class="i"><use href="#down"/></svg></button><button class="x" aria-label="Remove filter"><svg class="i"><use href="#close"/></svg></button></div><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add filter</button></div></div></div>
+  <div class="note2"><svg class="i"><use href="#info"/></svg><span>Choosing a party question adds a required Party field after Rank by.</span></div>
+ </div><div class="df"><span class="st ok">Ready to apply</span><button class="btn">Cancel</button><button class="btn p">Apply</button></div></div><div class="drawer" role="dialog" aria-label="Configure Group ranking"><div class="dh"><div><h3>Group ranking</h3><p>Rank groups such as castes or ages within each area by a party's support or an opinion score.</p></div><button class="x" aria-label="Close"><svg class="i"><use href="#close"/></svg></button></div>
+ <div class="db"><div class="f"><label>Title <span class="req" aria-hidden="true">*</span></label><input class="in" value="Top castes by PM satisfaction, per seat"></div>
+  <div class="f"><div class="lb">Groups <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>caste</span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Question <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>PM satisfaction<span class="id">pm_satisfaction</span></span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Rank by <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>Net score</span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Show</div><div class="seg" role="group" aria-label="Show"><button aria-pressed="true">Standalone</button><button aria-pressed="false">Compare</button><button aria-pressed="false">Trend</button></div></div>
+  <div class="f"><div class="lb">Top N in each group <span class="req" aria-hidden="true">*</span></div><div class="stp"><button aria-label="Fewer">−</button><b>3</b><button aria-label="More">+</button></div><div class="help">Required: the table shows this many groups per seat.</div></div>
+  <div class="more"><button aria-expanded="false"><svg class="i"><use href="#chev"/></svg>More options <span class="pill">1 set</span></button><div class="body"><div class="f"><div class="lb">Rank within</div><button class="sel"><span>ac_num</span><svg class="i"><use href="#down"/></svg></button></div><div class="f"><div class="lb">Only respondents where</div><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add filter</button></div></div></div>
+ </div><div class="df"><span class="st ok">Ready to apply</span><button class="btn">Cancel</button><button class="btn p">Apply</button></div></div><div class="drawer" role="dialog" aria-label="Configure Vote movement"><div class="dh"><div><h3>Vote movement</h3><p>How answers to one party question carry over to another, such as past vote to current vote.</p></div><button class="x" aria-label="Close"><svg class="i"><use href="#close"/></svg></button></div>
+ <div class="db"><div class="f"><label>Title <span class="req" aria-hidden="true">*</span></label><input class="in" value="Past vote to voting intention"></div>
+  <div class="f"><div class="lb">From <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>VS past vote<span class="id">vs_past</span></span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">To <span class="req" aria-hidden="true">*</span></div><button class="sel"><span>VS voting intention<span class="id">vs_voting_intention</span></span><svg class="i"><use href="#down"/></svg></button></div>
+  <div class="f"><div class="lb">Split by</div><div class="cut"><span class="n">Table 1</span><div class="chips"><span class="tag plain">Overall</span></div></div><div class="cut"><span class="n">Table 2</span><div class="chips"><span class="tag plain">gender</span></div><button class="x rm" aria-label="Remove"><svg class="i"><use href="#close"/></svg></button></div><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Add table</button></div>
+  <div class="more"><button aria-expanded="true"><svg class="i"><use href="#chev"/></svg>More options <span class="pill">2 set</span></button><div class="body"><div class="f"><div class="lb">Focal party</div><button class="sel"><span>BJP+</span><svg class="i"><use href="#down"/></svg></button></div><div class="f"><div class="lb">Also count (from)</div><div class="chips"><span class="tag">Did Not Vote<button aria-label="Remove Did Not Vote"><svg class="i" style="width:11px;height:11px"><use href="#close"/></svg></button></span><button class="add"><svg class="i" style="width:12px;height:12px"><use href="#plus"/></svg>Do Not Remember</button></div><div class="help">Shown because the origin is a recalled-vote question.</div></div><div class="f"><div class="lb">Pair answers with</div><div class="seg" role="group" aria-label="Pair answers with"><button aria-pressed="true">Base weight</button><button aria-pressed="false">A question</button></div></div></div></div>
+ </div><div class="df"><span class="st ok">Ready to apply</span><button class="btn">Cancel</button><button class="btn p">Apply</button></div></div></div>
+
+<script>
+document.querySelectorAll('.seg').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+document.querySelectorAll('.more>button').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-expanded',b.getAttribute('aria-expanded')!=='true')));
+document.querySelectorAll('.list').forEach(l=>l.addEventListener('click',e=>{const o=e.target.closest('.op');if(!o||o.getAttribute('aria-disabled')==='true')return;if(o.querySelector('.rd'))l.querySelectorAll('.op').forEach(x=>x.setAttribute('aria-selected',x===o))}));
+</script>
+</body></html>
