@@ -1,0 +1,63 @@
+.cell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+  padding: 0 4px;
+}
+
+.handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--mb-muted);
+  font-size: 12px;
+  cursor: grab;
+  user-select: none;
+}
+
+.handle:hover {
+  background: var(--mb-header-bg);
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* One column: the card is as tall as its content, not the grid cell. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mb-gap, 18px);
+}
+
+.stack .cell {
+  height: auto;
+}
+
+.stack .body {
+  overflow: visible;
+}
+
+/* The library's placeholder while a card is dragged or resized. */
+:global(.react-grid-item.react-grid-placeholder) {
+  background: var(--mb-soft-line);
+  border-radius: var(--mantine-radius-default);
+  opacity: 0.5;
+}
