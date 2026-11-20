@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import { seedCards } from "./seed";
 
 type Json = Record<string, any>;
 const fx = (path: string): Json => JSON.parse(readFileSync(`src/test/fixtures/${path}.json`, "utf8"));
+const FAMILIES = fx("configure_families") as unknown as Json[];
 
 const STANDALONE = fx("cards/distribution_standalone");
 const COMPARE = fx("cards/opinion_compare");
@@ -15,6 +17,13 @@ const infoOf = (p: Json) => ({
   comparison: { mode: p.mode, target: null, reference: null, delta_measures: [] },
   caste_clubbing: false, requires: { min_level: "state" }, meta: p.meta,
 });
+
+/** The analyst has each payload's card on their canvas; the card keeps the fixture's id so its run is found. */
+const seed = (page: Page, payloads: Record<string, Json>) =>
+  seedCards(page, "Uttar Pradesh", Object.values(payloads).map((p) => {
+    const { meta: _meta, ...config } = infoOf(p);
+    return { id: p.card_id, config };
+  }));
 
 /** Serves the cards API from the fixture payloads; `calls` records every API request. */
 async function serve(page: Page, payloads: Record<string, Json> = PAYLOADS): Promise<string[]> {
@@ -29,6 +38,8 @@ async function serve(page: Page, payloads: Record<string, Json> = PAYLOADS): Pro
     if (path === "/catalogue/states") return json(fx("states"));
     if (path.endsWith("/surveys")) return json(fx("surveys"));
     if (path === "/cards") return json(Object.values(payloads).map(infoOf));
+    // The cards on the canvas are the analyst's own: their family metadata comes from here (the payload's, where the fixture has one).
+    if (path === "/configure/families") return json(FAMILIES.map((d) => ({ ...d, meta: Object.values(payloads).find((p) => p.family === d.family)?.meta ?? d.meta })));
     if (path === "/cards/plan") {
       // The context bar plans a card of its own, which is not one of the cards on the page.
       const p = payloads[body.card_id!] ?? STANDALONE;
@@ -54,6 +65,7 @@ const lensOf = (id: string) => (STANDALONE.meta.lenses as Json[]).find((l) => l.
 
 test("the cards journey", async ({ page }) => {
   const calls = await serve(page);
+  await seed(page, PAYLOADS);
   await page.goto(CONTEXT);
 
   // Three cards, one per fixture.
@@ -130,6 +142,7 @@ const RANKED_PAYLOADS: Record<string, Json> = Object.fromEntries(
 
 test("the ranking cards journey", async ({ page }) => {
   const calls = await serve(page, RANKED_PAYLOADS);
+  await seed(page, RANKED_PAYLOADS);
   await page.goto(CONTEXT);
 
   await expect(page.getByRole("table")).toHaveCount(2);

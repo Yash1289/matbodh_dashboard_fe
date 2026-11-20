@@ -60,8 +60,8 @@ test("an analyst adds, configures, applies and copies a card", async ({ page }) 
   const seen = await serve(page);
   await page.goto(CONTEXT);
 
-  // The shared library is empty: the page invites the first card.
-  await expect(page.getByText(/No cards yet/)).toBeVisible();
+  // The shared library is empty: the first tab invites the first card.
+  await expect(page.getByText(/This tab is empty/)).toBeVisible();
   await page.getByRole("button", { name: "Add card" }).click();
   await page.getByRole("menuitem", { name: /Party vote share/ }).click();
 
@@ -93,7 +93,8 @@ test("an analyst adds, configures, applies and copies a card", async ({ page }) 
   expect(seen.runs[0].id).not.toBe("draft");
 
   // Copy card: a second card appears, titled as a copy.
-  await page.getByRole("button", { name: "Copy card" }).click();
+  await page.getByRole("button", { name: "Card actions" }).click();
+  await page.getByRole("menuitem", { name: "Copy card" }).click();
   await expect(page.getByRole("table")).toHaveCount(2);
   await expect(page.getByRole("heading", { name: "Party vote share (copy)" })).toBeVisible();
 });
