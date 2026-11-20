@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CohortPreview, StateContext } from "../api/types";
@@ -34,9 +34,9 @@ const postBodies = (api: ReturnType<typeof stubCardApi>) =>
 describe("CohortDialog", () => {
   it("previews a ranking selection and uses the seat list as the session cohort", async () => {
     const { api, onClose } = mount();
-    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Find seats" })).toBeDisabled();
     await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "5");
-    await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
     expect(await screen.findByText("3 seats matched")).toBeInTheDocument();
     const [url, body] = postBodies(api).find(([u]) => u === "/api/cohorts/preview")!;
     expect(url).toBe("/api/cohorts/preview");
@@ -55,7 +55,7 @@ describe("CohortDialog", () => {
     renderWithProviders(<CohortDialog opened onClose={vi.fn()} card={{ card_id: "ranking.test" }} kind="ranking" ctx={CTX}
       reference={null} hasReference={false} cardTitle="AC ranking" />);
     await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "5");
-    await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
     expect(await screen.findByText("No seats matched")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Use as cohort" })).toBeDisabled();
   });
@@ -69,7 +69,7 @@ describe("CohortDialog", () => {
   it("a benchmark with a reference sends flip, endpoint and margins", async () => {
     const { api } = mount({ kind: "benchmark", hasReference: true, reference: { kind: "compare" } as never });
     await userEvent.selectOptions(screen.getByLabelText("Flip"), "gain");
-    await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
     await screen.findByText("3 seats matched");
     const [, body] = postBodies(api).find(([u]) => u === "/api/cohorts/preview")!;
     expect(body.predicate).toEqual({ flip: "gain" });
@@ -81,7 +81,30 @@ describe("CohortDialog", () => {
     renderWithProviders(<CohortDialog opened onClose={vi.fn()} card={{ card_id: "ranking.demo" }} kind="ranking" ctx={CTX}
       reference={null} hasReference={false} cardTitle="Demo" />);
     await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "3");
-    await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("demographic ranking cannot supply"));
+  });
+
+  it("shows what the cohort is taken from, read-only, before the rule", () => {
+    mount({ cardTitle: "AC ranking", kind: "benchmark", hasReference: true, reference: null });
+    const source = screen.getByTestId("cohort-source");
+    expect(source).toHaveTextContent("Taken from this card");
+    expect(source).toHaveTextContent("AC ranking");
+    expect(within(source).queryByRole("textbox")).toBeNull();
+  });
+
+  it("says that seats tied at the cut-off are included in a ranking rule", () => {
+    mount();
+    expect(screen.getByText(/tied at the cut-off are included/i)).toBeInTheDocument();
+  });
+
+  it("lists the matched seats and keeps Use as cohort off until seats are found", async () => {
+    mount();
+    expect(screen.getByRole("button", { name: "Use as cohort" })).toBeDisabled();
+    await userEvent.type(screen.getByRole("textbox", { name: "Top N in each group" }), "5");
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
+    await screen.findByText("3 seats matched");
+    expect(screen.getByTestId("cohort-seats")).toHaveTextContent("AC 3, 12, 57");
+    expect(screen.getByRole("button", { name: "Use as cohort" })).toBeEnabled();
   });
 });
