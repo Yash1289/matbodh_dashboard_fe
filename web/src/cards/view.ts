@@ -18,6 +18,8 @@ export interface FamilyView {
   search: string;
   hidden: string[];
   showDetails: boolean;
+  /** The chosen seat group when the cut's first field is a seat field: a value, or null for All. Unset means the default. */
+  seat?: string | null;
 }
 
 export const ruleOf = (v: FamilyView): FormatRule =>

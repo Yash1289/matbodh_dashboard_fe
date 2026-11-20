@@ -18,6 +18,8 @@ interface Props {
   onRefresh: () => void;
   /** Size class of the card (from its own width): decides which controls stay on the strip. */
   size: SizeClass;
+  /** Drawn first on the strip: the seat selector, when the cut has one. */
+  leading?: ReactNode;
 }
 
 /** Tabs only on a wide card with three lenses or fewer; a chip otherwise; nothing when there is one lens or none. */
@@ -59,7 +61,7 @@ const labelOf = <T extends { value: string; label: string }>(options: T[], value
   options.find((o) => o.value === value)?.label ?? value;
 
 /** Display-only controls: none of them triggers a request. Which ones show comes from the payload. */
-export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size }: Props) {
+export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size, leading }: Props) {
   const initial = initialView(payload);
   const { meta, mode } = payload;
   const caps = meta.capabilities;
@@ -200,6 +202,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
 
   return (
     <Group gap={8} wrap="wrap" justify="flex-end">
+      {leading}
       {cutChip}
       {lensMode === "tabs" && (
         <div role="tablist" aria-label="Lens" style={{ display: "flex", gap: 4 }}>

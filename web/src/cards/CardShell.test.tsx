@@ -106,4 +106,38 @@ describe("CardShell", () => {
     await waitFor(() => expect(within(drawer).getByText("Contract")).toBeInTheDocument());
     expect(within(drawer).getByText(/Rounds/)).toBeInTheDocument();
   });
+
+  describe("seat selector", () => {
+    const SCOPES = { category: "seat", gender: "respondent", caste: "respondent" } as const;
+
+    it("turns a seat field that comes first in a crossed cut into a selector and narrows the table", async () => {
+      const p = PAYLOADS.distributionStandalone();
+      const crossed = p.cuts.find((c) => c.dimensions.join() === "category,gender")!;
+      const f = stubCardApi({ payloads: [p], fieldScopes: SCOPES });
+      mount(p);
+      const user = userEvent.setup();
+      await screen.findByRole("table");
+      await user.click(screen.getByRole("radio", { name: cutLabel(crossed.dimensions) }));
+      const group = await screen.findByRole("group", { name: "category" });
+      const genders = new Set(crossed.rows.map((r) => r.labels.gender));
+      await waitFor(() => expect(screen.getAllByRole("rowheader")).toHaveLength(genders.size));
+      const before = posts(f);
+      const first = within(group).getAllByRole("button")[0].textContent;
+      await user.click(within(group).getByRole("button", { name: "Next category" }));
+      expect(within(screen.getByRole("group", { name: "category" })).getAllByRole("button")[0].textContent).not.toBe(first);
+      expect(screen.getAllByRole("rowheader")).toHaveLength(genders.size);
+      expect(posts(f)).toBe(before); // choosing a seat group is display only
+    });
+
+    it("shows no selector when the first field is a respondent field", async () => {
+      const p = PAYLOADS.distributionStandalone();
+      const crossed = p.cuts.find((c) => c.dimensions.join() === "category,gender")!;
+      stubCardApi({ payloads: [p], fieldScopes: { category: "respondent", gender: "respondent" } });
+      mount(p);
+      await screen.findByRole("table");
+      await userEvent.click(screen.getByRole("radio", { name: cutLabel(crossed.dimensions) }));
+      expect(screen.queryByRole("group", { name: "category" })).toBeNull();
+      expect(screen.getAllByRole("rowheader")).toHaveLength(crossed.rows.length);
+    });
+  });
 });

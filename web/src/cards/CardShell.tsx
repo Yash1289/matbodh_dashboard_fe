@@ -1,7 +1,7 @@
 import { Alert, Button, Drawer, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { useCardPlan, useCardRun } from "../api/queries";
+import { useCardPlan, useCardRun, useFieldScopes } from "../api/queries";
 import { toCardRef } from "../api/types";
 import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
@@ -11,6 +11,8 @@ import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
 import { payloadToGrid } from "./grid/payloadToGrid";
 import { MethodDrawer } from "./MethodDrawer";
+import { SeatSelector } from "./SeatSelector";
+import { applySeat, resolveSeat, seatChoices, seatSplit } from "./seatScope";
 import { sizeClass } from "./sizeClass";
 import { initialView, settled, type FamilyView } from "./view";
 
@@ -64,17 +66,29 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
     [chosen, shown],
   );
   const onView = useCallback((patch: Partial<FamilyView>) => {
-    setChosen((v) => ({ ...(v ?? (shown !== null ? initialView(shown) : (patch as FamilyView))), ...patch }));
+    // A different cut has a different seat field, so an earlier seat choice no longer applies.
+    setChosen((v) => ({ ...(v ?? (shown !== null ? initialView(shown) : (patch as FamilyView))), ...patch, ...(patch.cut !== undefined ? { seat: undefined } : {}) }));
   }, [shown]);
-  const grid = useMemo(
-    () => (shown !== null && view !== null && view.cut !== "" ? payloadToGrid(shown, { lens: view.lens, cut: view.cut }) : null),
-    [shown, view],
+  // A crossed cut whose first field describes the seat is read one seat group at a time (display only).
+  const crossed = shown?.cuts.some((c) => c.dimensions.length >= 2) ?? false;
+  const scopes = useFieldScopes(info.family, crossed ? ctx : null);
+  const activeCut = shown !== null && view !== null ? shown.cuts.find((c) => c.id === view.cut) : undefined;
+  const split = activeCut ? seatSplit(activeCut.dimensions, scopes) : null;
+  const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
+  const seat = choices ? resolveSeat(choices, view?.seat) : null;
+  const withSeat = useCallback(
+    (p: GridPayload): GridPayload => (split && view && choices ? applySeat(p, view.cut, split.field, seat) : p),
+    [split, view, choices, seat],
   );
+  const grid = useMemo(() => {
+    if (shown === null || view === null || view.cut === "") return null;
+    return payloadToGrid(withSeat(shown), { lens: view.lens, cut: view.cut });
+  }, [shown, view, withSeat]);
 
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
   const Body = FAMILY_BODIES[info.family as GridFamily]; // CardsPage routes ranking families to RankingCard
   const bodyOf = (p: GridPayload, v: FamilyView) => (
-    <Body payload={p} view={v} onView={onView} rules={presentationRules} order={order} colors={colors} />
+    <Body payload={withSeat(p)} view={v} onView={onView} rules={presentationRules} order={order} colors={colors} />
   );
   const previous = run.previous && !blocked && view && (
     <div>
@@ -156,6 +170,10 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
           {shown && view && grid && (
             <ControlStrip
               payload={shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
+              leading={split && choices && (
+                <SeatSelector field={split.field} values={choices.values} hasAll={choices.all !== null} value={seat}
+                  onChange={(v) => onView({ seat: v })} />
+              )}
               onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
               onExport={() => downloadCsv(`${info.id}.csv`, toCsv(grid))}
             />
