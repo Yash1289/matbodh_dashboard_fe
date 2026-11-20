@@ -1,6 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import type { CardConfigJson, Family } from "../api/types";
 import { cardStore, useStoredCards, type StoredCard } from "../configure/cardStore";
+import { markFresh } from "./fresh";
 import { defaultSize, firstFreeSpot, normalise, settle, COLUMNS, type Item } from "./layout";
 
 // The analyst's arrangement lives in this browser until the database phase (6c): one record per state in
@@ -26,7 +27,7 @@ function readItems(raw: unknown): Item[] {
   return raw.flatMap((r) => {
     if (!isObject(r) || typeof r.cardId !== "string") return [];
     const [x, y, w, h] = [r.x, r.y, r.w, r.h].map((n) => (typeof n === "number" ? n : Number.NaN));
-    return [normalise({ cardId: r.cardId, x, y, w, h })];
+    return [normalise({ cardId: r.cardId, x, y, w, h, manual: r.manual === true })];
   });
 }
 
@@ -101,6 +102,7 @@ export const workspaceStore = {
     const size = defaultSize(config.family as Family);
     const spot = firstFreeSpot(target.items, size);
     write(state, withTab(ws, target.id, (t) => ({ ...t, items: [...t.items, { cardId: stored.id, ...spot, ...size }] })));
+    markFresh(stored.id);
     return stored;
   },
 
@@ -113,6 +115,7 @@ export const workspaceStore = {
     const copy = cardStore.copy(state, cardId);
     if (copy === null) return null;
     write(state, withTab(ws, home.id, (t) => ({ ...t, items: settle([...t.items, { ...source, cardId: copy.id, y: source.y + source.h }]) })));
+    markFresh(copy.id);
     return copy;
   },
 

@@ -71,7 +71,7 @@ export function Shell() {
         <nav id="sections-nav" aria-label="Tabs">{tabs}</nav>
       </Drawer>
       <AppShell.Main>
-        <div style={{ maxWidth: tokens.layout.content + 2 * tokens.layout.contentPad, padding: tokens.layout.contentPad }}>
+        <div style={{ padding: tokens.layout.contentPad }}>
           <Outlet />
         </div>
       </AppShell.Main>

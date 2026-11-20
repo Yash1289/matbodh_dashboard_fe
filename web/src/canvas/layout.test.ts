@@ -148,3 +148,14 @@ describe("fitAllHeights", () => {
     expect(byId(fitAllHeights([item("a", 0, 0, 6, 8)], {}), "a").h).toBe(8);
   });
 });
+
+describe("manual height mark", () => {
+  it("survives settling and moving, and Fit (one or all) clears it", () => {
+    const items: Item[] = [{ cardId: "a", x: 0, y: 0, w: 6, h: 8, manual: true }, { cardId: "b", x: 6, y: 0, w: 6, h: 8 }];
+    expect(settle(items).find((i) => i.cardId === "a")?.manual).toBe(true);
+    expect(moveBy(items, "b", "left").find((i) => i.cardId === "a")?.manual).toBe(true);
+    expect(fitHeight(items, "a", 3).find((i) => i.cardId === "a")?.manual).toBeUndefined();
+    expect(fitAllHeights(items, { a: 3, b: 2 }).every((i) => i.manual === undefined)).toBe(true);
+    expect(normalise({ cardId: "a", x: 0, y: 0, w: 6, h: 8, manual: true }).manual).toBe(true);
+  });
+});

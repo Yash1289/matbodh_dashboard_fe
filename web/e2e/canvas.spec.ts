@@ -186,3 +186,50 @@ test("at a narrow width the cards are one column and cannot be dragged", async (
   expect(Math.abs(two.x - one.x)).toBeLessThan(2);
   expect(two.y).toBeGreaterThan(one.y + one.height - 4);
 });
+
+test("cards keep their content height after a tab change and after Fit all heights", async ({ page }) => {
+  // Results arrive late, as they do from a real engine: the cards are skeletons first, then tables.
+  await page.route("**/api/runs/**", async (route) => { await new Promise((r) => setTimeout(r, 700)); await route.fallback(); });
+  await open(page, 1400);
+  const content = async () => (await box(page.getByTestId("card:c1"))).height;
+  await expect.poll(content).toBeGreaterThan(150);
+  const natural = await content();
+  const cellHeight = async () => (await box(cell(page, "c1"))).height;
+  await expect.poll(cellHeight).toBeGreaterThan(natural);
+
+  await page.getByRole("button", { name: "New tab" }).click();
+  await expect(page.getByText(/This tab is empty/)).toBeVisible();
+  await page.getByRole("tab", { name: "Tab 1" }).click();
+  await expect(page.getByRole("heading", { name: "Card One" })).toBeVisible();
+  await expect.poll(cellHeight, { timeout: 5000 }).toBeGreaterThan(natural);
+
+  await page.getByRole("button", { name: "Fit all heights" }).click();
+  await settled(cell(page, "c1"));
+  expect(await cellHeight()).toBeGreaterThan(natural);
+  expect((await box(page.getByTestId("card:c1"))).height).toBeCloseTo(natural, -1);
+});
+
+test("switching between two tabs that both hold cards keeps every card at its content height", async ({ page }) => {
+  await page.route("**/api/runs/**", async (route) => { await new Promise((r) => setTimeout(r, 500)); await route.fallback(); });
+  await open(page, 1400);
+  await page.getByRole("button", { name: "New tab" }).click();
+  await page.getByRole("tab", { name: "Tab 1" }).click();
+  await menu(page, "c1", "Move to tab: Tab 2");
+  const heights = async (id: string) => ({ card: (await box(page.getByTestId(`card:${id}`))).height, cell: (await box(cell(page, id))).height });
+  for (const [tab, id] of [["Tab 1", "c2"], ["Tab 2", "c1"], ["Tab 1", "c2"], ["Tab 2", "c1"]] as const) {
+    await page.getByRole("tab", { name: tab }).click();
+    await expect(page.getByTestId(`card:${id}`)).toBeVisible();
+    await expect.poll(async () => { const h = await heights(id); return h.card > 150 && h.cell > h.card; }, { timeout: 6000 }).toBe(true);
+  }
+});
+
+test("a copied card arrives with a short animation and is scrolled into view; other cards do not animate", async ({ page }) => {
+  await open(page, 1400);
+  const animation = (id: string) => cell(page, id).evaluate((e) => getComputedStyle(e).animationName);
+  await menu(page, "c1", "Copy card");
+  const fresh = page.locator("[data-fresh]");
+  await expect(fresh).toHaveCount(1);
+  expect(await fresh.evaluate((e) => getComputedStyle(e).animationName)).not.toBe("none");
+  expect(await animation("c2")).toBe("none");
+  await expect(fresh).toBeInViewport();
+});

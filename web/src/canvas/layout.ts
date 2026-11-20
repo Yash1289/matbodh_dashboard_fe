@@ -2,7 +2,11 @@ import { cloneLayout, verticalCompactor, type LayoutItem } from "react-grid-layo
 import { isBenchmarkFamily, isRankingFamily, isRelationshipFamily, type Family } from "../api/types";
 
 /** A card's place on the canvas: grid columns and rows. Display state only; the engine never sees it. */
-export interface Item { cardId: string; x: number; y: number; w: number; h: number }
+export interface Item {
+  cardId: string; x: number; y: number; w: number; h: number;
+  /** True once the analyst has set this height by hand; otherwise the card is as tall as its content at any width. */
+  manual?: boolean;
+}
 
 export const COLUMNS = 12;
 /** Pixel height of one grid row; the gap between rows comes from the theme. */
@@ -26,15 +30,20 @@ export function normalise(item: Item): Item {
   const finite = [item.x, item.y, item.w, item.h].every(Number.isFinite);
   if (!finite) return { cardId: item.cardId, x: 0, y: 0, w: FALLBACK.w, h: FALLBACK.h };
   const w = whole(item.w, 1, COLUMNS);
-  return { cardId: item.cardId, w, h: whole(item.h, 1, Number.MAX_SAFE_INTEGER), x: whole(item.x, 0, COLUMNS - w), y: whole(item.y, 0, Number.MAX_SAFE_INTEGER) };
+  const placed = { cardId: item.cardId, w, h: whole(item.h, 1, Number.MAX_SAFE_INTEGER), x: whole(item.x, 0, COLUMNS - w), y: whole(item.y, 0, Number.MAX_SAFE_INTEGER) };
+  return item.manual === true ? { ...placed, manual: true } : placed;
 }
 
+const withoutManual = ({ manual: _manual, ...rest }: Item): Item => rest;
+
 const toLayout = (items: Item[]): LayoutItem[] => items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: i.h }));
-const fromLayout = (layout: readonly LayoutItem[]): Item[] => layout.map((l) => ({ cardId: l.i, x: l.x, y: l.y, w: l.w, h: l.h }));
+/** Positions from the library, with each card's other fields (the manual-height mark) kept from `source`. */
+const fromLayout = (layout: readonly LayoutItem[], source: Item[]): Item[] =>
+  layout.map((l) => ({ ...source.find((s) => s.cardId === l.i), cardId: l.i, x: l.x, y: l.y, w: l.w, h: l.h }));
 
 /** Vertical compaction with the library's own rules, so keyboard actions and dragging agree. */
 export function settle(items: Item[]): Item[] {
-  return fromLayout(verticalCompactor.compact(cloneLayout(toLayout(items)), COLUMNS));
+  return fromLayout(verticalCompactor.compact(cloneLayout(toLayout(items)), COLUMNS), items);
 }
 
 const free = (items: Item[], x: number, y: number, w: number, h: number): boolean =>
@@ -62,7 +71,7 @@ export function moveBy(items: Item[], cardId: string, dir: Direction): Item[] {
   // Pin one card at its new spot so the others flow around it (fixing the order), then close the gaps.
   const pinAndSettle = (pinId: string, at: { x: number; y: number }) => {
     const pinned = toLayout(items).map((l) => (l.i === pinId ? { ...l, ...at, static: true } : l));
-    return settle(fromLayout(verticalCompactor.compact(cloneLayout(pinned), COLUMNS)));
+    return settle(fromLayout(verticalCompactor.compact(cloneLayout(pinned), COLUMNS), items));
   };
   if (dir !== "down") return pinAndSettle(cardId, { x, y });
   // One row down cannot stick (the gap above closes again), so "down" lifts the card directly below into this one's place.
@@ -76,15 +85,15 @@ export function resizeTo(items: Item[], cardId: string, preset: SizePreset): Ite
   return settle(items.map((i) => (i.cardId === cardId ? { ...i, w, x: Math.min(i.x, COLUMNS - w) } : i)));
 }
 
-/** A height in rows (at least one); neighbours are pushed down. */
+/** Back to automatic height: the card is as tall as its content (`rows`, at least one); neighbours are pushed down. */
 export function fitHeight(items: Item[], cardId: string, rows: number): Item[] {
   const h = Math.max(1, Math.round(rows));
-  return settle(items.map((i) => (i.cardId === cardId ? { ...i, h } : i)));
+  return settle(items.map((i) => (i.cardId === cardId ? withoutManual({ ...i, h }) : i)));
 }
 
 /** Every card to its own content height (rows by card id; a card with no measurement keeps its height); gaps close. */
 export function fitAllHeights(items: Item[], rows: Record<string, number>): Item[] {
-  return settle(items.map((i) => (i.cardId in rows ? { ...i, h: Math.max(1, Math.round(rows[i.cardId])) } : i)));
+  return settle(items.map((i) => (i.cardId in rows ? withoutManual({ ...i, h: Math.max(1, Math.round(rows[i.cardId])) }) : i)));
 }
 
 /** Rows top to bottom, then columns left to right: the order of the one-column layout. */

@@ -40,6 +40,26 @@
   overflow-y: auto;
 }
 
+/* A card that was just added or copied: it settles in and a ring fades, so the eye finds where it landed. */
+.fresh {
+  animation: arrive 260ms cubic-bezier(0.16, 1, 0.3, 1) both, ring 1400ms ease-out both;
+  border-radius: var(--mantine-radius-default);
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes ring {
+  from { box-shadow: 0 0 0 3px var(--mb-primary); }
+  to { box-shadow: 0 0 0 3px transparent; }
+}
+
+/* Reduced motion: no movement, the ring still says where it landed. */
+@media (prefers-reduced-motion: reduce) {
+  .fresh { animation: ring 900ms ease-out both; }
+}
+
 /* One column: the card is as tall as its content, not the grid cell. */
 .stack {
   display: flex;

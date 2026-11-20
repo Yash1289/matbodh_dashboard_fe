@@ -1,6 +1,6 @@
 import { Button, Group, VisuallyHidden } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GridLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { ReactNode } from "react";
@@ -11,8 +11,14 @@ import { CardMenu } from "./CardMenu";
 import { COLUMNS, ROW_HEIGHT, fitAllHeights, readingOrder, rowsFor, type Item } from "./layout";
 import { useWorkspace, workspaceStore, type Tab } from "./workspaceStore";
 
-/** Below this page width the grid gives way to one column in reading order, with no dragging. */
-export const NARROW_PAGE = 640;
+/**
+ * Below this canvas width the grid gives way to one column in reading order, with no dragging.
+ * It is the width at which a half-width (6 of 12 columns) card is still about 480px wide.
+ */
+export const NARROW_PAGE = 980;
+
+/** Pixels: a content height under this is a card that is not rendered (yet), not a card to shrink to. */
+const MIN_MEASURED = 60;
 
 interface Props {
   state: string;
@@ -24,7 +30,12 @@ interface Props {
 }
 
 type GridItem = { i: string; x: number; y: number; w: number; h: number };
-const fromGrid = (layout: readonly GridItem[]): Item[] => layout.map((l) => ({ cardId: l.i, x: l.x, y: l.y, w: l.w, h: l.h }));
+/** Positions from the grid; a height is kept as set by hand only for the card just resized or one already manual. */
+const fromGrid = (layout: readonly GridItem[], before: Item[], resized?: string): Item[] =>
+  layout.map((l) => {
+    const manual = l.i === resized || before.find((b) => b.cardId === l.i)?.manual === true;
+    return { cardId: l.i, x: l.x, y: l.y, w: l.w, h: l.h, ...(manual ? { manual: true } : {}) };
+  });
 
 /** The tab's cards on a snapped 12-column grid; the arrangement is saved when a drag or resize ends. */
 export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props) {
@@ -32,18 +43,51 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
   const { tabs } = useWorkspace(state);
   // One live region for the whole canvas: a card that is removed or moved away takes its own menu with it.
   const [said, setSaid] = useState("");
-  const save = (layout: readonly GridItem[]) => workspaceStore.setItems(state, tab.id, fromGrid(layout));
+  const save = (layout: readonly GridItem[], resized?: string) => workspaceStore.setItems(state, tab.id, fromGrid(layout, tab.items, resized));
   const gap = tokens.layout.gap;
+  const stacked = width !== 0 && width < NARROW_PAGE;
 
-  /** The card's own content height, in grid rows (for Fit to content). */
-  const measureRows = (cardId: string) => () => {
-    const content = ref.current?.querySelector(`[data-card-body="${CSS.escape(cardId)}"]`)?.firstElementChild;
-    return rowsFor(content?.getBoundingClientRect().height ?? 0, gap);
+  /** The card's own height (its toolbar and its content, whatever the cell is now), in grid rows; null while it has nothing to measure. */
+  const rowsOf = (cardId: string): number | null => {
+    const body = ref.current?.querySelector(`[data-card-body="${CSS.escape(cardId)}"]`);
+    const content = body?.firstElementChild?.getBoundingClientRect().height ?? 0;
+    // A rendered card is never this short (its title row alone is taller): below it nothing has rendered yet, so keep the stored height.
+    return content < MIN_MEASURED ? null : rowsFor(content + (body?.previousElementSibling?.getBoundingClientRect().height ?? 0), gap);
   };
+  const measureRows = (cardId: string) => () => rowsOf(cardId) ?? tab.items.find((i) => i.cardId === cardId)?.h ?? 1;
+
+  // Cards that were not sized by hand follow their content: it changes with the width (zoom, window, wrapping) and as data arrives.
+  const [rows, setRows] = useState<Record<string, number>>({});
+  const [reattach, setReattach] = useState(0);
+  const ids = tab.items.map((i) => i.cardId).join("|");
+  useEffect(() => {
+    const root: HTMLElement | null = ref.current;
+    if (root === null || typeof ResizeObserver === "undefined") return undefined;
+    const measure = () => {
+      const next: Record<string, number> = {};
+      for (const id of ids === "" ? [] : ids.split("|")) {
+        const r = rowsOf(id);
+        if (r !== null) next[id] = r;
+      }
+      setRows((prev) => (Object.keys(next).length === Object.keys(prev).length && Object.keys(next).every((k) => prev[k] === next[k]) ? prev : next));
+    };
+    const resizes = new ResizeObserver(measure);
+    const changes = new MutationObserver(() => setReattach((n) => n + 1));
+    root.querySelectorAll<HTMLElement>("[data-card-body]").forEach((body) => {
+      if (body.firstElementChild) resizes.observe(body.firstElementChild);
+      if (body.previousElementSibling) resizes.observe(body.previousElementSibling);
+      changes.observe(body, { childList: true });
+    });
+    measure();
+    return () => { resizes.disconnect(); changes.disconnect(); };
+    // rowsOf only reads the root and the gap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids, stacked, reattach]);
+  const heightOf = (i: Item) => (i.manual === true ? i.h : rows[i.cardId] ?? i.h);
   /** Every card to its own content height in one save, so the blank bands under short cards close. */
   const fitAll = () => {
-    const rows = Object.fromEntries(tab.items.map((i) => [i.cardId, measureRows(i.cardId)()]));
-    workspaceStore.setItems(state, tab.id, fitAllHeights(tab.items, rows));
+    const measured = Object.fromEntries(tab.items.flatMap((i) => { const r = rowsOf(i.cardId); return r === null ? [] : [[i.cardId, r]]; }));
+    workspaceStore.setItems(state, tab.id, fitAllHeights(tab.items, measured));
     setSaid(`Fitted ${tab.items.length} ${tab.items.length === 1 ? "card" : "cards"} to their content`);
   };
   /** After a card leaves the tab, focus the next card's menu (or the previous one's, or the active tab). */
@@ -67,7 +111,7 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
 
   const body = (() => {
     // Before the first measurement (and where nothing can be measured) the grid is laid out at the usual page width.
-    if (width !== 0 && width < NARROW_PAGE) {
+    if (stacked) {
       return (
         <div className={styles.stack}>
           {readingOrder(tab.items).map((i) => <div key={i.cardId}>{cell(i.cardId, false)}</div>)}
@@ -83,12 +127,12 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
         )}
         <GridLayout
           width={width === 0 ? tokens.layout.content : width}
-          layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: i.h }))}
+          layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: heightOf(i) }))}
           gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, gap], containerPadding: [0, 0] }}
           dragConfig={{ enabled: true, handle: ".canvas-handle" }}
           resizeConfig={{ enabled: true }}
-          onDragStop={save}
-          onResizeStop={save}
+          onDragStop={(layout) => save(layout)}
+          onResizeStop={(layout, _old, now) => save(layout, now?.i)}
         >
           {tab.items.map((i) => <div key={i.cardId}>{cell(i.cardId, true)}</div>)}
         </GridLayout>
