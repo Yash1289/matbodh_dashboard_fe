@@ -116,7 +116,8 @@ export const workspaceStore = {
   removeCard(state: string, cardId: string): void {
     const ws = current(state);
     cardStore.remove(state, cardId);
-    write(state, { ...ws, tabs: ws.tabs.map((t) => ({ ...t, items: t.items.filter((i) => i.cardId !== cardId) })) });
+    // Close the gap, so the stored layout is what the grid shows.
+    write(state, { ...ws, tabs: ws.tabs.map((t) => ({ ...t, items: settle(t.items.filter((i) => i.cardId !== cardId)) })) });
   },
 
   /** A new layout for one tab (after a drag, resize or keyboard action). Unknown cards are ignored. */
@@ -135,7 +136,7 @@ export const workspaceStore = {
     const spot = firstFreeSpot(target.items, item);
     write(state, {
       ...ws,
-      tabs: ws.tabs.map((t) => (t.id === from.id ? { ...t, items: t.items.filter((i) => i.cardId !== cardId) }
+      tabs: ws.tabs.map((t) => (t.id === from.id ? { ...t, items: settle(t.items.filter((i) => i.cardId !== cardId)) }
         : t.id === tabId ? { ...t, items: [...t.items, { ...item, ...spot }] } : t)),
     });
   },

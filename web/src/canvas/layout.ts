@@ -59,10 +59,15 @@ export function moveBy(items: Item[], cardId: string, dir: Direction): Item[] {
   const [dx, dy] = STEP[dir];
   const x = whole(target.x + dx, 0, COLUMNS - target.w);
   const y = Math.max(0, target.y + dy);
-  // Pin the moved card at its new spot so the others flow around it (fixing the order), then close the gaps.
-  const pinned = toLayout(items).map((l) => (l.i === cardId ? { ...l, x, y, static: true } : l));
-  const around = verticalCompactor.compact(cloneLayout(pinned), COLUMNS);
-  return settle(fromLayout(around));
+  // Pin one card at its new spot so the others flow around it (fixing the order), then close the gaps.
+  const pinAndSettle = (pinId: string, at: { x: number; y: number }) => {
+    const pinned = toLayout(items).map((l) => (l.i === pinId ? { ...l, ...at, static: true } : l));
+    return settle(fromLayout(verticalCompactor.compact(cloneLayout(pinned), COLUMNS)));
+  };
+  if (dir !== "down") return pinAndSettle(cardId, { x, y });
+  // One row down cannot stick (the gap above closes again), so "down" lifts the card directly below into this one's place.
+  const below = items.filter((i) => i.cardId !== cardId && i.y > target.y && i.x < x + target.w && x < i.x + i.w).sort((p, q) => p.y - q.y)[0];
+  return below === undefined ? items : pinAndSettle(below.cardId, { x: below.x, y: target.y });
 }
 
 /** A preset width; the card is kept inside the grid and neighbours are pushed down. */

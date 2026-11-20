@@ -107,6 +107,25 @@ describe("workspaceStore", () => {
     expect(cardStore.list(STATE)).toEqual([]);
   });
 
+  it("removeCard closes the gap, so what is stored matches what the grid shows", () => {
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, CONFIG);
+    const tabId = read().tabs[0].id;
+    workspaceStore.setItems(STATE, tabId, [{ cardId: a.id, x: 0, y: 0, w: 12, h: 8 }, { cardId: b.id, x: 0, y: 8, w: 12, h: 8 }]);
+    workspaceStore.removeCard(STATE, a.id);
+    expect(read().tabs[0].items).toEqual([{ cardId: b.id, x: 0, y: 0, w: 12, h: 8 }]);
+  });
+
+  it("moveCardToTab closes the gap it leaves in the old tab", () => {
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, CONFIG);
+    const t2 = workspaceStore.addTab(STATE);
+    const first = read().tabs[0].id;
+    workspaceStore.setItems(STATE, first, [{ cardId: a.id, x: 0, y: 0, w: 12, h: 8 }, { cardId: b.id, x: 0, y: 8, w: 12, h: 8 }]);
+    workspaceStore.moveCardToTab(STATE, a.id, t2.id);
+    expect(read().tabs[0].items.find((i) => i.cardId === b.id)!.y).toBe(0);
+  });
+
   it("setItems stores a new layout for the tab, normalised", () => {
     const a = workspaceStore.addCard(STATE, CONFIG);
     const tabId = read().tabs[0].id;

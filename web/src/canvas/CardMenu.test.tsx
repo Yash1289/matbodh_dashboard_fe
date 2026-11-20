@@ -64,6 +64,29 @@ describe("CardMenu", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/cannot move left any further/i);
   });
 
+  it("Move down lifts the card below into this one's place and announces the new row", async () => {
+    const user = userEvent.setup();
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, CONFIG);
+    const tabId = workspaceStore.get(STATE).tabs[0].id;
+    workspaceStore.setItems(STATE, tabId, [{ cardId: a.id, x: 0, y: 0, w: 12, h: 4 }, { cardId: b.id, x: 0, y: 4, w: 12, h: 4 }]);
+    renderWithProviders(<Harness cardId={a.id} onConfigure={() => {}} />);
+    await choose(user, "Move down");
+    expect(item(a.id).y).toBeGreaterThan(item(b.id).y);
+    expect(screen.getByRole("status")).toHaveTextContent(/Moved to column 1, row 5/);
+  });
+
+  it("Move up puts the card above the one over it", async () => {
+    const user = userEvent.setup();
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, CONFIG);
+    const tabId = workspaceStore.get(STATE).tabs[0].id;
+    workspaceStore.setItems(STATE, tabId, [{ cardId: a.id, x: 0, y: 0, w: 12, h: 4 }, { cardId: b.id, x: 0, y: 4, w: 12, h: 4 }]);
+    renderWithProviders(<Harness cardId={b.id} onConfigure={() => {}} />);
+    await choose(user, "Move up");
+    expect(item(b.id).y).toBeLessThan(item(a.id).y);
+  });
+
   it("Size Small stores a 4-column width and announces it", async () => {
     const user = userEvent.setup();
     const card = workspaceStore.addCard(STATE, CONFIG);

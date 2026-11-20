@@ -12,14 +12,19 @@ interface Props {
   onConfigure(cardId: string): void;
   /** The card's content height in grid rows, for Fit to content. */
   measureRows(): number;
+  /** Where messages for screen readers go. Without it the menu keeps its own live region. */
+  announce?(message: string): void;
+  /** Called after the card has left this tab (removed or moved), so the page can put focus somewhere sensible. */
+  onGone?(cardId: string): void;
 }
 
 const DIRECTIONS: Direction[] = ["left", "right", "up", "down"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Everything an analyst does with one card. The grid library's drag has no keyboard route, so Move, Size and Fit are here. */
-export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows }: Props) {
-  const [said, setSaid] = useState("");
+export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows, announce, onGone }: Props) {
+  const [own, setOwn] = useState("");
+  const setSaid = announce ?? setOwn;
   const itemsNow = () => workspaceStore.get(state).tabs.find((t) => t.id === tab.id)?.items ?? tab.items;
   const placeOf = (items = itemsNow()) => items.find((i) => i.cardId === cardId);
 
@@ -74,13 +79,13 @@ export function CardMenu({ state, tab, tabs, cardId, onConfigure, measureRows }:
           <Menu.Item onClick={fit}>Fit to content</Menu.Item>
           {others.length > 0 && <Menu.Divider />}
           {others.map((t) => (
-            <Menu.Item key={t.id} onClick={() => { workspaceStore.moveCardToTab(state, cardId, t.id); setSaid(`Moved to ${t.name}`); }}>Move to tab: {t.name}</Menu.Item>
+            <Menu.Item key={t.id} onClick={() => { workspaceStore.moveCardToTab(state, cardId, t.id); setSaid(`Moved to ${t.name}`); onGone?.(cardId); }}>Move to tab: {t.name}</Menu.Item>
           ))}
           <Menu.Divider />
-          <Menu.Item color="red" onClick={() => workspaceStore.removeCard(state, cardId)}>Remove</Menu.Item>
+          <Menu.Item color="red" onClick={() => { workspaceStore.removeCard(state, cardId); setSaid("Card removed"); onGone?.(cardId); }}>Remove</Menu.Item>
         </Menu.Dropdown>
       </Menu>
-      <VisuallyHidden role="status" aria-live="polite">{said}</VisuallyHidden>
+      {announce === undefined && <VisuallyHidden role="status" aria-live="polite">{own}</VisuallyHidden>}
     </>
   );
 }

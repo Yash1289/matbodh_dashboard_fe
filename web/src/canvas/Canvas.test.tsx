@@ -1,11 +1,12 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardConfigJson } from "../api/types";
 import { _dropMemory } from "../configure/cardStore";
 import { renderWithProviders } from "../test/render";
 import { tokens } from "../theme";
 import { Canvas, NARROW_PAGE } from "./Canvas";
-import { _dropWorkspaceMemory, workspaceStore } from "./workspaceStore";
+import { _dropWorkspaceMemory, useWorkspace, workspaceStore } from "./workspaceStore";
 
 // jsdom cannot drag. The grid library is replaced by a stub that records its props, so these tests cover our
 // glue (width choice, handle, what gets saved); real dragging is checked in the browser test (e2e/canvas.spec.ts).
@@ -105,5 +106,41 @@ describe("Canvas", () => {
     grid!.onResizeStop([{ i: a.id, x: 0, y: 0, w: 4, h: 6 }, { i: b.id, x: 0, y: 6, w: 12, h: 8 }]);
     expect(save).toHaveBeenCalledTimes(1);
     expect(workspaceStore.get(STATE).tabs[0].items.find((i) => i.cardId === a.id)).toMatchObject({ w: 4, h: 6 });
+  });
+});
+
+describe("Canvas: keyboard focus and announcements after a card leaves", () => {
+  function Live() {
+    const ws = useWorkspace(STATE);
+    return <Canvas state={STATE} tab={ws.tabs[0]} renderCard={(id) => <p>card {id}</p>} onConfigure={() => {}} />;
+  }
+
+  it("Remove announces it and moves focus to the next card's menu", async () => {
+    pageWidth(900);
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    const b = workspaceStore.addCard(STATE, CONFIG);
+    const user = userEvent.setup();
+    renderWithProviders(<Live />);
+    await screen.findByText(`card ${a.id}`);
+    await user.click(screen.getAllByRole("button", { name: "Card actions" })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: "Remove" }));
+    await waitFor(() => expect(screen.queryByText(`card ${a.id}`)).toBeNull());
+    expect(screen.getByRole("status")).toHaveTextContent("Card removed");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Card actions" })).toHaveFocus());
+    expect(screen.getByText(`card ${b.id}`)).toBeInTheDocument();
+  });
+
+  it("Move to tab announces it and keeps focus inside the canvas", async () => {
+    pageWidth(900);
+    const a = workspaceStore.addCard(STATE, CONFIG);
+    workspaceStore.addCard(STATE, CONFIG);
+    workspaceStore.addTab(STATE);
+    const user = userEvent.setup();
+    renderWithProviders(<Live />);
+    await screen.findByText(`card ${a.id}`);
+    await user.click(screen.getAllByRole("button", { name: "Card actions" })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: "Move to tab: Tab 2" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Moved to Tab 2");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Card actions" })).toHaveFocus());
   });
 });

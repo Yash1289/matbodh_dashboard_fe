@@ -1,4 +1,6 @@
+import { VisuallyHidden } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
+import { useState } from "react";
 import { GridLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { ReactNode } from "react";
@@ -26,6 +28,8 @@ const fromGrid = (layout: readonly GridItem[]): Item[] => layout.map((l) => ({ c
 export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
   const { ref, width } = useElementSize();
   const { tabs } = useWorkspace(state);
+  // One live region for the whole canvas: a card that is removed or moved away takes its own menu with it.
+  const [said, setSaid] = useState("");
   const save = (layout: readonly GridItem[]) => workspaceStore.setItems(state, tab.id, fromGrid(layout));
   const gap = tokens.layout.gap;
 
@@ -34,9 +38,21 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
     const content = ref.current?.querySelector(`[data-card-body="${CSS.escape(cardId)}"]`)?.firstElementChild;
     return rowsFor(content?.getBoundingClientRect().height ?? 0, gap);
   };
+  /** After a card leaves the tab, focus the next card's menu (or the previous one's, or the active tab). */
+  const focusAfterLeaving = (cardId: string) => {
+    const order = readingOrder(tab.items).map((i) => i.cardId);
+    const at = order.indexOf(cardId);
+    const next = order[at + 1] ?? order[at - 1];
+    requestAnimationFrame(() => {
+      const menu = next === undefined ? null
+        : (ref.current as HTMLElement | null)?.querySelector(`[data-card-body="${CSS.escape(next)}"]`)?.parentElement?.querySelector<HTMLElement>('button[aria-label="Card actions"]');
+      (menu ?? document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]'))?.focus();
+    });
+  };
   const cell = (cardId: string, draggable: boolean) => (
     <CanvasCell cardId={cardId} draggable={draggable}
-      menu={<CardMenu state={state} tab={tab} tabs={tabs} cardId={cardId} onConfigure={onConfigure} measureRows={measureRows(cardId)} />}>
+      menu={<CardMenu state={state} tab={tab} tabs={tabs} cardId={cardId} onConfigure={onConfigure} measureRows={measureRows(cardId)}
+        announce={setSaid} onGone={focusAfterLeaving} />}>
       {renderCard(cardId)}
     </CanvasCell>
   );
@@ -65,5 +81,10 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
     );
   })();
 
-  return <div ref={ref}>{body}</div>;
+  return (
+    <div ref={ref}>
+      {body}
+      <VisuallyHidden role="status" aria-live="polite">{said}</VisuallyHidden>
+    </div>
+  );
 }

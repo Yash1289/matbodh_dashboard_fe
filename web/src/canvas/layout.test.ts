@@ -51,6 +51,19 @@ describe("moveBy", () => {
     expect(byId(moved, "b").y).toBeLessThan(byId(moved, "a").y);
   });
 
+  it("down swaps with the card below instead of snapping back", () => {
+    const items = [item("a", 0, 0, 12, 4), item("b", 0, 4, 12, 4)];
+    const moved = moveBy(items, "a", "down");
+    expect(noOverlap(moved)).toBe(true);
+    expect(byId(moved, "a").y).toBeGreaterThan(byId(moved, "b").y);
+  });
+
+  it("down with nothing below changes nothing", () => {
+    expect(moveBy([item("a", 0, 0, 12, 4)], "a", "down")).toEqual([item("a", 0, 0, 12, 4)]);
+    const side = [item("a", 0, 0, 6, 4), item("b", 6, 0, 6, 4)];
+    expect(moveBy(side, "a", "down")).toEqual(side);
+  });
+
   it("returns the layout unchanged for an unknown card", () => {
     const items = [item("a", 0, 0, 6, 4)];
     expect(moveBy(items, "zzz", "down")).toEqual(items);

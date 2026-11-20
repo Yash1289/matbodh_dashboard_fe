@@ -73,6 +73,15 @@ Spec: `docs/specs/2026-11-20-card-visual-design.md`. Built on branch `feat/card-
 | O-W5 | A failed library request (`GET /cards`) now shows an alert above the canvas instead of replacing the page, since the canvas no longer depends on the library | eng | built |
 | O-W6 | The grid is laid out at the usual page width (1220px) until the first width measurement, so the first frame can differ from the final one on a narrow window | eng | open (minor) |
 | O-W7 | Not run: a live check against the production engine. Manual steps: open Cards for a state, add two cards, drag, resize, reload; add a second tab and move a card to it | eng | open |
+| O-W8 | Final-review minors, deferred: stored item `h` and `y` have no upper bound, so hand-edited data such as `h: 1e9` can freeze the next Add card | eng | open |
+| O-W9 | Copy card is not always directly below the original (a neighbour with the same row and a smaller column can take the place); the "copied below" message also fires when the copy fails | eng | open |
+| O-W10 | The active tab is stored, so two browser windows on the same state switch tabs together through the storage event | owner | open (follows from "the active tab is remembered") |
+| O-W11 | In the one-column layout the menu still offers Move left/right, Size and Fit, which change nothing visible there but still announce a result | eng | open |
+| O-W12 | A repeated screen-reader message (the same text twice in a row) is not announced again; the tab list holds the tab menu buttons, which screen readers may not expect in a tablist | eng | open |
+| O-W13 | Unverified: Escape while renaming a tab may still save the draft if the browser fires blur when the input is removed. Add a browser check | eng | open |
+| O-W14 | Foreign stored data: duplicate tab ids and empty tab names survive reading; a card whose family list failed to load, or whose family is unknown, shows as an empty cell with no message | eng | open |
+| O-W15 | The `CardsPage` doc comment still mentions library cards that no longer render on their own | eng | open |
+| O-W16 | `cardStore.load` returns a new empty list on every call when storage throws and nothing is in memory; with blocked storage this may re-render in a loop (outside the 6b diff, found by the review) | eng | open |
 
 ### 2.2 Relationship cards
 
