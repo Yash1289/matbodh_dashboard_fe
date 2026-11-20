@@ -14,7 +14,8 @@
   font-size: clamp(10px, 7.75px + 0.75cqw, 13px);
 }
 
-.scroller :is(th, td) {
+/* Zero specificity, so a numeric column's own right alignment wins over this default. */
+:where(.scroller) :where(th, td) {
   text-align: left;
   font-variant-numeric: tabular-nums lining-nums;
 }
@@ -27,13 +28,20 @@
   color: var(--mb-muted);
   font-size: 1em;
   font-weight: 600;
-  padding: 0.7em 1.1em;
+  padding: 0.6em 1em;
   white-space: nowrap;
+  border-bottom: 1px solid var(--mb-chip-border);
 }
 
 .scroller :is(tbody th, tbody td) {
-  padding: 0.8em 1.1em;
+  padding: 0.55em 1em;
   border-bottom: 1px solid var(--mb-border);
+}
+
+/* Reading across a row: the row under the pointer or keyboard focus is lifted (tinted cells keep their own colour). */
+.scroller tbody tr:hover > :not([style*="background"]),
+.scroller tbody tr:focus-within > :not([style*="background"]) {
+  background: var(--mb-header-bg);
 }
 
 .scroller tbody tr:last-child > * {
