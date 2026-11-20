@@ -85,3 +85,18 @@ export function pruneHidden(d: FamilyDescriptor, draft: object, kinds: ScenarioK
     current = hidden.reduce<object>((acc, f) => deletePath(acc, f.path), current);
   }
 }
+
+/** Does the condition hold only while comparing two questions? (`not` flips the meaning, so it never counts.) */
+function readsCompare(c: Condition): boolean {
+  if (c.op === "equals") return c.path === "comparison.mode" && c.value === "compare";
+  if (c.op === "all" || c.op === "any") return c.of.some(readsCompare);
+  return false;
+}
+
+/** The fields that appear only when comparing two questions; the panel draws them as one block. */
+export const compareGroup = (fields: FieldDescriptor[]): FieldDescriptor[] =>
+  fields.filter((f) => f.show_when !== undefined && f.show_when !== null && readsCompare(f.show_when));
+
+/** A value the user chose, as opposed to an empty one. */
+export const isSet = (v: unknown): boolean =>
+  v !== undefined && v !== null && v !== "" && v !== false && !(Array.isArray(v) && v.length === 0);

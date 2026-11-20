@@ -7,10 +7,17 @@ export type FormatRule =
   | { kind: "heat"; within: Within }
   | { kind: "diverging"; within: Within };
 
-// Colour-blind safe blue / orange (ColorBrewer RdBu-style endpoints).
-const BLUE = "33, 102, 172";
-const ORANGE = "230, 97, 1";
-const MAX_ALPHA = 0.6;
+// Soft washes: a gain or loss tone for diverging, the primary tone for heat. The change figures carry an
+// arrow and a sign, so colour is never the only signal.
+const TONES = { gain: "10, 108, 65", loss: "180, 45, 45", primary: "38, 99, 235" } as const;
+const MIN_ALPHA = 0.04;
+const MAX_ALPHA = 0.16;
+
+/** A soft tint of a tone; strength 0 to 1 (clamped) runs the alpha from 0.04 to 0.16. */
+export function tint(tone: keyof typeof TONES, strength: number): string {
+  const t = Math.min(1, Math.max(0, strength));
+  return `rgba(${TONES[tone]}, ${(MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA) * t).toFixed(3)})`;
+}
 
 // Diverging colours the Δ, except in standalone and trend cards, which have none: the value then.
 const partOf = (rule: FormatRule, g: CellGrid): "value" | "delta" =>
@@ -35,11 +42,11 @@ export function cellStyle(g: CellGrid, rowKey: string, colKey: string, rule: For
   if (rule.kind === "heat") {
     const min = Math.min(...all), max = Math.max(...all);
     const t = max === min ? 0.5 : (v - min) / (max - min);
-    return { background: `rgba(${BLUE}, ${(0.08 + (MAX_ALPHA - 0.08) * t).toFixed(3)})` };
+    return { background: tint("primary", t) };
   }
   const m = Math.max(...all.map(Math.abs));
   if (m === 0 || v === 0) return {};
-  return { background: `rgba(${v > 0 ? BLUE : ORANGE}, ${((Math.abs(v) / m) * MAX_ALPHA).toFixed(3)})` };
+  return { background: tint(v > 0 ? "gain" : "loss", Math.abs(v) / m) };
 }
 
 const SCOPE_TEXT = { column: " (scaled within each column)", row: " (scaled within each row)", table: "" } as const;

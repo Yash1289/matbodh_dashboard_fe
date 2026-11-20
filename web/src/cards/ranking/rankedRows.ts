@@ -69,3 +69,16 @@ export function tieKeys(rows: RankedRowModel[], anchorRound: string): Set<string
   }
   return new Set([...seen.values()].filter((keys) => keys.length > 1).flat());
 }
+
+export type Movement = { kind: "up" | "down" | "same" | "new" | "none"; by: number };
+
+/**
+ * How a seat moved since the previous round. `previous` is undefined for the first round (nothing before it),
+ * null when the seat had no rank then. A lower rank number is up.
+ */
+export function movement(previous: number | null | undefined, current: number | null | undefined): Movement {
+  if (previous === undefined || current === null || current === undefined) return { kind: "none", by: 0 };
+  if (previous === null) return { kind: "new", by: 0 };
+  if (previous === current) return { kind: "same", by: 0 };
+  return previous > current ? { kind: "up", by: previous - current } : { kind: "down", by: current - previous };
+}

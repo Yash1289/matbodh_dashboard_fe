@@ -1,6 +1,7 @@
 import { Button, Checkbox, Group, NativeSelect, Stack, Text } from "@mantine/core";
+import { Fragment } from "react";
 import { useOptions } from "../../api/queries";
-import { asParams, optionLabel, type WidgetProps } from "./types";
+import { asParams, selectData, type WidgetProps } from "./types";
 
 const name = (cut: string[]) => (cut.length === 0 ? "Overall" : cut.join(" × "));
 
@@ -11,6 +12,7 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
   const fields = options.data ?? [];
   const overall = cuts.some((c) => c.length === 0);
   const pickable = fields.filter((o) => o.disabled_reason === null);
+  const scopeOf = (name: string) => fields.find((o) => o.value === name)?.scope ?? null;
   const set = (next: string[][]) => onChange(next);
 
   return (
@@ -20,20 +22,25 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
       <Checkbox label="Overall" checked={overall}
         onChange={() => set(overall ? cuts.filter((c) => c.length > 0) : [[], ...cuts])} />
       {cuts.map((cut, i) => (cut.length === 0 ? null : (
-        <Group key={name(cut)} gap="xs" wrap="nowrap">
+        <Fragment key={name(cut)}>
+        <Group gap="xs" wrap="nowrap">
           <Text size="sm" style={{ flex: 1 }}>{name(cut)}</Text>
           <NativeSelect aria-label={`Cross ${name(cut)} with`} value=""
             onChange={(e) => e.currentTarget.value && set(cuts.map((c, j) => (j === i ? [...c, e.currentTarget.value] : c)))}
-            data={[{ value: "", label: "Cross with…" },
-              ...pickable.filter((o) => !cut.includes(o.value)).map((o) => ({ value: o.value, label: optionLabel(o) }))]} />
+            data={[{ value: "", label: "Cross with…" }, ...selectData(pickable.filter((o) => !cut.includes(o.value)))]} />
           <Button size="xs" variant="subtle" aria-label={`Remove cut ${name(cut)}`}
             onClick={() => set(cuts.filter((_, j) => j !== i))}>Remove</Button>
         </Group>
+        {cut.length >= 2 && scopeOf(cut[0]) === "seat" && (
+          <Text size="xs" c="var(--mb-ink)" role="note">
+            {cut[0]} is a seat field: the card shows one {cut[0].replace(/_/g, " ")} at a time, with the other fields for it.
+          </Text>
+        )}
+        </Fragment>
       )))}
       <NativeSelect label="Add a cut" value=""
         onChange={(e) => e.currentTarget.value && set([...cuts, [e.currentTarget.value]])}
-        data={[{ value: "", label: "Choose a field…" },
-          ...fields.map((o) => ({ value: o.value, label: optionLabel(o), disabled: o.disabled_reason !== null }))]} />
+        data={[{ value: "", label: "Choose a field…" }, ...selectData(fields)]} />
       {error && <Text size="xs" c="red">{error}</Text>}
     </Stack>
   );

@@ -495,6 +495,8 @@ export interface OptionItem {
   kind: string | null;
   recalled: boolean;
   disabled_reason: string | null;
+  /** Fields only: "seat" fields become a result selector when first in a cut. */
+  scope?: "seat" | "respondent" | null;
 }
 export interface ValidateResponse {
   valid: boolean;

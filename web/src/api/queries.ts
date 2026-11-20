@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, apiGet, fetchOptions, getRun, planCard, startRun } from "./client";
 import type {
   BenchmarkReference, CardConfigJson, CardInfo, CardPayload, CardRef, FamilyDescriptor, GridPayload,
@@ -69,6 +69,12 @@ export const useOptions = (
     // Keep the last list while a changed draft asks again, so the panel never flashes empty or remounts.
     placeholderData: keepPreviousData,
   });
+
+/** What each cut field describes (seat or respondent); empty until known, and unknown fields have no scope. */
+export function useFieldScopes(family: string, ctx: StateContext | null): Record<string, "seat" | "respondent" | null> {
+  const options = useOptions("fields", { use: "cut", family }, { family } as CardConfigJson, ctx);
+  return useMemo(() => Object.fromEntries((options.data ?? []).map((o) => [o.value, o.scope ?? null])), [options.data]);
+}
 
 /** `P` is the payload type the card's family returns; grid cards are the default. */
 export interface CardRun<P extends CardPayload = GridPayload> {

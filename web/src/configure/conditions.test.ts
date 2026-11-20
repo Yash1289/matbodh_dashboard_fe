@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Condition, FamilyDescriptor, FieldDescriptor } from "../api/types";
-import { evaluate, getPath, pruneHidden, setPath, visibleFields } from "./conditions";
+import families from "../test/fixtures/configure_families.json";
+import { compareGroup, evaluate, getPath, isSet, pruneHidden, setPath, visibleFields } from "./conditions";
 
 const KINDS = { vs_voting_intention: "party", vs_past: "recalled", pm_satisfaction: "opinion" };
 const test = (c: Condition, draft: object) => evaluate(c, draft, KINDS);
@@ -152,5 +153,31 @@ describe("pruneHidden", () => {
 
   it("leaves values of fields the descriptor does not know untouched", () => {
     expect(pruneHidden(FAMILY, { id: "mine", family: "distribution" }, KINDS)).toEqual({ id: "mine", family: "distribution" });
+  });
+});
+
+describe("compareGroup", () => {
+  const distribution = (families as unknown as FamilyDescriptor[]).find((d) => d.family === "distribution")!;
+  const primary = (draft: object) => visibleFields(distribution, draft, KINDS).filter((f) => f.tier === "primary");
+
+  it("is the primary fields that appear only when comparing two questions", () => {
+    const group = compareGroup(primary({ comparison: { mode: "compare" } }));
+    expect(group.map((f) => f.path)).toEqual(["comparison.target.scenario", "comparison.reference.scenario"]);
+  });
+
+  it("is empty when not comparing, and never takes a field that is hidden by comparing", () => {
+    expect(compareGroup(primary({}))).toEqual([]);
+    const shown = primary({ comparison: { mode: "compare" } }).map((f) => f.path);
+    expect(shown).not.toContain("scenarios"); // Questions is hidden in compare mode
+  });
+});
+
+describe("isSet", () => {
+  it("counts a value the user chose, not an empty one", () => {
+    expect(isSet("x")).toBe(true);
+    expect(isSet(3)).toBe(true);
+    expect(isSet(true)).toBe(true);
+    expect(isSet(["a"])).toBe(true);
+    for (const empty of [undefined, null, "", [], false]) expect(isSet(empty)).toBe(false);
   });
 });

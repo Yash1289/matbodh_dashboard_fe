@@ -1,0 +1,21 @@
+.chip {
+  cursor: pointer;
+}
+
+/* One focus style on every control. */
+.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--mb-ring);
+  border-color: var(--mb-primary);
+}
+
+/* A control that differs from its default is tinted and carries a dot, so colour is never the only signal. */
+.chip[data-changed="true"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--mb-primary);
+  flex: none;
+}

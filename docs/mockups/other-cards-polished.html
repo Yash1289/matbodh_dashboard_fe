@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ranking, benchmark and relationship cards: polished</title>
+<style>
+:root{
+  --text:#1c1f24;--muted:#5b6472;--faint:#8a919c;--border:#dfe2e7;--hair:#eceef1;--head:#f6f7f9;--page:#f1f2f5;--surface:#fff;
+  --primary:#2663eb;--primary-ink:#1b4fc2;--soft:#eaf0ff;--soft-line:#c4d4f8;--bar:#c9d8fb;
+  --gain:#0a6c41;--gain-tint:#0d804d14;--loss:#bf3333;--loss-tint:#bf333317;
+  --ring:0 0 0 3px #2663eb40;--shadow:0 1px 2px #1c1f240d,0 4px 14px -6px #1c1f2420;--ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 28px 72px;background:var(--page);color:var(--text);font:13px/1.45 Inter,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums lining-nums}
+h1{font-size:20px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+.intro{color:var(--muted);max-width:760px;margin:0 0 28px}
+h2{font-size:14px;font-weight:650;margin:38px 0 2px}.cap{color:var(--muted);margin:0 0 12px;max-width:760px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:920px;max-width:100%;position:relative}
+.head{display:flex;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.title{font-size:16px;font-weight:650;letter-spacing:-.005em;line-height:1.25}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.iconbtn{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{background:var(--head);border-color:var(--border);color:var(--text)}
+:is(.iconbtn,.chip,.tab,.seg button,.menu button,.gh,.more,input):focus-visible{outline:none;box-shadow:var(--ring);border-color:var(--primary)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tabs{display:flex;gap:4px;padding:0 18px;margin-top:12px;border-bottom:1px solid var(--hair);overflow-x:auto}
+.tab{appearance:none;background:none;border:1px solid transparent;border-radius:6px 6px 0 0;padding:7px 10px;margin-bottom:-1px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;position:relative;white-space:nowrap}
+.tab:hover{color:var(--text)}.tab[aria-selected=true]{color:var(--primary-ink);font-weight:600}
+.tab[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px 2px 0 0;background:var(--primary)}
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 18px}.sp{flex:1}
+.seg{display:inline-flex;background:var(--head);border:1px solid var(--hair);border-radius:9px;padding:2px}
+.seg button{appearance:none;border:1px solid transparent;background:none;font:inherit;font-size:12px;padding:3px 11px;border-radius:7px;color:var(--muted);cursor:pointer}
+.seg button:hover{color:var(--text)}.seg button[aria-pressed=true]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px #1c1f2414}
+.chip{appearance:none;font:inherit;font-size:12px;height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border-radius:15px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap}
+.chip:hover{background:var(--head);border-color:#cdd1d8}.chip .k{color:var(--muted)}.chip svg.i{width:13px;height:13px;color:var(--faint)}
+.chip.changed{background:var(--soft);border-color:var(--soft-line);color:var(--primary-ink)}.chip.changed .k{color:var(--primary-ink)}
+.chip.changed::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--primary)}
+.chip .n{min-width:18px;height:18px;border-radius:9px;background:var(--hair);color:var(--muted);font-size:11px;display:grid;place-items:center;padding:0 5px}
+.search{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid var(--border);border-radius:15px;background:var(--surface);color:var(--faint)}
+.search input{border:0;outline:0;font:inherit;font-size:12px;width:120px;background:none;color:var(--text)}.search:focus-within{box-shadow:var(--ring);border-color:var(--primary)}
+.scroller{container-type:inline-size;overflow-x:auto;margin:0 18px;border:1px solid var(--hair);border-radius:10px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:clamp(10.5px,8px + .57cqw,13px)}
+th,td{padding:0;text-align:left}
+thead th{background:var(--head);font-size:1em;font-weight:600;color:var(--muted);padding:.7em 1.1em;border-bottom:1px solid var(--hair);white-space:nowrap}
+thead th.r,td.r{text-align:right}
+tbody th,tbody td{border-bottom:1px solid var(--hair)}tbody tr:last-child>*{border-bottom:0}
+tbody th{font-weight:600;padding:.8em 1.1em;text-align:left}
+td.p{padding:.8em 1.1em}
+tbody tr:hover>*{background:var(--head)}
+.pin{position:sticky;left:0;z-index:1;background:var(--surface)}
+thead .pin{background:var(--head)}
+.g{color:var(--gain)}.l{color:var(--loss)}
+
+.mv{font-size:1.2em;font-weight:600;letter-spacing:-.01em}.md{font-size:.88em;font-weight:500}
+table.bm{min-width:38em}table.bm td,table.bm thead th{white-space:nowrap}table.bm tbody th.pin{white-space:normal;min-width:9em}table.bm td.p{width:19%}table.bm .m1,table.bm .m2{display:flex;align-items:baseline;gap:.6em}table.bm .m2{margin-top:.25em;color:var(--muted)}table.bm .m2 .sv{font-weight:500;color:var(--text)}table.bm .m2::after{content:"seats";font-size:.85em;order:3}table.bm th small{display:block;font-weight:500;color:var(--muted);font-size:.92em}table.bm .na{color:var(--muted)}
+.gl{background:var(--head);padding:.55em 1.1em;font-size:.92em;font-weight:600;color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:12px}
+/* ranking */
+.rk{display:inline-grid;place-items:center;min-width:26px;height:24px;border-radius:7px;font-weight:650;font-size:12px;background:var(--head);color:var(--muted)}
+.rk.top{background:var(--soft);color:var(--primary-ink)}
+.bar{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+.bar i{display:block;height:8px;border-radius:4px;background:var(--bar)}.bar b{font-weight:620;min-width:46px;text-align:right}
+.seat small{color:var(--muted);font-weight:500;margin-left:6px}
+.more{display:flex;justify-content:center;padding:12px 0 4px}
+.more button{appearance:none;font:inherit;font-size:12px;height:30px;padding:0 14px;border-radius:15px;border:1px solid var(--border);background:var(--surface);cursor:pointer}
+.more button:hover{background:var(--head)}
+/* grouped */
+.gh{appearance:none;width:100%;display:flex;align-items:center;gap:8px;font:inherit;font-weight:650;background:var(--head);border:0;padding:8px 14px;cursor:pointer;text-align:left;color:var(--text)}
+.gh svg.i{transition:transform .2s var(--ease);color:var(--muted);width:14px;height:14px}
+.gh[aria-expanded=false] svg.i{transform:rotate(-90deg)}
+.gh .meta{margin-left:auto;font-weight:500;color:var(--muted);font-size:12px}
+tr.grp>td{padding:0;border-bottom:1px solid var(--hair)}
+tr.hid{display:none}
+/* matrix */
+.hm{display:block;padding:9px 12px;border-radius:7px;font-weight:620}
+.diag{box-shadow:inset 0 0 0 1.5px var(--soft-line)}
+.legend{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;padding:10px 18px 0}
+.foot{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;padding:12px 18px 16px}
+.foot a{color:var(--primary-ink);text-decoration:none;white-space:nowrap}.foot a:hover{text-decoration:underline;text-underline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="chev" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></symbol>
+ <symbol id="dots" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".8"/><circle cx="8" cy="8" r=".8"/><circle cx="12.5" cy="8" r=".8"/></symbol>
+ <symbol id="sort" viewBox="0 0 16 16"><path d="M5 3v10M5 13l-2-2M5 13l2-2M11 13V3M11 3 9 5M11 3l2 2"/></symbol>
+ <symbol id="sliders" viewBox="0 0 16 16"><path d="M2.5 5h6M11.5 5h2M2.5 11h2M7.5 11h6"/><circle cx="10" cy="5" r="1.5"/><circle cx="6" cy="11" r="1.5"/></symbol>
+ <symbol id="find" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></symbol>
+</defs></svg>
+
+<h1>Other card families, same visual system</h1>
+<p class="intro">Seat ranking, demographic ranking, seat benchmark and relationship, drawn in the style agreed for the grid card: tabs for the main reading of the card, chips for choices, a changed-from-default tint, and a View menu for the rest. Numbers come from the test fixtures (Uttar Pradesh, anchor R2); the one exception is noted under the ranking card. Mock-up only, nothing is built. Tabs, collapsible groups and the cut selector are clickable.</p>
+
+<h2>Seat ranking</h2>
+<p class="cap">The current card is a 100-row list with wide empty gaps. Here rank is a badge (top three tinted), the seat name carries its AC number beside it, and the value gets a proportional bar so the spread is visible at a glance.</p>
+<div class="card">
+  <div class="head"><div><div class="title">Seats where SP+ leads most</div><div class="sub">Percentage points · ranked highest first · anchor 2027 VS CAPI R2</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip">
+    <button class="chip"><svg class="i"><use href="#sort"/></svg><span class="k">Order</span> Highest first <svg class="i"><use href="#chev"/></svg></button>
+    <label class="search"><svg class="i" style="width:13px;height:13px"><use href="#find"/></svg><input placeholder="Find a seat" aria-label="Find a seat"></label>
+    <span class="sp"></span>
+    <button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="n">2</span></button></div>
+  <div class="scroller"><table>
+    <thead><tr><th style="width:64px">Rank</th><th>Seat</th><th class="r">Lead (pp)</th></tr></thead>
+    <tbody>
+    <tr><td class="p"><span class="rk top num">1</span></td><td class="p seat"><b>Seat 128</b><small>AC 128</small></td><td class="p"><div class="bar"><i style="width:220px"></i><b class="num">+55%</b></div></td></tr>
+    <tr><td class="p"><span class="rk top num">2</span></td><td class="p seat"><b>Seat 61</b><small>AC 61</small></td><td class="p"><div class="bar"><i style="width:216px"></i><b class="num">+54%</b></div></td></tr>
+    <tr><td class="p"><span class="rk top num">3</span></td><td class="p seat"><b>Seat 68</b><small>AC 68</small></td><td class="p"><div class="bar"><i style="width:200px"></i><b class="num">+50%</b></div></td></tr>
+    <tr><td class="p"><span class="rk num">4</span></td><td class="p seat"><b>Seat 55</b><small>AC 55</small></td><td class="p"><div class="bar"><i style="width:172px"></i><b class="num">+43%</b></div></td></tr>
+    <tr><td class="p"><span class="rk num">5</span></td><td class="p seat"><b>Seat 62</b><small>AC 62</small></td><td class="p"><div class="bar"><i style="width:168px"></i><b class="num">+42%</b></div></td></tr>
+    <tr><td class="p"><span class="rk num">6</span></td><td class="p seat"><b>Seat 215</b><small>AC 215</small></td><td class="p"><div class="bar"><i style="width:168px"></i><b class="num">+42%</b></div></td></tr>
+    </tbody></table></div>
+  <div class="more"><button>Show 100 more</button></div>
+  <div class="foot"><span>2027 VS CAPI R2 · 403 seats · Normal · engine 0.8.0</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+<p class="cap" style="margin-top:10px">Trend mode (rank in each of up to four rounds) and the "Make cohort" action are not drawn yet; I'd mock them after you sign off on this look.</p>
+
+<h2>Demographic ranking</h2>
+<p class="cap">Each seat is a collapsible group holding its top three castes, instead of 400 repeated header rows. Ties keep the engine's "=1" marking. Group header shows the seat; open or close with a click.</p>
+<div class="card">
+  <div class="head"><div><div class="title">Top three castes by SP+ support, per seat</div><div class="sub">Percentage · ranked highest first · top 3 per seat · anchor R2</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip"><button class="chip"><svg class="i"><use href="#sort"/></svg><span class="k">Order</span> Highest first <svg class="i"><use href="#chev"/></svg></button>
+    <label class="search"><svg class="i" style="width:13px;height:13px"><use href="#find"/></svg><input placeholder="Find a seat or caste" aria-label="Find a seat or caste"></label>
+    <span class="sp"></span><button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="n">2</span></button></div>
+  <div class="scroller"><table>
+    <thead><tr><th style="width:64px">Rank</th><th>Caste</th><th class="r">Support</th></tr></thead>
+    <tbody>
+    <tr class="grp"><td colspan="3"><button class="gh" aria-expanded="true"><svg class="i"><use href="#chev"/></svg>AC 1<span class="meta">3 castes</span></button></td></tr>
+    <tr data-g="a"><td class="p"><span class="rk top num">1</span></td><td class="p"><b>Other OBC</b></td><td class="p r num">98%</td></tr>
+    <tr data-g="a"><td class="p"><span class="rk num">2</span></td><td class="p"><b>Nishad</b></td><td class="p r num">96%</td></tr>
+    <tr data-g="a"><td class="p"><span class="rk num">3</span></td><td class="p"><b>Gujjar</b></td><td class="p r num">95%</td></tr>
+    <tr class="grp"><td colspan="3"><button class="gh" aria-expanded="true"><svg class="i"><use href="#chev"/></svg>AC 3<span class="meta">ties at rank 1</span></button></td></tr>
+    <tr data-g="b"><td class="p"><span class="rk top num">=1</span></td><td class="p"><b>Nishad</b></td><td class="p r num">100%</td></tr>
+    <tr data-g="b"><td class="p"><span class="rk top num">=1</span></td><td class="p"><b>Other ST</b></td><td class="p r num">100%</td></tr>
+    <tr data-g="b"><td class="p"><span class="rk num">3</span></td><td class="p"><b>Saini</b></td><td class="p r num">97%</td></tr>
+    <tr class="grp"><td colspan="3"><button class="gh" aria-expanded="false"><svg class="i"><use href="#chev"/></svg>AC 4<span class="meta">3 castes</span></button></td></tr>
+    <tr data-g="c" class="hid"><td class="p"><span class="rk top num">1</span></td><td class="p"><b>Gujjar</b></td><td class="p r num">98%</td></tr>
+    </tbody></table></div>
+  <div class="more"><button>Show 100 more seats</button></div>
+  <div class="foot"><span>2027 VS CAPI R2 · 403 seats · Normal</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+
+<h2>Seat benchmark</h2>
+<p class="cap">The five engine tables become tabs. In Summary, parties are the columns and the rows are All seats followed by the zones. Each cell merges vote share and seats: value, arrow and change. The reference year is stated once in the chip, not repeated in every cell. The reference ("2022 VS") is a visible chip, changed because it is not "no reference". Each zone is one row, so 16 zones are 16 rows rather than 16 separate tables.</p>
+<div class="card">
+  <div class="head"><div><div class="title">Survey vs 2022 assembly election</div><div class="sub">Focal party NDA · anchor R2 · whole state</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="tabs" role="tablist" aria-label="Table">
+    <button class="tab" role="tab" aria-selected="true">Summary</button><button class="tab" role="tab" aria-selected="false">Comparison</button><button class="tab" role="tab" aria-selected="false">Margin buckets</button><button class="tab" role="tab" aria-selected="false">Seat flips</button></div>
+  <div class="strip">
+    <button class="chip changed"><span class="k">Reference</span> 2022 VS <svg class="i"><use href="#chev"/></svg></button>
+    <button class="chip"><span class="k">Groups</span> party_zone <svg class="i"><use href="#chev"/></svg></button>
+    <span class="sp"></span><button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="n">3</span></button></div>
+  <div class="scroller"><table class="bm">
+    <thead><tr><th class="pin"></th><th>BSP</th><th>NDA</th><th>SP+</th><th>Other</th></tr></thead>
+    <tbody>
+    <tr><th class="pin">All seats<small>403 seats</small></th><td class="p num"><div class="m1"><span class="mv">12.1%</span><span class="md l">▼ 0.7 pp</span></div><div class="m2"><span class="sv">0</span><span class="md l">▼ 1</span></div></td><td class="p num"><div class="m1"><span class="mv">42.1%</span><span class="md l">▼ 1.8 pp</span></div><div class="m2"><span class="sv">154</span><span class="md l">▼ 119</span></div></td><td class="p num"><div class="m1"><span class="mv">43.8%</span><span class="md g">▲ 7.2 pp</span></div><div class="m2"><span class="sv">249</span><span class="md g">▲ 124</span></div></td><td class="p num"><div class="m1"><span class="mv">2.0%</span><span class="md l">▼ 4.7 pp</span></div><div class="m2"><span class="sv">0</span><span class="md l">▼ 4</span></div></td></tr>
+    <tr class="grp"><td colspan="5"><div class="gl">party_zone</div></td></tr>
+    <tr><th class="pin">Big Leader Politics Belt</th><td class="p num na" title="Not in the fixture">–</td><td class="p num na" title="Not in the fixture">–</td><td class="p num"><div class="m1"><span class="mv">46.4%</span><span class="md g">▲ 10.4 pp</span></div><div class="m2"><span class="sv">28</span><span class="md g">▲ 12</span></div></td><td class="p num na" title="Not in the fixture">–</td></tr>
+    <tr><th class="pin">Bundelkhand</th><td class="p num na" title="Not in the fixture">–</td><td class="p num na" title="Not in the fixture">–</td><td class="p num"><div class="m1"><span class="mv">43.9%</span><span class="md g">▲ 12.0 pp</span></div><div class="m2"><span class="sv">18</span><span class="md g">▲ 13</span></div></td><td class="p num na" title="Not in the fixture">–</td></tr>
+    </tbody></table></div>
+  <div class="foot"><span>Other: every party outside the major list, and NOTA · 14 more zones</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+<p class="cap" style="margin-top:10px">Zone rows show only SP+ because that is the only zone figure in the fixture; the other cells are dashes, not invented numbers. The Seat flips tab would hold the four counts the engine returns (winning both 132, gain 22, loss 141, losing both 108, total 403); I have not drawn it.</p>
+
+<h2>Relationship</h2>
+<p class="cap">Summary and Matrix become tabs. In the matrix, each row is where voters came from and each column where they went, with the "stayed" diagonal outlined and every cell tinted by share. Values are Female respondents, round R1, from the fixture.</p>
+<div class="card">
+  <div class="head"><div><div class="title">Past vote → current voting intention</div><div class="sub">Origin: past vote · Destination: voting intention · focal party BJP+ · anchor R2</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="tabs" role="tablist" aria-label="View"><button class="tab" role="tab" aria-selected="false">Summary</button><button class="tab" role="tab" aria-selected="true">Matrix</button></div>
+  <div class="strip">
+    <div class="seg" role="group" aria-label="Group"><button aria-pressed="true">Female</button><button aria-pressed="false">Male</button></div>
+    <span class="sp"></span><button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="n">3</span></button></div>
+  <div class="scroller"><table>
+    <thead><tr><th class="pin">Voted for (past)</th><th class="r">→ BJP+</th><th class="r">→ SP+</th><th class="r">→ BSP</th></tr></thead>
+    <tbody>
+    <tr><th class="pin">BJP+</th><td class="p"><span class="hm diag num r" style="background:#2663eb55;text-align:right">82.3%</span></td><td class="p"><span class="hm num" style="background:#2663eb20;text-align:right">14.2%</span></td><td class="p"><span class="hm num" style="background:#2663eb0c;text-align:right">2.9%</span></td></tr>
+    <tr><th class="pin">SP+</th><td class="p"><span class="hm num" style="background:#2663eb12;text-align:right">5.5%</span></td><td class="p"><span class="hm diag num" style="background:#2663eb66;text-align:right">90.8%</span></td><td class="p"><span class="hm num" style="background:#2663eb0c;text-align:right">2.9%</span></td></tr>
+    <tr><th class="pin">BSP</th><td class="p"><span class="hm num" style="background:#2663eb1c;text-align:right">10.7%</span></td><td class="p"><span class="hm num" style="background:#2663eb24;text-align:right">14.8%</span></td><td class="p"><span class="hm diag num" style="background:#2663eb48;text-align:right">71.8%</span></td></tr>
+    </tbody></table></div>
+  <div class="legend">Share of each past-vote group. Rows do not reach 100% because respondents who chose smaller parties are not shown.</div>
+  <div class="foot"><span>Recalled vote, not longitudinal linkage · 2027 VS CAPI R1 and R2 · Normal</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+
+<script>
+document.querySelectorAll('[role=tablist]').forEach(l=>l.addEventListener('click',e=>{const t=e.target.closest('[role=tab]');if(t)l.querySelectorAll('[role=tab]').forEach(x=>x.setAttribute('aria-selected',x===t))}));
+document.querySelectorAll('.seg').forEach(s=>s.addEventListener('click',e=>{const b=e.target.closest('button');if(b)s.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))}));
+document.querySelectorAll('.gh').forEach(b=>b.addEventListener('click',()=>{const open=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',open);let r=b.closest('tr').nextElementSibling;while(r&&!r.classList.contains('grp')){r.classList.toggle('hid',!open);r=r.nextElementSibling}}));
+</script>
+</body></html>

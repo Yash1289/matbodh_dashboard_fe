@@ -2,9 +2,11 @@ import { Text } from "@mantine/core";
 import type { RelationshipCell, RelationshipPayload } from "../../api/types";
 import { formatValue } from "../../cells/format";
 import { tokens } from "../../theme";
+import { tint } from "../../table/formatRules";
+import { PIN, TableFrame } from "../../table/TableFrame";
 import { groupLabel, matrixRows, roundLabel, type RelationshipView } from "./relationshipRows";
 
-const cell = { padding: "4px 8px", textAlign: "right" as const };
+const cell = { textAlign: "right" as const };
 const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 100) / 100));
 
 interface Measure { head: string; text: (c: RelationshipCell) => string | null }
@@ -44,32 +46,39 @@ export function RelationshipMatrixTable({ payload, view }: Props) {
   const reason = (stayed: boolean) => (stayed ? "no respondents stayed" : "no respondents moved");
   return (
     <div>
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: tokens.font.chip }}>
-      <caption style={{ textAlign: "left", color: "var(--mb-muted)", paddingBottom: 6 }}>
+    <TableFrame minWidthEm={14 + 9 * measures.length}>
+    <table>
+      <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>
         Matrix · {view.round === null ? "" : roundLabel(payload, view.round)}{group ? ` · ${groupLabel(group)}` : ""}
         {" · "}{payload.origin} → {payload.destination}
       </caption>
       <thead>
         <tr>
-          <th scope="col" style={{ ...cell, textAlign: "left" }}>Origin → destination</th>
+          <th scope="col" className={PIN}>Origin → destination</th>
           {measures.map((m) => <th key={m.head} scope="col" style={cell}>{m.head}</th>)}
         </tr>
       </thead>
       <tbody>
         {rows.map((r) => (
-          <tr key={r.key} {...(r.focal ? { "data-focal": "" } : {})} style={r.focal ? { fontWeight: 600 } : undefined}>
-            <th scope="row" style={{ ...cell, textAlign: "left", fontWeight: "inherit" }}>
+          <tr key={r.key} {...(r.focal ? { "data-focal": "" } : {})} {...(r.stayed ? { "data-diagonal": "" } : {})} style={r.focal ? { fontWeight: 600 } : undefined}>
+            <th scope="row" className={PIN} style={{ fontWeight: "inherit" }}>
               {r.origin} → {r.destination}{r.stayed && <> <small style={{ color: "var(--mb-muted)" }}>stayed</small></>}
             </th>
-            {measures.map((m) => (
-              <td key={m.head} style={cell}>
-                {r.cell.absent !== null ? <span title={reason(r.stayed)} aria-label={reason(r.stayed)}>—</span> : m.text(r.cell)}
-              </td>
-            ))}
+            {measures.map((m) => {
+              // The origin share is the matrix's headline: a soft wash that grows with the share (never the browser's own arithmetic).
+              const share = m.head === "Origin share" && r.cell.absent === null ? r.cell.origin_share : null;
+              return (
+                <td key={m.head} style={{ ...cell, ...(share !== null ? { background: tint("primary", share / 100) } : {}) }}
+                  {...(share !== null ? { "data-share": "" } : {})}>
+                  {r.cell.absent !== null ? <span title={reason(r.stayed)} aria-label={reason(r.stayed)}>—</span> : m.text(r.cell)}
+                </td>
+              );
+            })}
           </tr>
         ))}
       </tbody>
     </table>
+    </TableFrame>
     {rows.some((r) => r.cell.absent !== null) && (
       <Text fz={tokens.font.subtitle} c="var(--mb-muted)" mt={4}>— means no respondents moved (or stayed, on the diagonal) between these parties</Text>
     )}

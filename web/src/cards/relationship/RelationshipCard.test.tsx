@@ -44,7 +44,7 @@ describe("RelationshipCard", () => {
     const f = mount(RELATIONSHIP.transition());
     await screen.findByRole("table", { name: /Flow summary/ });
     const calls = f.mock.calls.length;
-    await pick(/Table/, "Table", "matrix");
+    await userEvent.click(screen.getByRole("tab", { name: "Matrix" }));
     expect(await screen.findByRole("table", { name: /Matrix/ })).toBeInTheDocument();
     await pick(/Round/, "Round", "R1");
     await pick(/gender/i, "gender", "Female");
@@ -180,5 +180,13 @@ describe("RelationshipCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "⋯" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Export CSV" }));
     expect(click).toHaveBeenCalledOnce();
+  });
+
+  it("chooses between its two tables with tabs on a wide card", async () => {
+    mount(RELATIONSHIP.transition());
+    await screen.findByRole("table", { name: /Flow summary/ });
+    const tabs = screen.getByRole("tablist", { name: "Table" });
+    expect(within(tabs).getAllByRole("tab").map((x) => x.textContent)).toEqual(["Flow summary", "Matrix"]);
+    expect(within(tabs).getByRole("tab", { selected: true })).toHaveTextContent("Flow summary");
   });
 });

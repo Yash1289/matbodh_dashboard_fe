@@ -103,8 +103,8 @@ test("the cards journey", async ({ page }) => {
   expect(calls.length).toBe(requestsAfterLoad);
 
   // The method drawer carries the contract from the payload.
-  await dist.getByRole("button", { name: "⋯" }).click();
-  await page.getByRole("menuitem", { name: "How this was calculated" }).click();
+  await dist.getByRole("button", { name: /^View/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "How this was calculated" }).click();
   await expect(page.getByRole("dialog").getByText("Contract")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -134,7 +134,7 @@ test("the ranking cards journey", async ({ page }) => {
 
   await expect(page.getByRole("table")).toHaveCount(2);
   const seat = card(page, SEAT_TREND);
-  await expect(seat.locator("[data-segment]").first()).toBeVisible();
+  await expect(seat.locator("[data-rank]").first()).toBeVisible();
   await expect(card(page, DEMOGRAPHIC).getByText("AC 1", { exact: true })).toBeVisible();
   const requestsAfterLoad = calls.length;
 

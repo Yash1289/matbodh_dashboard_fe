@@ -75,19 +75,26 @@ export interface CardApiOptions {
   /** What POST /cohorts/preview finishes with, or the 422 reason it answers instead. */
   preview?: CohortPreview;
   previewError?: string;
+  /** Field options for a cut: name to scope. Without it the options list is empty. */
+  fieldScopes?: Record<string, "seat" | "respondent">;
 }
 
 /** A fetch stub serving the cards API; returns the mock so tests can count requests. */
-export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, preview, previewError }: CardApiOptions) {
+export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus = 200, preview, previewError, fieldScopes }: CardApiOptions) {
   const byCard = new Map(payloads.map((p) => [p.card_id, p]));
   const reply = (json: unknown, status = 200) => new Response(JSON.stringify(json), { status });
   const mock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input).replace(/^\/api/, "");
-    const sent = init?.body ? (JSON.parse(String(init.body)) as { card_id?: string; card?: { id: string } }) : {};
+    const sent = init?.body ? (JSON.parse(String(init.body)) as { card_id?: string; card?: { id: string }; source?: string }) : {};
     const body = { card_id: sent.card_id ?? sent.card?.id };
     if (path === "/catalogue/states") return reply(states);
     if (path === "/configure/families") return reply(configureFamilies);
-    if (path === "/configure/options") return reply([]);
+    if (path === "/configure/options") {
+      if (sent.source !== "fields" || fieldScopes === undefined) return reply([]);
+      return reply(Object.entries(fieldScopes).map(([value, scope]) => ({
+        value, label: value, kind: null, recalled: false, disabled_reason: null, scope,
+      })));
+    }
     if (path === "/cards/validate") {
       return reply({ valid: true, errors: [], unavailable: [], not_asked: [], notes: [], rounds: [] });
     }

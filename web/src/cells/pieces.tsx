@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Cell, Unit } from "../api/types";
-import { deltaTone, tokens } from "../theme";
+import { deltaTone } from "../theme";
 import { flagInfo, formatDelta, nullReason } from "./format";
 
 export const DASH = "—";
@@ -21,7 +21,7 @@ export function cellDeltaTitle(cell: Cell | null, dTitle: string): string {
 export function Delta({ delta, unit, title }: { delta: number | null; unit: Unit; title?: string }) {
   const tone = deltaTone(delta, unit);
   return (
-    <span title={title} data-tone={tone} style={{ fontSize: tokens.font.delta, fontWeight: 600, color: TONE_COLOUR[tone] }}>
+    <span title={title} data-tone={tone} style={{ fontSize: ".88em", fontWeight: 600, color: TONE_COLOUR[tone] }}>
       {formatDelta(delta, unit)}
     </span>
   );
@@ -49,12 +49,12 @@ export function CellFrame({ value, delta, sub }: { value: ReactNode; delta: Reac
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <div data-row="main" style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: tokens.font.composite, fontWeight: 600, color: "var(--mb-text)" }}>{value}</span>
+        <span style={{ fontSize: "1.2em", fontWeight: 600, color: "var(--mb-text)" }}>{value}</span>
         <span style={{ flex: 1 }} />
         {delta}
       </div>
       {sub.length > 0 && (
-        <div data-row="sub" style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: tokens.font.subLine, color: "var(--mb-muted)" }}>
+        <div data-row="sub" style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: ".92em", color: "var(--mb-muted)" }}>
           {sub}
         </div>
       )}

@@ -1,4 +1,5 @@
 import { Button, Drawer, Group, Menu, NativeSelect, Skeleton, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
@@ -8,6 +9,8 @@ import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
 import { MethodDrawer } from "../MethodDrawer";
 import { PopoverChip, chipStyle } from "../PopoverChip";
+import { sizeClass } from "../sizeClass";
+import { TableChooser } from "../TableChooser";
 import { RelationshipMatrixTable } from "./RelationshipMatrix";
 import { RelationshipSummaryTable } from "./RelationshipSummary";
 import { relationshipToCsv } from "./relationshipCsv";
@@ -73,6 +76,7 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
   // Never the previous run's payload: its subtitle and method text would describe the old run.
   const shown = blocked || errored ? null : run.current;
 
+  const { ref: boxRef, width } = useElementSize();
   const [chosen, setChosen] = useState<Partial<RelationshipView>>({});
   const [methodOpen, setMethodOpen] = useState(false);
   const view = useMemo(() => (shown === null ? null : settled(chosen, shown)), [chosen, shown]);
@@ -128,7 +132,7 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
   const dimensions = shown && view ? cuts.find((c) => c.key === view.cut)?.dimensions ?? [] : [];
 
   return (
-    <div data-testid={`card:${info.id}`} style={{
+    <div ref={boxRef} data-testid={`card:${info.id}`} style={{
       background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
       padding: "17px 19px",
     }}>
@@ -140,11 +144,9 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
           </div>
           {shown && view && (
             <Group gap={8} wrap="wrap" justify="flex-end">
-              <PopoverChip label="Table ▾" selected={false}>
-                <NativeSelect size="xs" aria-label="Table" value={view.table}
-                  data={shown.tables_available.map((t) => ({ value: t, label: TABLE_LABELS[t] }))}
-                  onChange={(e) => { const table = e.currentTarget.value as RelationshipTable; onView({ table }); }} />
-              </PopoverChip>
+              <TableChooser label="Table" value={view.table} size={width === 0 ? "wide" : sizeClass(width)}
+                options={shown.tables_available.map((t) => ({ value: t, label: TABLE_LABELS[t] }))}
+                onChange={(table: RelationshipTable) => onView({ table })} />
               {view.table === "matrix" && (
                 <PopoverChip label="Round ▾" selected={false}>
                   <NativeSelect size="xs" aria-label="Round" value={view.round ?? ""}

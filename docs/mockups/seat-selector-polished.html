@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seat attribute selector: polished</title>
+<style>
+:root{
+  --text:#1c1f24;--muted:#5b6472;--faint:#8a919c;--border:#dfe2e7;--hair:#eceef1;--head:#f6f7f9;--page:#f1f2f5;--surface:#fff;
+  --primary:#2663eb;--primary-ink:#1b4fc2;--soft:#eaf0ff;--soft-line:#c4d4f8;--gain:#0a6c41;--loss:#b42d2d;
+  --ring:0 0 0 3px #2663eb40;--shadow:0 1px 2px #1c1f240d,0 4px 14px -6px #1c1f2420;--pop:0 2px 4px #1c1f2412,0 14px 30px -10px #1c1f2438;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 28px 90px;background:var(--page);color:var(--text);font:13px/1.45 Inter,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1{font-size:20px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em}
+.intro{color:var(--muted);max-width:780px;margin:0 0 26px}
+h2{font-size:14px;font-weight:650;margin:34px 0 2px}.cap{color:var(--muted);margin:0 0 12px;max-width:760px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:880px;max-width:100%;position:relative}
+.head{display:flex;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.title{font-size:16px;font-weight:650;line-height:1.25}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.iconbtn{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:none;color:var(--muted);display:grid;place-items:center}
+svg.i{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:14px 18px 12px}.sp{flex:1}
+.chip{appearance:none;font:inherit;font-size:12px;height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 11px;border-radius:15px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;white-space:nowrap}
+.chip:hover{background:var(--head)}.chip .k{color:var(--muted)}.chip svg.i{width:13px;height:13px;color:var(--faint)}
+.chip:focus-visible,.opt:focus-visible,.sbox input:focus{outline:none;box-shadow:var(--ring);border-color:var(--primary)}
+/* the seat selector: a stronger chip, because it decides which seat the table is about */
+.chip.seat{background:var(--soft);border-color:var(--soft-line);color:var(--primary-ink);font-weight:600;height:32px;padding:0 8px 0 12px}
+.chip.seat .k{color:var(--primary-ink);font-weight:500}.chip.seat svg.i{color:var(--primary-ink)}
+.pick{appearance:none;border:0;background:none;font:inherit;color:inherit;font-weight:600;cursor:pointer;padding:0 4px 0 0;display:inline-flex;gap:6px;border-radius:6px}.pick:focus-visible{outline:none;box-shadow:var(--ring)}
+.step{appearance:none;border:0;background:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--primary-ink);cursor:pointer;padding:0}
+.step:hover{background:#2663eb1f}.step[disabled]{opacity:.35;cursor:default}
+.pos{font-size:11.5px;font-weight:500;color:var(--primary-ink);opacity:.8;padding:0 2px}
+.scroller{margin:0 18px 14px;border:1px solid var(--hair);border-radius:10px;overflow:hidden;container-type:inline-size}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:clamp(10.5px,8px + .57cqw,13px)}
+thead th{background:var(--head);font-size:1em;font-weight:600;color:var(--muted);padding:.7em 1.1em;text-align:left;border-bottom:1px solid var(--hair)}
+tbody th{font-weight:600;padding:.8em 1.1em;text-align:left;border-bottom:1px solid var(--hair)}
+td{padding:.8em 1.1em;border-bottom:1px solid var(--hair)}tbody tr:last-child>*{border-bottom:0}
+.mv{font-size:1.2em;font-weight:600;letter-spacing:-.01em}.md{font-size:.88em;font-weight:500;margin-left:.6em}.g{color:var(--gain)}.l{color:var(--loss)}
+.foot{display:flex;justify-content:space-between;gap:12px;padding:0 18px 14px;color:var(--muted);font-size:12px}.foot a{color:var(--primary-ink)}
+/* popover */
+.anchor{position:relative;display:inline-block}
+.pop{position:absolute;z-index:5;top:38px;left:0;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--pop);padding:8px}
+.sbox{position:relative;margin-bottom:6px}.sbox svg{position:absolute;left:10px;top:9px;color:var(--faint)}
+.sbox input{width:100%;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px 0 32px;font:inherit;font-size:12.5px;color:var(--text)}
+.list{max-height:210px;overflow:auto;display:flex;flex-direction:column;gap:1px}
+.opt{appearance:none;display:flex;align-items:center;gap:8px;border:1px solid transparent;background:none;font:inherit;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text)}
+.opt:hover{background:var(--head)}.opt[aria-selected=true]{background:var(--soft);color:var(--primary-ink);font-weight:600}
+.opt .r{margin-left:auto;color:var(--muted);font-weight:500;font-size:12px}.opt .tick{width:14px;color:var(--primary)}
+.sep{height:1px;background:var(--hair);margin:4px 0}
+.pop .hint{font-size:11.5px;color:var(--muted);padding:6px 10px 2px}
+.stage{min-height:420px}
+.illus{display:inline-block;margin:0 0 10px;padding:3px 9px;border-radius:10px;background:#fff6e0;border:1px solid #f0d9a0;color:#7a5200;font-size:12px}
+/* configure hint */
+.cut{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);width:440px;max-width:100%}
+.cut .n{font-size:11px;font-weight:600;color:var(--muted);width:48px;flex:none}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;font-size:12.5px;border:1px solid var(--border);background:var(--head)}
+.tag.seat{background:var(--soft);border-color:var(--soft-line);color:var(--primary-ink);font-weight:500;gap:6px}
+.times{color:var(--faint)}
+.hintbar{display:flex;gap:8px;margin-top:8px;padding:9px 11px;border-radius:9px;background:#f5f8ff;border:1px solid var(--soft-line);font-size:12.5px;width:440px;max-width:100%}
+.hintbar svg{color:var(--primary);margin-top:1px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="down" viewBox="0 0 16 16"><path d="M3.5 6L8 10.5 12.5 6"/></symbol>
+<symbol id="left" viewBox="0 0 16 16"><path d="M10 3.5L5.5 8 10 12.5"/></symbol>
+<symbol id="right" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+<symbol id="search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5L14 14"/></symbol>
+<symbol id="dots" viewBox="0 0 16 16"><path d="M3 8h.1M8 8h.1M13 8h.1"/></symbol>
+<symbol id="check" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+<symbol id="info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v3.6M8 5.2v.1"/></symbol>
+<symbol id="sliders" viewBox="0 0 16 16"><path d="M2.5 5h11M2.5 11h11"/><circle cx="6" cy="5" r="1.6" fill="#fff"/><circle cx="10.5" cy="11" r="1.6" fill="#fff"/></symbol>
+</defs></svg>
+
+<h1>Seat attribute as a selector</h1>
+<p class="intro">The rule: when the first field of a crossed cut describes the seat (a zone, an AC, the incumbent MLA's party), the card shows it as a selector, and the table shows the remaining fields for the chosen seat group. The calculation is the same crossed one; choosing another value is display only and never re-runs the engine. <span class="illus">The numbers below are placeholders to show layout, not engine output.</span></p>
+
+<h2>1. party_zone × gender</h2>
+<p class="cap">One zone at a time. The selector sits first in the control strip, stronger than the other chips because it decides which seats the table is about. The arrows step through zones without opening the list.</p>
+<div class="card stage">
+  <div class="head"><div><div class="title">Party vote share, by gender, in each zone</div><div class="sub">Anchor 2027 VS CAPI R2 · cut: party_zone × gender</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip">
+    <div class="anchor">
+      <div class="chip seat" role="group" aria-label="Zone"><button class="pick" aria-haspopup="listbox" aria-expanded="true"><span class="k">Zone</span> Bundelkhand</button>
+        <button class="step" aria-label="Previous zone"><svg class="i"><use href="#left"/></svg></button><span class="pos num">2 / 16</span><button class="step" aria-label="Next zone"><svg class="i"><use href="#right"/></svg></button></div>
+      <div class="pop" role="listbox" aria-label="Zone">
+        <div class="sbox"><svg class="i"><use href="#search"/></svg><input placeholder="Find a zone" aria-label="Find a zone"></div>
+        <div class="list">
+          <button class="opt" role="option" aria-selected="false"><span class="tick"></span>All zones<span class="r">overall</span></button>
+          <div class="sep"></div>
+          <button class="opt" role="option" aria-selected="false"><span class="tick"></span>Big Leader Politics Belt</button>
+          <button class="opt" role="option" aria-selected="true"><span class="tick"><svg class="i"><use href="#check"/></svg></span>Bundelkhand</button>
+          <button class="opt" role="option" aria-selected="false" style="color:var(--muted)"><span class="tick"></span>… 14 more zones</button>
+        </div>
+      </div>
+    </div>
+    <span class="sp"></span><button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="num">2</span></button>
+  </div>
+  <div class="scroller"><table>
+    <thead><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr></thead>
+    <tbody>
+     <tr><th>Women</th><td class="num"><span class="mv">45%</span><span class="md g">▲ 6.1</span></td><td class="num"><span class="mv">12%</span><span class="md l">▼ 0.8</span></td><td class="num"><span class="mv">33%</span><span class="md l">▼ 4.2</span></td><td class="num"><span class="mv">10%</span><span class="md g">▲ 1.0</span></td></tr>
+     <tr><th>Men</th><td class="num"><span class="mv">42%</span><span class="md g">▲ 5.0</span></td><td class="num"><span class="mv">10%</span><span class="md l">▼ 1.2</span></td><td class="num"><span class="mv">37%</span><span class="md l">▼ 3.1</span></td><td class="num"><span class="mv">11%</span><span class="md g">▲ 0.9</span></td></tr>
+    </tbody></table></div>
+  <div class="foot"><span>Bundelkhand · 18 seats · R2</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+
+<h2>2. ac_num × age_group</h2>
+<p class="cap">The same pattern for a single AC, where the list is long. The selector searches by number, and shows the position among all 403 ACs so stepping is predictable. Each AC has few respondents, so the footer always states the base.</p>
+<div class="card stage" style="min-height:300px">
+  <div class="head"><div><div class="title">Party vote share, by age group, in one AC</div><div class="sub">Anchor 2027 VS CAPI R2 · cut: ac_num × age_group</div></div><button class="iconbtn" aria-label="Card actions"><svg class="i"><use href="#dots"/></svg></button></div>
+  <div class="strip">
+    <div class="chip seat" role="group" aria-label="AC"><button class="pick" aria-haspopup="listbox" aria-expanded="false"><span class="k">AC</span> 128</button>
+      <button class="step" aria-label="Previous AC"><svg class="i"><use href="#left"/></svg></button><span class="pos num">128 / 403</span><button class="step" aria-label="Next AC"><svg class="i"><use href="#right"/></svg></button></div>
+    <span class="sp"></span><button class="chip"><svg class="i"><use href="#sliders"/></svg>View <span class="num">2</span></button>
+  </div>
+  <div class="scroller"><table>
+    <thead><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr></thead>
+    <tbody>
+     <tr><th>18–25</th><td class="num"><span class="mv">52%</span></td><td class="num"><span class="mv">9%</span></td><td class="num"><span class="mv">30%</span></td><td class="num"><span class="mv">9%</span></td></tr>
+     <tr><th>26–35</th><td class="num"><span class="mv">49%</span></td><td class="num"><span class="mv">11%</span></td><td class="num"><span class="mv">31%</span></td><td class="num"><span class="mv">9%</span></td></tr>
+     <tr><th>36+</th><td class="num"><span class="mv">44%</span></td><td class="num"><span class="mv">13%</span></td><td class="num"><span class="mv">35%</span></td><td class="num"><span class="mv">8%</span></td></tr>
+    </tbody></table></div>
+  <div class="foot"><span>AC 128 · respondent base shown per row in the full card · R2</span><a href="#" onclick="return false">How this was calculated →</a></div>
+</div>
+
+<h2>3. In the Configure panel</h2>
+<p class="cap">The cut builder tells you the rule as you build the cut, so the card's result is not a surprise. The seat field is tinted; a respondent field is not. If the seat field is not first, or is alone, there is no hint, because then it is an ordinary row or column field.</p>
+<div class="cut"><span class="n">Table 1</span><span class="tag seat">party_zone <svg class="i" style="width:12px;height:12px"><use href="#info"/></svg></span><span class="times">×</span><span class="tag">gender</span></div>
+<div class="hintbar"><svg class="i"><use href="#info"/></svg><span><b>party_zone</b> is a seat field. In the card, you pick one zone at a time and see gender for it.</span></div>
+<div style="height:14px"></div>
+<div class="cut"><span class="n">Table 2</span><span class="tag">age_group</span><span class="times">×</span><span class="tag seat">party_zone</span></div>
+<p class="cap" style="margin-top:8px">Seat field second: no selector. The table shows every zone as a column or row group.</p>
+</body></html>

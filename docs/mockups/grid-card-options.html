@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grid card: control layout options</title>
+<style>
+:root{--text:#1c1f24;--muted:#6b7380;--border:#dbdee3;--head:#f4f4f6;--primary:#2663eb;--soft:#e5edff;--gain:#0d804d;--loss:#bf3333;--page:#f4f4f6;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:var(--page);color:var(--text);font:13px Inter,"Segoe UI",system-ui,sans-serif}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:36px 0 4px}p.note{color:var(--muted);margin:0 0 14px;max-width:760px;line-height:1.45}
+.row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;container-type:inline-size}
+.w1{width:900px}.w2{width:560px}.w3{width:340px}
+.title{font-size:17px;font-weight:600}.sub{font-size:12px;color:var(--muted);margin-top:2px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+/* option A: refined chips */
+.strip{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.chip{border:1px solid #d6d9de;border-radius:14px;padding:4px 11px;font-size:12px;background:#fff;color:var(--text);white-space:nowrap}
+.chip.on{background:var(--soft);border-color:#b9ccf7;color:#1a4fc4}
+.seg{display:inline-flex;background:var(--head);border-radius:8px;padding:2px}
+.seg span{padding:3px 10px;font-size:12px;border-radius:6px;color:var(--muted)}.seg span.on{background:#fff;color:var(--text);box-shadow:0 1px 2px #0002}
+.more{border:1px solid #d6d9de;border-radius:6px;padding:3px 9px;background:#fff}
+/* option B: two-tier */
+.lenses{display:flex;gap:18px;border-bottom:1px solid var(--border);margin:12px 0 0;font-size:13px}
+.lenses span{padding:6px 0;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}.lenses span.on{color:var(--primary);border-color:var(--primary);font-weight:600}
+.tools{display:flex;align-items:center;gap:8px;margin:10px 0;flex-wrap:wrap}
+.ib{width:28px;height:28px;border:1px solid #d6d9de;border-radius:6px;display:inline-grid;place-items:center;background:#fff;font-size:13px;color:var(--muted)}
+.ib.on{background:var(--soft);color:var(--primary);border-color:#b9ccf7}
+.sp{flex:1}
+/* table */
+table{width:100%;border-collapse:collapse;margin-top:4px}
+th{font-weight:600;font-size:12px;color:var(--muted);text-align:left;padding:8px 10px;background:var(--head)}
+th:first-child,td:first-child{padding-left:12px}
+td{padding:10px;border-top:1px solid var(--border)}
+.rl{font-weight:600}
+.cell{display:flex;align-items:baseline;gap:8px}.v{font-size:16px;font-weight:600}.d{font-size:12px}.d.g{color:var(--gain)}.d.l{color:var(--loss)}
+/* heat: soft tint + bar instead of saturated fill */
+.heat{position:relative}.heat::before{content:"";position:absolute;inset:3px 4px;border-radius:5px;z-index:0}
+.heat.g::before{background:#0d804d1a}.heat.l::before{background:#bf33331a}.heat>*{position:relative}
+.foot{display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px;margin-top:12px;gap:12px}.foot a{color:var(--primary);white-space:nowrap}
+@container (max-width:420px){.hide-narrow{display:none}.stack th:nth-child(n+4),.stack td:nth-child(n+4){display:none}}
+</style></head><body>
+<h1>Grid card: two ways to lay out the controls</h1>
+<p class="note">Same data as the Uttar Pradesh compare fixture (anchor 2027 VS CAPI R2, delta vs R1). Each option is shown at wide, medium and narrow widths, so the canvas can resize a card without redesigning it. Mock-up only, nothing here is built.</p>
+
+<h2>Option A: refined chips (keeps today's structure)</h2>
+<p class="note">Cut selector stays on the left. The two controls you change most (Lens, Format) are visible. The rest go behind one "More" menu. A chip that differs from its default turns blue, so you can see what has been changed. Heat is a soft tint behind the value, not a saturated fill.</p>
+<div class="row">
+ <div><div class="lab">Wide</div><div class="card w1">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor 2027 VS CAPI R2 · Δ vs R1 · whole state</div></div><span class="more">⋯</span></div>
+  <div class="strip"><div class="seg"><span class="on">Overall</span><span>age_group</span><span>occupation</span></div><span class="chip on">Lens: Support % ▾</span><span class="chip on">Format: Diverging on Δ ▾</span><span class="chip">Sort ▾</span><span class="chip">Cell: Values + Δ ▾</span><span class="chip">⇄ Transpose</span><span class="chip">More (3) ▾</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼0.99%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">31%</span><span class="d l">▼3%</span></div></td>
+   <td class="heat g"><div class="cell"><span class="v">11%</span><span class="d g">▲0.55%</span></div></td></tr></table>
+  <div class="foot"><span>2027 VS CAPI R1 · R2: 403 seats · Normal · engine 0.8.0</span><a>How this was calculated →</a></div></div></div>
+ <div><div class="lab">Medium</div><div class="card w2">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor R2 · Δ vs R1</div></div><span class="more">⋯</span></div>
+  <div class="strip"><div class="seg"><span class="on">Overall</span><span>age_group</span><span>occupation</span></div><span class="chip on">Lens: Support % ▾</span><span class="chip on">Format ▾</span><span class="chip">More (4) ▾</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼0.99%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">31%</span><span class="d l">▼3%</span></div></td>
+   <td class="heat g"><div class="cell"><span class="v">11%</span><span class="d g">▲0.55%</span></div></td></tr></table>
+  <div class="foot"><span>403 seats · Normal</span><a>Method →</a></div></div></div>
+ <div><div class="lab">Narrow</div><div class="card w3 stack">
+  <div class="head"><div><div class="title">Party vote share</div><div class="sub">R2 · Δ vs R1</div></div><span class="more">⋯</span></div>
+  <div class="strip"><span class="chip on">Lens ▾</span><span class="chip">Cut: Overall ▾</span><span class="chip">More ▾</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼1%</span></div></td></tr></table>
+  <div class="foot"><span>2 of 4 columns · scroll →</span><a>Method →</a></div></div></div>
+</div>
+
+<h2>Option B: lens tabs plus a small tool row</h2>
+<p class="note">The lens (what the numbers mean) becomes tabs, because it changes the whole reading of the table. The cut selector and the rest become small icon buttons with tooltips. Fewer words on screen, but the icons need learning.</p>
+<div class="row">
+ <div><div class="lab">Wide</div><div class="card w1">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor 2027 VS CAPI R2 · Δ vs R1 · whole state</div></div><span class="more">⋯</span></div>
+  <div class="lenses"><span class="on">Support %</span><span>Size of impact (pp)</span><span>Share of change</span></div>
+  <div class="tools"><div class="seg"><span class="on">Overall</span><span>age_group</span><span>occupation</span></div><span class="sp"></span><span class="ib on" title="Format">◐</span><span class="ib" title="Sort">↕</span><span class="ib" title="Transpose">⇄</span><span class="ib" title="Search and hide">⌕</span><span class="ib" title="Density">≡</span><span class="ib" title="Details">ⓘ</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼0.99%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">31%</span><span class="d l">▼3%</span></div></td>
+   <td class="heat g"><div class="cell"><span class="v">11%</span><span class="d g">▲0.55%</span></div></td></tr></table>
+  <div class="foot"><span>2027 VS CAPI R1 · R2: 403 seats · Normal · engine 0.8.0</span><a>How this was calculated →</a></div></div></div>
+ <div><div class="lab">Medium</div><div class="card w2">
+  <div class="head"><div><div class="title">Party vote share by age group</div><div class="sub">Anchor R2 · Δ vs R1</div></div><span class="more">⋯</span></div>
+  <div class="lenses"><span class="on">Support %</span><span>Impact (pp)</span><span>Share of change</span></div>
+  <div class="tools"><div class="seg"><span class="on">Overall</span><span>age_group</span><span>occ…</span></div><span class="sp"></span><span class="ib on">◐</span><span class="ib">↕</span><span class="ib">⇄</span><span class="ib">⋯</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th><th>BJP+</th><th>Other</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼0.99%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">31%</span><span class="d l">▼3%</span></div></td>
+   <td class="heat g"><div class="cell"><span class="v">11%</span><span class="d g">▲0.55%</span></div></td></tr></table>
+  <div class="foot"><span>403 seats · Normal</span><a>Method →</a></div></div></div>
+ <div><div class="lab">Narrow</div><div class="card w3 stack">
+  <div class="head"><div><div class="title">Party vote share</div><div class="sub">R2 · Δ vs R1</div></div><span class="more">⋯</span></div>
+  <div class="lenses"><span class="on">Support %</span><span>Impact</span><span>▾</span></div>
+  <div class="tools"><span class="chip">Overall ▾</span><span class="sp"></span><span class="ib on">◐</span><span class="ib">⋯</span></div>
+  <table><tr><th></th><th>SP+</th><th>BSP</th></tr>
+  <tr><td class="rl">Overall</td>
+   <td class="heat g"><div class="cell"><span class="v">47%</span><span class="d g">▲3%</span></div></td>
+   <td class="heat l"><div class="cell"><span class="v">11%</span><span class="d l">▼1%</span></div></td></tr></table>
+  <div class="foot"><span>2 of 4 columns · scroll →</span><a>Method →</a></div></div></div>
+</div>
+</body></html>

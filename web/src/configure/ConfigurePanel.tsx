@@ -2,7 +2,7 @@ import { Alert, Button, Group, Stack, Text, Title } from "@mantine/core";
 import { useMemo, useState, type ComponentType } from "react";
 import { useFamilies, useOptions } from "../api/queries";
 import type { CardConfigJson, Condition, FieldDescriptor, StateContext, Widget } from "../api/types";
-import { evaluate, getPath, setPath, visibleFields, type ScenarioKinds } from "./conditions";
+import { compareGroup, evaluate, getPath, isSet, setPath, visibleFields, type ScenarioKinds } from "./conditions";
 import { normalize } from "./draft";
 import { useDraftValidation } from "./useDraftValidation";
 import { ChoiceField } from "./widgets/ChoiceField";
@@ -69,6 +69,9 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
   const rest = shown.filter((f) => f.tier === "more");
   const shakti = visiblePaths.has("comparison.reference.scenario") && evaluate(SHAKTI, normalized, kinds);
   const canApply = validation.upToDate && validation.data?.valid === true;
+  const inCompare = compareGroup(primary);
+  const setCount = rest.filter((f) => isSet(getPath(normalized, f.path))).length;
+  const problems = errors.length + (validation.data?.unavailable.length ?? 0);
 
   return (
     <Stack gap="sm">
@@ -76,12 +79,32 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
         <Title order={3}>{descriptor.label}</Title>
         <Text size="sm" c="var(--mb-muted)">{descriptor.description}</Text>
       </div>
-      {primary.map(render)}
-      {shakti && <Text size="sm" fw={600}>Shakti comparison</Text>}
+      {primary.map((f) => {
+        if (!inCompare.includes(f)) return render(f);
+        if (f !== inCompare[0]) return null; // the block is drawn once, at its first field
+        return (
+          <div key="compare" data-testid="compare-block" style={{
+            padding: "10px 14px 14px", borderRadius: 12, background: "var(--mb-primary-soft)", border: "1px solid var(--mb-soft-line)",
+          }}>
+            <Text size="xs" fw={600} c="var(--mb-ink)" mb={6}>Comparing two questions</Text>
+            <Stack gap="sm">
+              {inCompare.map(render)}
+              {shakti && <Text size="sm" fw={600}>Shakti comparison</Text>}
+            </Stack>
+          </div>
+        );
+      })}
+      {shakti && inCompare.length === 0 && <Text size="sm" fw={600}>Shakti comparison</Text>}
       {rest.length > 0 && (
-        <Button variant="subtle" size="xs" onClick={() => setMore((m) => !m)} style={{ alignSelf: "flex-start" }}>
-          {more ? "Fewer options" : "More options"}
-        </Button>
+        <Group gap={8} style={{ alignSelf: "flex-start" }}>
+          <Button variant="subtle" size="xs" onClick={() => setMore((m) => !m)}>
+            {more ? "Fewer options" : "More options"}
+          </Button>
+          <span data-testid="more-count" style={{
+            fontSize: 11.5, padding: "1px 8px", borderRadius: 10, background: setCount > 0 ? "var(--mb-primary-soft)" : "var(--mb-header-bg)",
+            color: setCount > 0 ? "var(--mb-ink)" : "var(--mb-muted)",
+          }}>{setCount} set</span>
+        </Group>
       )}
       {more && rest.map(render)}
       {(stray.length > 0 || (validation.data?.unavailable.length ?? 0) > 0) && (
@@ -91,7 +114,10 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
         </Alert>
       )}
       {validation.data?.notes.map((n) => <Text key={n} size="sm" c="var(--mb-muted)">{n}</Text>)}
-      <Group justify="flex-end">
+      <Group justify="flex-end" align="center">
+        <Text size="xs" c="var(--mb-muted)" mr="auto" role="status">
+          {canApply ? "Ready to apply" : problems > 0 ? `${problems} thing${problems === 1 ? "" : "s"} to fix` : "Checking…"}
+        </Text>
         <Button variant="default" onClick={onCancel}>Cancel</Button>
         <Button disabled={!canApply} onClick={() => onApply(normalized)}>Apply</Button>
       </Group>

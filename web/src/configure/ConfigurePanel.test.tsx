@@ -151,4 +151,79 @@ describe("ConfigurePanel", () => {
     const applied = onApply.mock.calls[0][0] as CardConfigJson;
     expect(applied.relationship?.include_recalled).toEqual({ origin: ["Did Not Vote"] });
   });
+
+  it("groups the compare fields in one tinted block, only when comparing", async () => {
+    stub();
+    mount({ ...BASE, comparison: { mode: "compare" } });
+    const block = await screen.findByTestId("compare-block");
+    expect(block).toHaveTextContent("Comparing two questions");
+    expect(within(block).getByText("Question")).toBeInTheDocument();
+    expect(within(block).getByText("Compared with")).toBeInTheDocument();
+  });
+
+  it("has no compare block while standalone", async () => {
+    stub();
+    mount();
+    await screen.findByRole("button", { name: "Apply" });
+    expect(screen.queryByTestId("compare-block")).toBeNull();
+  });
+
+  it("says how many More options are set, beside the button", async () => {
+    stub();
+    mount({ ...BASE, display_parties: ["NDA"] });
+    expect(await screen.findByTestId("more-count")).toHaveTextContent("1 set");
+  });
+
+  it("starts at 0 set, and the footer says Ready to apply when the card is valid", async () => {
+    stub();
+    mount();
+    expect(await screen.findByTestId("more-count")).toHaveTextContent("0 set");
+    expect(await screen.findByText("Ready to apply")).toBeInTheDocument();
+  });
+
+  it("counts what is wrong in the footer and keeps Apply off", async () => {
+    stub(() => ok({ valid: false, errors: [{ path: "title", message: "Enter a title" }] }));
+    mount();
+    expect(await screen.findByText("1 thing to fix")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+  });
+
+  describe("every family", () => {
+    const descriptors = families as unknown as { family: string; label: string; fields: { path: string; label: string; tier: string; show_when?: unknown; choices?: string[] }[] }[];
+
+    it.each(descriptors.map((d) => [d.family] as const))("%s renders its unconditional primary fields in descriptor order, with nothing set", async (name) => {
+      stub((card) => ok({ valid: Boolean(card.title) }));
+      const d = descriptors.find((x) => x.family === name)!;
+      mount({ id: "mine.1", family: name, title: "" } as CardConfigJson);
+      expect(await screen.findByTestId("more-count")).toHaveTextContent(/[0-9] set/);
+      const labels = d.fields.filter((f) => f.tier === "primary" && f.show_when === undefined).map((f) => f.label);
+      expect(labels.length).toBeGreaterThan(0);
+      let last = -1;
+      for (const label of labels) {
+        const found = screen.getAllByText(label, { exact: false });
+        expect(found.length, label).toBeGreaterThan(0);
+        const at = document.body.textContent!.indexOf(label);
+        expect(at, `${label} comes after the previous field`).toBeGreaterThan(last);
+        last = at;
+      }
+      // Apply stays off until the required title is filled in.
+      expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+    });
+
+    it("gender gap offers no Compare, and seat ranking asks for a party only for a party metric", async () => {
+      stub();
+      const gender = descriptors.find((d) => d.family === "gender_differential")!;
+      expect(gender.fields.find((f) => f.path === "comparison.mode")!.choices).not.toContain("compare");
+      mount({ id: "mine.2", family: "seat_ranking", title: "Seats" } as CardConfigJson);
+      await screen.findByTestId("more-count");
+      expect(screen.queryByText("Party", { exact: true })).toBeNull();
+    });
+  });
+
+  it("counts an unavailable card as something to fix, never a status stuck on Checking", async () => {
+    stub(() => ok({ valid: false, errors: [], unavailable: [{ reason: "Scenario 'x' was not asked in R1" }] }));
+    mount();
+    expect(await screen.findByText("1 thing to fix")).toBeInTheDocument();
+    expect(screen.queryByText("Checking…")).toBeNull();
+  });
 });

@@ -40,20 +40,18 @@ describe("BenchmarkCard", () => {
     expect(await screen.findByRole("table", { name: /Flips/ })).toBeInTheDocument();
   });
 
-  it("opens on the seat summary without a reference, and the chooser hides tables that cannot exist", async () => {
+  it("opens on the summary without a reference, and the chooser hides tables that cannot exist", async () => {
     mount(withoutReference(BENCHMARK.surveyVs2022()));
-    expect(await screen.findByRole("table", { name: /Seat summary/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Table/ }));
-    const chooser = await screen.findByLabelText("Table");
-    expect(within(chooser).getAllByRole("option").map((o) => o.textContent)).toEqual(["Seat summary", "Margin buckets"]);
+    expect(await screen.findByRole("table", { name: /Summary/ })).toBeInTheDocument();
+    const tabs = screen.getByRole("tablist", { name: "Table" });
+    expect(within(tabs).getAllByRole("tab").map((o) => o.textContent)).toEqual(["Summary", "Margin buckets"]);
   });
 
   it("switching tables is display-only and never fetches", async () => {
     const f = mount(BENCHMARK.surveyVs2022());
     await screen.findByRole("table", { name: /Comparison/ });
     const calls = f.mock.calls.length;
-    await userEvent.click(screen.getByRole("button", { name: /Table/ }));
-    await userEvent.selectOptions(await screen.findByLabelText("Table"), "flips");
+    await userEvent.click(screen.getByRole("tab", { name: "Seat flips" }));
     expect(await screen.findByRole("table", { name: /Flips/ })).toBeInTheDocument();
     expect(f.mock.calls.length).toBe(calls);
   });
@@ -151,5 +149,85 @@ describe("BenchmarkCard", () => {
     await userEvent.type(await screen.findByLabelText("Search rows"), "zzzz");
     expect(await screen.findByText(/No rows match/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  describe("tables", () => {
+    const open = async (tab: string, p = BENCHMARK.surveyVs2022()) => {
+      mount(p);
+      await screen.findByRole("table", { name: /Comparison/ });
+      await userEvent.click(screen.getByRole("tab", { name: tab }));
+    };
+
+    it("merges vote share and seats, with their changes, in one Summary cell per party, All seats first", async () => {
+      await open("Summary");
+      const table = await screen.findByRole("table", { name: /Summary/ });
+      const rows = within(table).getAllByRole("row");
+      const first = rows[1];
+      expect(within(first).getByRole("rowheader")).toHaveTextContent("All seats");
+      const cells = within(first).getAllByRole("cell");
+      const nda = cells[1].textContent ?? "";
+      expect(nda).toContain("42.1%");
+      expect(nda).toContain("▼ 1.8 pp");
+      expect(nda).toContain("154");
+      expect(nda).toContain("▼ 119");
+      expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(
+        expect.arrayContaining(["BSP", "NDA", "SP+", "Other"]));
+    });
+
+    it("groups the Comparison headers into vote share and seats won, with the share of seats", async () => {
+      mount(BENCHMARK.surveyVs2022());
+      const table = await screen.findByRole("table", { name: /Comparison/ });
+      const heads = within(table).getAllByRole("columnheader").map((h) => h.textContent);
+      expect(heads).toEqual(expect.arrayContaining(["Vote share", "Seats won", "Seat share change"]));
+      expect(heads).not.toContain("Share of seats"); // the cells are a change in the share, not the share
+      const nda = within(table).getAllByRole("row").find((r) => within(r).queryByRole("rowheader", { name: "NDA" }))!;
+      expect(nda.textContent).toContain("-29.5 pp");
+    });
+
+    it("lists the six margin rows and a total of 403 on each side", async () => {
+      await open("Margin buckets");
+      const table = await screen.findByRole("table", { name: /Margin buckets/ });
+      const all = within(table).getAllByRole("rowgroup")[1]; // first group: all seats
+      expect(within(all).getAllByRole("row").length).toBe(1 + 6 + 1);
+      const total = within(all).getAllByRole("row").slice(-1)[0];
+      expect(total.textContent).toContain("All eligible seats");
+      expect((total.textContent?.match(/403/g) ?? []).length).toBe(2);
+      expect(within(all).getAllByRole("row").some((r) => /Ahead/.test(r.textContent ?? ""))).toBe(true);
+      expect(within(all).getAllByRole("row").some((r) => /Behind/.test(r.textContent ?? ""))).toBe(true);
+    });
+
+    it("shows the four flip classes with their engine counts and a bar that says the same in words", async () => {
+      await open("Seat flips");
+      const table = await screen.findByRole("table", { name: /Flips/ });
+      const text = table.textContent ?? "";
+      for (const n of ["132", "22", "141", "108"]) expect(text).toContain(n);
+      const bar = screen.getAllByRole("img")[0];
+      expect(bar.getAttribute("aria-label")).toMatch(/Winning both 132.*Gain 22.*Loss 141.*Losing both 108 of 403 seats/);
+    });
+
+    it("marks the reference as a read-only changed tag, not a control", async () => {
+      mount(BENCHMARK.surveyVs2022());
+      await screen.findByRole("table", { name: /Comparison/ });
+      const tag = screen.getByTestId("reference-tag");
+      expect(tag).toHaveAttribute("data-changed", "true");
+      expect(tag.tagName).not.toBe("BUTTON");
+    });
+
+    it("shows the engine's eligible seats in Seat flips and computes no percentage in the browser", async () => {
+      await open("Seat flips");
+      const table = await screen.findByRole("table", { name: /Flips/ });
+      expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toContain("Eligible seats");
+      expect(table.textContent).not.toMatch(/\d%/);
+    });
+
+    it("totals each side of the margin table with that side's own eligible seats", async () => {
+      const p = BENCHMARK.surveyVs2022();
+      for (const r of p.margin_buckets) if (r.endpoint === "reference" && r.group.set_id === "g0") r.eligible_seats = 400;
+      await open("Margin buckets", p);
+      const table = await screen.findByRole("table", { name: /Margin buckets/ });
+      const total = within(within(table).getAllByRole("rowgroup")[1]).getAllByRole("row").slice(-1)[0];
+      const cells = within(total).getAllByRole("cell").map((c) => c.textContent);
+      expect(cells).toEqual(["400", "403"]); // the reference first, then the survey
+    });
   });
 });

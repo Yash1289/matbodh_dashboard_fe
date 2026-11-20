@@ -70,11 +70,18 @@ describe("CompositeTable", () => {
     expect(screen.getByText(/Heat on value/)).toBeTruthy();
   });
 
-  it("header and row styling", () => {
+  it("sits in the table frame and pins every row label", () => {
     const { container } = show(["value"]);
-    const ths = [...container.querySelectorAll("thead th")] as HTMLElement[];
-    expect(ths.every((t) => t.style.background === "var(--mb-header-bg)" && t.style.borderBottom === "1px solid var(--mb-border)")).toBe(true);
-    expect((container.querySelector("tbody td") as HTMLElement).style.borderBottom).toBe("1px solid var(--mb-border)");
-    expect((container.querySelector("tbody th") as HTMLElement).style.textAlign).toBe("left");
+    expect(screen.getByTestId("table-frame")).toContainElement(container.querySelector("table"));
+    const labels = [...container.querySelectorAll("tbody th")];
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels.every((th) => th.className.includes("pin"))).toBe(true);
+    expect((container.querySelector("thead th") as HTMLElement).className).toContain("pin");
+  });
+
+  it("sizes no table text in pixels, so it scales with the card", () => {
+    const { container } = show(["value", "delta"], {}, undefined);
+    const sized = [...container.querySelectorAll<HTMLElement>("table *")].filter((el) => el.style.fontSize.endsWith("px"));
+    expect(sized.map((el) => `${el.tagName}:${el.style.fontSize}`)).toEqual([]);
   });
 });

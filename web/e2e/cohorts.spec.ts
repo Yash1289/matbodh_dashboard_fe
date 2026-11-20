@@ -54,7 +54,7 @@ test("the cohort journey: make a cohort from a ranking card, use it, reload, cle
   await page.getByRole("menuitem", { name: "Make cohort…" }).click();
   const dialog = page.getByRole("dialog", { name: "Make cohort" });
   await dialog.getByRole("textbox", { name: "Top N in each group" }).fill("3");
-  await dialog.getByRole("button", { name: "Preview" }).click();
+  await dialog.getByRole("button", { name: "Find seats" }).click();
   await expect(dialog.getByText("3 seats matched")).toBeVisible();
   await dialog.getByRole("button", { name: "Use as cohort" }).click();
 

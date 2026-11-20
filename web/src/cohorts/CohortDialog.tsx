@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError, getRun } from "../api/client";
 import type { BenchmarkReference, CardRef, CohortPreview, SelectionPredicate, StateContext } from "../api/types";
 import { startPreview } from "./cohortApi";
+import { chipStyle } from "../cards/PopoverChip";
 import { setCohort } from "./cohortStore";
 
 const POLL_MS = 1500;
@@ -85,9 +86,17 @@ export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasR
         <Text size="sm" c="var(--mb-muted)">
           Selects seats from this card&apos;s own result, in the whole state. The list is kept for this session only.
         </Text>
+        <div data-testid="cohort-source" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--mb-header-bg)", border: "1px solid var(--mb-border)" }}>
+          <Text size="xs" fw={600} c="var(--mb-muted)" mb={4}>Taken from this card</Text>
+          <Group gap={6}>
+            <span style={chipStyle(false)}>{cardTitle}</span>
+            <span style={chipStyle(false)}>{kind === "ranking" ? "Seat ranking" : hasReference ? "Seat benchmark with a reference" : "Seat benchmark"}</span>
+          </Group>
+        </div>
         {kind === "ranking" ? (
           <>
-            <NumberInput label="Top N in each group" min={1} allowDecimal={false} value={field("rank_max")} onChange={edit("rank_max")} />
+            <NumberInput label="Top N in each group" min={1} allowDecimal={false} value={field("rank_max")} onChange={edit("rank_max")}
+              description="Seats tied at the cut-off are included." />
             <Group grow>
               <NumberInput label="Metric at least" value={field("metric_min")} onChange={edit("metric_min")} />
               <NumberInput label="Metric below" value={field("metric_max")} onChange={edit("metric_max")} />
@@ -115,7 +124,7 @@ export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasR
           <div>
             <Text fw={600}>{preview.count === 0 ? "No seats matched" : `${preview.count} seat${preview.count === 1 ? "" : "s"} matched`}</Text>
             {preview.count > 0 && (
-              <Text size="sm" c="var(--mb-muted)">
+              <Text size="sm" c="var(--mb-muted)" data-testid="cohort-seats">
                 {preview.seat_level.toUpperCase()} {preview.seat_ids.slice(0, MAX_LISTED).join(", ")}{preview.count > MAX_LISTED ? " …" : ""}
               </Text>
             )}
@@ -123,7 +132,7 @@ export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasR
         )}
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button variant="default" disabled={empty || running} loading={running} onClick={preparePreview}>Preview</Button>
+          <Button variant="default" disabled={empty || running} loading={running} onClick={preparePreview}>Find seats</Button>
           <Button disabled={preview === null || preview.count === 0} onClick={use}>Use as cohort</Button>
         </Group>
       </Stack>

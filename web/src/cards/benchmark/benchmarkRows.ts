@@ -1,4 +1,4 @@
-import type { BenchmarkGroup, BenchmarkPayload, BenchmarkSide, BenchmarkTable } from "../../api/types";
+import type { BenchmarkComparisonRow, BenchmarkGroup, BenchmarkPayload, BenchmarkSide, BenchmarkSummaryRow, BenchmarkTable } from "../../api/types";
 
 /** Display state only: nothing here changes the engine run. */
 export interface BenchmarkView { table: BenchmarkTable; search: string }
@@ -44,4 +44,31 @@ export function groupedRows<T extends { group: BenchmarkGroup; party?: string; e
     const [sa, sb] = [a.key.split("|")[0], b.key.split("|")[0]];
     return natural.compare(sa, sb) || natural.compare(a.label, b.label);
   });
+}
+
+export interface SummaryCell {
+  voteShare: number | null; voteDelta: number | null; seats: number | null; seatDelta: number | null; absent: boolean;
+}
+export interface SummaryRow { key: string; label: string; eligible: number; cells: Record<string, SummaryCell | null> }
+
+/**
+ * The Summary table: one row per seat group (All seats first), one column per party (Other last), each cell
+ * merging vote share and seats with their changes. Numbers are copied from the comparison rows, or from the
+ * target summary rows (no changes) when there is no reference. A party a group has no row for is null.
+ */
+export function summaryMatrix(p: BenchmarkPayload, search: string): { parties: string[]; rows: SummaryRow[] } {
+  const parties = [...p.parties, p.other_label];
+  const merged = p.comparisons.length > 0;
+  const source: (BenchmarkComparisonRow | BenchmarkSummaryRow)[] = merged ? p.comparisons : p.summaries.filter((r) => r.endpoint === "target");
+  const groups = groupedRows(source, p.parties, p.other_label, search);
+  const rows = groups.map((g) => {
+    const cells: Record<string, SummaryCell | null> = Object.fromEntries(parties.map((x) => [x, null]));
+    for (const r of g.rows) {
+      cells[r.party] = "target_vote_share" in r
+        ? { voteShare: r.target_vote_share, voteDelta: r.vote_share_delta_pp, seats: r.target_seats, seatDelta: r.seat_delta, absent: r.absent_sides.includes("target") }
+        : { voteShare: r.vote_share, voteDelta: null, seats: r.seats, seatDelta: null, absent: r.absent !== null };
+    }
+    return { key: g.key, label: g.label, eligible: g.rows[0]?.eligible_seats ?? 0, cells };
+  });
+  return { parties, rows };
 }

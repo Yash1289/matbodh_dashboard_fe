@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -37,6 +37,8 @@ class OptionItem(BaseModel):
     kind: str | None = None
     recalled: bool = False
     disabled_reason: str | None = None
+    # Fields only: does the field describe the seat (a result slicer when first in a cut) or the respondent?
+    scope: Literal["seat", "respondent"] | None = None
 
 
 def _get(draft: Mapping[str, Any], path: str) -> Any:
@@ -165,7 +167,8 @@ def _fields(params, draft, ctx, service) -> list[OptionItem]:
         if spec.source != "master" and not any(name in r.dataset.fields for r in read):
             continue  # a survey field none of the read rounds has
         reason = _missing(read, lambda r: field_available(r.dataset, name), "This field")
-        out.append(OptionItem(value=name, label=name, disabled_reason=reason))
+        scope = "seat" if spec.role in ("seat_attribute", "geographic_attribute") else "respondent"
+        out.append(OptionItem(value=name, label=name, disabled_reason=reason, scope=scope))
     return out
 
 
