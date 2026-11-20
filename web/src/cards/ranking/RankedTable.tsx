@@ -140,7 +140,10 @@ export function RankedTable({ payload, view }: Props) {
             const prev = i === 0 ? undefined : row.slots[i - 1];
             const move = i === 0 || slot.kind === "absent"
               ? movement(undefined, undefined)
-              : movement(prev?.kind === "ranked" ? prev.rank : null, slot.rank);
+              : movement(
+                // A round that failed to calculate says nothing about whether the seat was ranked, so it is not "new".
+                prev?.kind === "absent" && prev.reason === "round_failed" ? undefined : prev?.kind === "ranked" ? prev.rank : null,
+                slot.rank);
             return (
               <td key={slot.round} style={cellPad}>
                 <div className={styles.cell}>

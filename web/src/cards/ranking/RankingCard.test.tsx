@@ -233,4 +233,14 @@ describe("RankingCard", () => {
       expect(screen.getAllByLabelText(/\(tied\)/).length).toBeGreaterThan(0);
     });
   });
+
+  it("does not call a seat new when the earlier round failed to calculate", async () => {
+    const p = RANKED.seatTrend();
+    p.absent = p.absent.map((a) => ({ ...a, reason: "round_failed" }));
+    stubCardApi({ payloads: [p] });
+    mount(p);
+    const table = await screen.findByRole("table");
+    const seat128 = within(table).getByRole("rowheader", { name: /Seat 128/ }).closest("tr")!;
+    expect(seat128.querySelector("[data-movement]")).toBeNull();
+  });
 });

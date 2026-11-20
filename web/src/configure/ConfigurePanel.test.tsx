@@ -219,4 +219,11 @@ describe("ConfigurePanel", () => {
       expect(screen.queryByText("Party", { exact: true })).toBeNull();
     });
   });
+
+  it("counts an unavailable card as something to fix, never a status stuck on Checking", async () => {
+    stub(() => ok({ valid: false, errors: [], unavailable: [{ reason: "Scenario 'x' was not asked in R1" }] }));
+    mount();
+    expect(await screen.findByText("1 thing to fix")).toBeInTheDocument();
+    expect(screen.queryByText("Checking…")).toBeNull();
+  });
 });

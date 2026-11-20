@@ -137,7 +137,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
               <th scope="col" className={`${styles.num} ${styles.vl}`}>{t}</th>
               <th scope="col" className={styles.num}>{r}</th>
               <th scope="col" className={styles.num}>Change</th>
-              <th scope="col" className={styles.num}>Share of seats</th>
+              <th scope="col" className={styles.num}>Seat share change</th>
             </tr>
           </thead>
           {groups.map((g: GroupRows<(typeof p.comparisons)[number]>) => (
@@ -184,7 +184,8 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
           {groups.map((g) => {
             const own = p.margin_buckets.filter((x) => `${x.group.set_id}|${JSON.stringify(x.group.dimensions)}` === g.key);
             const at = (bucket: string, side: "target" | "reference") => own.find((x) => x.bucket === bucket && x.endpoint === side);
-            const eligible = own[0]?.eligible_seats ?? 0;
+            // Each side reports its own eligible seats; a reference can cover fewer seats than the survey.
+            const eligibleOf = (side: "target" | "reference") => own.find((x) => x.endpoint === side)?.eligible_seats ?? own[0]?.eligible_seats ?? 0;
             const bars = (bucket: string, side: "target" | "reference") => {
               const x = at(bucket, side);
               if (x === undefined) return <td>–</td>;
@@ -209,8 +210,8 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
                 ))}
                 <tr>
                   <Head pin>All eligible seats</Head>
-                  {showReference && <td className={styles.big}>{eligible}</td>}
-                  <td className={styles.big}>{eligible}</td>
+                  {showReference && <td className={styles.big}>{eligibleOf("reference")}</td>}
+                  <td className={styles.big}>{eligibleOf("target")}</td>
                 </tr>
               </tbody>
             );
@@ -225,7 +226,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
       <table>
         <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>{`Flips · ${p.focal_party ?? ""} · ${t} vs ${r}`}</caption>
         <thead>
-          <tr><th scope="col" className={PIN}>Outcome</th><th scope="col" className={styles.num}>Seats</th><th scope="col" className={styles.num}>Share</th></tr>
+          <tr><th scope="col" className={PIN}>Outcome</th><th scope="col" className={styles.num}>Seats</th><th scope="col" className={styles.num}>Eligible seats</th></tr>
         </thead>
         {groups.map((g) => {
           const own = p.flips.filter((x) => `${x.group.set_id}|${JSON.stringify(x.group.dimensions)}` === g.key)
@@ -249,7 +250,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
                     <small className={styles.sub}>{flipText(x.bucket, t, r)}</small>
                   </th>
                   <td className={styles.num} style={{ fontWeight: 620 }}>{x.seats}</td>
-                  <td className={`${styles.num} ${styles.muted}`}>{eligible > 0 ? `${((x.seats / eligible) * 100).toFixed(1)}%` : "–"}</td>
+                  <td className={`${styles.num} ${styles.muted}`}>{x.eligible_seats}</td>
                 </tr>
               ))}
             </tbody>

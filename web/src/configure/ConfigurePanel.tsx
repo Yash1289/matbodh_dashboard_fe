@@ -71,7 +71,7 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
   const canApply = validation.upToDate && validation.data?.valid === true;
   const inCompare = compareGroup(primary);
   const setCount = rest.filter((f) => isSet(getPath(normalized, f.path))).length;
-  const problems = errors.length;
+  const problems = errors.length + (validation.data?.unavailable.length ?? 0);
 
   return (
     <Stack gap="sm">

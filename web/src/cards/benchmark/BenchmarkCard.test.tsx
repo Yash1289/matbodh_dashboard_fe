@@ -178,7 +178,8 @@ describe("BenchmarkCard", () => {
       mount(BENCHMARK.surveyVs2022());
       const table = await screen.findByRole("table", { name: /Comparison/ });
       const heads = within(table).getAllByRole("columnheader").map((h) => h.textContent);
-      expect(heads).toEqual(expect.arrayContaining(["Vote share", "Seats won", "Share of seats"]));
+      expect(heads).toEqual(expect.arrayContaining(["Vote share", "Seats won", "Seat share change"]));
+      expect(heads).not.toContain("Share of seats"); // the cells are a change in the share, not the share
       const nda = within(table).getAllByRole("row").find((r) => within(r).queryByRole("rowheader", { name: "NDA" }))!;
       expect(nda.textContent).toContain("-29.5 pp");
     });
@@ -210,6 +211,23 @@ describe("BenchmarkCard", () => {
       const tag = screen.getByTestId("reference-tag");
       expect(tag).toHaveAttribute("data-changed", "true");
       expect(tag.tagName).not.toBe("BUTTON");
+    });
+
+    it("shows the engine's eligible seats in Seat flips and computes no percentage in the browser", async () => {
+      await open("Seat flips");
+      const table = await screen.findByRole("table", { name: /Flips/ });
+      expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toContain("Eligible seats");
+      expect(table.textContent).not.toMatch(/\d%/);
+    });
+
+    it("totals each side of the margin table with that side's own eligible seats", async () => {
+      const p = BENCHMARK.surveyVs2022();
+      for (const r of p.margin_buckets) if (r.endpoint === "reference" && r.group.set_id === "g0") r.eligible_seats = 400;
+      await open("Margin buckets", p);
+      const table = await screen.findByRole("table", { name: /Margin buckets/ });
+      const total = within(within(table).getAllByRole("rowgroup")[1]).getAllByRole("row").slice(-1)[0];
+      const cells = within(total).getAllByRole("cell").map((c) => c.textContent);
+      expect(cells).toEqual(["400", "403"]); // the reference first, then the survey
     });
   });
 });
