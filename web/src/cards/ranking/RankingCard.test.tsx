@@ -177,4 +177,33 @@ describe("RankingCard", () => {
     await userEvent.type(await screen.findByLabelText("Search rows"), name);
     expect(screen.getAllByLabelText(/rank 1 \(tied\)/).length).toBeGreaterThan(0);
   });
+
+  describe("visual ranking", () => {
+    it("marks the top three rank badges and draws a proportional bar per row", async () => {
+      const p = RANKED.seatStandalone();
+      stubCardApi({ payloads: [p] });
+      mount(p);
+      const table = await screen.findByRole("table");
+      const rows = bodyRows(table);
+      const badges = rows.slice(0, 5).map((r) => r.querySelector("[data-rank]") as HTMLElement);
+      expect(badges.map((b) => b.getAttribute("data-top"))).toEqual(["true", "true", "true", "false", "false"]);
+      const widths = rows.slice(0, 3).map((r) => parseFloat((r.querySelector("[data-bar]") as HTMLElement).style.width));
+      expect(widths[0]).toBe(100);
+      expect(widths[1]).toBeLessThanOrEqual(widths[0]);
+      expect(widths[2]).toBeLessThanOrEqual(widths[1]);
+    });
+
+    it("shows rank, value and movement in one cell per round when trending", async () => {
+      const p = RANKED.seatTrend();
+      stubCardApi({ payloads: [p] });
+      mount(p);
+      const table = await screen.findByRole("table");
+      const seat128 = within(table).getByRole("rowheader", { name: /Seat 128/ }).closest("tr")!;
+      expect(within(seat128).getByText("Not ranked")).toBeInTheDocument();
+      expect(seat128.querySelector("[data-movement]")!.getAttribute("data-movement")).toBe("new");
+      const seat61 = within(table).getByRole("rowheader", { name: /Seat 61/ }).closest("tr")!;
+      expect(seat61.querySelectorAll("[data-movement]")).toHaveLength(1); // the first round has none
+      expect(seat61.querySelector("[data-movement]")!.getAttribute("data-movement")).toBe("same");
+    });
+  });
 });

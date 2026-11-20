@@ -1,9 +1,10 @@
 import { Button, Group, Text } from "@mantine/core";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { AbsentReason, RankedPayload, Unit } from "../../api/types";
 import { formatValue } from "../../cells/format";
-import { tokens } from "../../theme";
-import { rankedRows, tieKeys, type RankedSlot, type RankedView } from "./rankedRows";
+import { PIN, TableFrame } from "../../table/TableFrame";
+import styles from "./Ranked.module.css";
+import { movement, rankedRows, tieKeys, type Movement, type RankedSlot, type RankedView } from "./rankedRows";
 
 const ROW_LIMIT = 100;
 const PADDING = { compact: 2, standard: 5, detailed: 9 } as const;
@@ -15,22 +16,10 @@ const reasonText = (reason: AbsentReason, label: string, topK: number | null): s
     : reason === "not_ranked" ? `not ranked in ${label}`
       : `calculation failed in ${label}`;
 
-/** One segment per round, separated by thin rules like the grid's trend pipes. */
-function Pipe({ slots, text }: { slots: RankedSlot[]; text: (slot: RankedSlot) => { shown: string; label: string; title?: string } }) {
-  return (
-    <div role="group" style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-      {slots.map((slot, i) => {
-        const { shown, label, title } = text(slot);
-        return (
-          <Fragment key={slot.round}>
-            {i > 0 && <span aria-hidden style={{ alignSelf: "stretch", width: 1, background: "var(--mb-border)" }} />}
-            <span data-segment aria-label={label} title={title}>{shown}</span>
-          </Fragment>
-        );
-      })}
-    </div>
-  );
-}
+const ABSENT_SHORT: Record<AbsentReason, string> = { outside_top_k: "Outside top", not_ranked: "Not ranked", round_failed: "Failed" };
+
+const MOVE_TEXT = (m: Movement): string =>
+  m.kind === "up" ? `▲ ${m.by}` : m.kind === "down" ? `▼ ${m.by}` : m.kind === "same" ? "=" : "new";
 
 /** `ac_num: 12` reads "AC 12"; other dimensions keep their value with a spaced name. */
 const partitionText = (name: string, value: string | null): string =>
@@ -54,10 +43,42 @@ export function RankedTable({ payload, view }: Props) {
     () => new Map(payload.ranks.map((r) => [`${r.group}\u0000${r.entity}\u0000${r.round}`, r.unweighted_base ?? r.target_base])),
     [payload.ranks],
   );
-  const pad = PADDING[view.density];
-  const cell = { padding: `${pad}px 10px`, textAlign: "left" as const, fontWeight: 400 };
+  const cellPad = { paddingBlock: PADDING[view.density] };
   const partitioned = payload.partition_by.length > 0;
   const seat = payload.entity_kind === "seat";
+  const trend = model.rounds.length > 1;
+  const columns = trend ? 1 + model.rounds.length : 3;
+  // The bar of a single-round ranking is proportional to the largest value on the card.
+  const widest = useMemo(
+    () => Math.max(0, ...all.flatMap((r) => r.slots.flatMap((s) => (s.kind === "ranked" && s.value !== null ? [Math.abs(s.value)] : [])))),
+    [all],
+  );
+
+  const rankText = (row: { key: string }, slot: RankedSlot) => {
+    if (slot.kind === "absent") {
+      const why = reasonText(slot.reason, labelOf(slot.round), payload.top_k);
+      return { shown: "—", label: `${labelOf(slot.round)}: ${why}`, title: why };
+    }
+    const tied = slot.round === payload.rounds.anchor && ties.has(row.key);
+    return { shown: slot.rank === null ? "—" : `${tied ? "=" : ""}${slot.rank}`,
+      label: `${labelOf(slot.round)}: rank ${slot.rank ?? "unavailable"}${tied ? " (tied)" : ""}`,
+      title: tied ? "Tied with another row" : undefined };
+  };
+
+  const badge = (row: { key: string }, slot: RankedSlot) => {
+    const t = rankText(row, slot);
+    if (slot.kind === "absent") return <span className={styles.na} aria-label={t.label} title={t.title}>{ABSENT_SHORT[slot.reason]}</span>;
+    return <span className={styles.rank} data-rank data-top={slot.rank !== null && slot.rank <= 3} aria-label={t.label} title={t.title}>{t.shown}</span>;
+  };
+
+  const valueOf = (group: string, entity: string, slot: RankedSlot) => {
+    if (slot.kind === "absent") return null;
+    const text = formatValue(slot.value, unit);
+    const base = view.showDetails ? bases.get(`${group}\u0000${entity}\u0000${slot.round}`) : undefined;
+    return { shown: base === undefined || base === null ? text : `${text} (base ${Math.round(base * 100) / 100})`,
+      label: `${labelOf(slot.round)}: ${text}`,
+      title: slot.value === null ? `no value (${slot.status})` : undefined };
+  };
 
   let remaining = shown;
   const body = model.groups.flatMap(({ group, rows }) => {
@@ -67,7 +88,7 @@ export function RankedTable({ payload, view }: Props) {
     const eligible = view.showDetails ? Object.values(group.eligible_count).find((n) => n !== null) : undefined;
     const header = partitioned && (
       <tr key={`g:${group.key}`}>
-        <th colSpan={3} scope="rowgroup" style={{ ...cell, fontWeight: 600, background: "var(--mb-surface-alt, transparent)" }}>
+        <th colSpan={columns} scope="rowgroup" style={{ fontWeight: 600, background: "var(--mb-header-bg)" }}>
           {Object.entries(group.partition).map(([k, v]) => partitionText(k, v)).join(" · ")}
           {eligible !== undefined && ` · ${eligible} ranked`}
         </th>
@@ -75,36 +96,50 @@ export function RankedTable({ payload, view }: Props) {
     );
     const rowsOut = visible.map((row) => {
       const labels = row.entity.labels;
-      const rankText = (slot: RankedSlot) => {
-        if (slot.kind === "absent") {
-          const why = reasonText(slot.reason, labelOf(slot.round), payload.top_k);
-          return { shown: "—", label: `${labelOf(slot.round)}: ${why}`, title: why };
-        }
-        const tied = slot.round === payload.rounds.anchor && ties.has(row.key);
-        return { shown: slot.rank === null ? "—" : `${tied ? "=" : ""}${slot.rank}`,
-          label: `${labelOf(slot.round)}: rank ${slot.rank ?? "unavailable"}${tied ? " (tied)" : ""}`,
-          title: tied ? "Tied with another row" : undefined };
-      };
-      const valueText = (slot: RankedSlot) => {
-        if (slot.kind === "absent") return rankText(slot);
-        const text = formatValue(slot.value, unit);
-        const base = view.showDetails ? bases.get(`${row.group.key}\u0000${row.entity.key}\u0000${slot.round}`) : undefined;
-        return { shown: base === undefined || base === null ? text : `${text} (base ${Math.round(base * 100) / 100})`,
-          label: `${labelOf(slot.round)}: ${text}`,
-          title: slot.value === null ? `no value (${slot.status})` : undefined };
-      };
+      const name = seat ? (
+        <>
+          {labels.name !== undefined && <strong>{labels.name} </strong>}
+          <small style={{ color: "var(--mb-muted)" }}>{payload.level.toUpperCase()} {labels.seat_id}</small>
+        </>
+      ) : labels[payload.level];
+      if (!trend) {
+        const slot = row.slots[0];
+        const v = slot === undefined ? null : valueOf(row.group.key, row.entity.key, slot);
+        const pct = slot?.kind === "ranked" && slot.value !== null && widest > 0 ? Math.round((Math.abs(slot.value) / widest) * 100) : null;
+        return (
+          <tr key={row.key}>
+            <td style={cellPad}>{slot !== undefined && badge(row, slot)}</td>
+            <th scope="row" style={cellPad}>{name}</th>
+            <td style={cellPad}>
+              {slot?.kind === "absent" ? null : (
+                <div className={styles.barRow}>
+                  <span className={styles.barTrack}>{pct !== null && <i className={styles.bar} data-bar style={{ width: `${pct}%` }} />}</span>
+                  <span className={styles.value} aria-label={v?.label} title={v?.title}>{v?.shown ?? "—"}</span>
+                </div>
+              )}
+            </td>
+          </tr>
+        );
+      }
       return (
         <tr key={row.key}>
-          <th scope="row" style={cell}>
-            {seat ? (
-              <>
-                {labels.name !== undefined && <strong>{labels.name} </strong>}
-                <small style={{ color: "var(--mb-muted)" }}>{payload.level.toUpperCase()} {labels.seat_id}</small>
-              </>
-            ) : labels[payload.level]}
-          </th>
-          <td style={cell}><Pipe slots={row.slots} text={rankText} /></td>
-          <td style={cell}><Pipe slots={row.slots} text={valueText} /></td>
+          <th scope="row" className={PIN} style={cellPad}>{name}</th>
+          {row.slots.map((slot, i) => {
+            const v = valueOf(row.group.key, row.entity.key, slot);
+            const prev = i === 0 ? undefined : row.slots[i - 1];
+            const move = i === 0 || slot.kind === "absent"
+              ? movement(undefined, undefined)
+              : movement(prev?.kind === "ranked" ? prev.rank : null, slot.rank);
+            return (
+              <td key={slot.round} style={cellPad}>
+                <div className={styles.cell}>
+                  {badge(row, slot)}
+                  {v !== null && <span className={styles.value} aria-label={v.label} title={v.title}>{v.shown}</span>}
+                  {move.kind !== "none" && <span className={styles.move} data-movement={move.kind}>{MOVE_TEXT(move)}</span>}
+                </div>
+              </td>
+            );
+          })}
         </tr>
       );
     });
@@ -116,22 +151,34 @@ export function RankedTable({ payload, view }: Props) {
     return <Text size="sm" role="status">{needle === "" ? "The engine returned no ranked rows." : `No rows match “${needle}”.`}</Text>;
   }
 
+  const level = seat ? payload.level.toUpperCase() : payload.level;
   return (
     <div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: tokens.font.chip }}>
-        <caption style={{ textAlign: "left", color: "var(--mb-muted)", paddingBottom: 6 }}>
-          {unit === "pp" ? "Percentage points" : "Percentage"} · ranked {payload.direction === "ASC" ? "lowest" : "highest"} first
-          {payload.top_k !== null && ` · top ${payload.top_k} per ${partitioned ? "partition" : "ranking"}`}
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col" style={cell}>{seat ? payload.level.toUpperCase() : payload.level}</th>
-            <th scope="col" style={cell}>Rank{model.rounds.length > 1 ? ` (${model.rounds.map(labelOf).join(" | ")})` : ""}</th>
-            <th scope="col" style={cell}>Value{model.rounds.length > 1 ? ` (${model.rounds.map(labelOf).join(" | ")})` : ""}</th>
-          </tr>
-        </thead>
-        {body}
-      </table>
+      <TableFrame minWidthEm={trend ? 8 + 11 * model.rounds.length : undefined}>
+        <table>
+          <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>
+            {unit === "pp" ? "Percentage points" : "Percentage"} · ranked {payload.direction === "ASC" ? "lowest" : "highest"} first
+            {payload.top_k !== null && ` · top ${payload.top_k} per ${partitioned ? "partition" : "ranking"}`}
+          </caption>
+          <thead>
+            <tr>
+              {trend ? (
+                <>
+                  <th scope="col" className={PIN}>{level}</th>
+                  {model.rounds.map((r) => <th key={r} scope="col">{labelOf(r)}</th>)}
+                </>
+              ) : (
+                <>
+                  <th scope="col">Rank</th>
+                  <th scope="col">{level}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>Value</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          {body}
+        </table>
+      </TableFrame>
       {all.length > shown && (
         <Group justify="center" mt="xs">
           <Button size="xs" variant="default" onClick={() => setShown((n) => n + ROW_LIMIT)}>Show 100 more</Button>

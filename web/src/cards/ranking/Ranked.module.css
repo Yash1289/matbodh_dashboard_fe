@@ -1,0 +1,68 @@
+/* Rank badge, value bar and movement marker shared by the ranking tables. */
+.rank {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2em;
+  height: 1.9em;
+  padding: 0 0.4em;
+  border-radius: 0.6em;
+  font-weight: 650;
+  background: var(--mb-header-bg);
+  color: var(--mb-muted);
+}
+
+.rank[data-top="true"] {
+  background: var(--mb-primary-soft);
+  color: var(--mb-ink);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  white-space: nowrap;
+}
+
+.value {
+  font-weight: 620;
+}
+
+.bar {
+  display: block;
+  height: 0.6em;
+  min-width: 2px;
+  border-radius: 0.3em;
+  background: var(--mb-bar);
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8em;
+}
+
+.barTrack {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 4em;
+}
+
+.move {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--mb-muted);
+}
+
+.move[data-movement="up"] {
+  color: var(--mb-gain);
+}
+
+.move[data-movement="down"] {
+  color: var(--mb-loss);
+}
+
+.na {
+  color: var(--mb-muted);
+}

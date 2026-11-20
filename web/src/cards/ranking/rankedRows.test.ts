@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import demographic from "../../test/fixtures/cards/ranked_demographic_standalone.json";
 import seatTrend from "../../test/fixtures/cards/ranked_seat_trend.json";
 import type { RankedPayload } from "../../api/types";
-import { initialRankedView, rankedRows, tieKeys, type RankedRowModel } from "./rankedRows";
+import { initialRankedView, movement, rankedRows, tieKeys, type RankedRowModel } from "./rankedRows";
 
 const trend = seatTrend as unknown as RankedPayload;
 const demo = demographic as unknown as RankedPayload;
@@ -71,5 +71,25 @@ describe("tieKeys", () => {
   it("marks rows that share a rank in the anchor round", () => {
     const rows = [row("a", 1), row("b", 1), row("c", 3), row("d", null)];
     expect([...tieKeys(rows, "o2")].sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("movement", () => {
+  it("is none for the first round, where there is nothing before it", () => {
+    expect(movement(undefined, 2)).toEqual({ kind: "none", by: 0 });
+  });
+
+  it("is new when the seat was not ranked in the previous round", () => {
+    expect(movement(null, 1)).toEqual({ kind: "new", by: 0 });
+  });
+
+  it("is up when the rank number fell, down when it rose, same when equal", () => {
+    expect(movement(4, 2)).toEqual({ kind: "up", by: 2 });
+    expect(movement(2, 3)).toEqual({ kind: "down", by: 1 });
+    expect(movement(3, 3)).toEqual({ kind: "same", by: 0 });
+  });
+
+  it("is none when this round has no rank to compare", () => {
+    expect(movement(3, null)).toEqual({ kind: "none", by: 0 });
   });
 });
