@@ -206,4 +206,31 @@ describe("RankingCard", () => {
       expect(seat61.querySelector("[data-movement]")!.getAttribute("data-movement")).toBe("same");
     });
   });
+
+  describe("grouped demographic ranking", () => {
+    it("collapses and expands a seat's rows from its group header", async () => {
+      const p = RANKED.demographic();
+      stubCardApi({ payloads: [p] });
+      mount(p);
+      const table = await screen.findByRole("table");
+      const header = within(table).getAllByRole("button", { expanded: true })[0];
+      const group = header.closest("tbody")!;
+      const before = group.querySelectorAll("tr").length;
+      expect(before).toBeGreaterThan(1);
+      await userEvent.click(header);
+      expect(header).toHaveAttribute("aria-expanded", "false");
+      expect(group.querySelectorAll("tr")).toHaveLength(1); // only the header row remains
+      await userEvent.click(header);
+      expect(header).toHaveAttribute("aria-expanded", "true");
+      expect(group.querySelectorAll("tr")).toHaveLength(before);
+    });
+
+    it("keeps the tie marker on rows of an open group", async () => {
+      const p = RANKED.demographic();
+      stubCardApi({ payloads: [p] });
+      mount(p);
+      await screen.findByRole("table");
+      expect(screen.getAllByLabelText(/\(tied\)/).length).toBeGreaterThan(0);
+    });
+  });
 });

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { AbsentReason, RankedPayload, Unit } from "../../api/types";
 import { formatValue } from "../../cells/format";
 import { PIN, TableFrame } from "../../table/TableFrame";
+import { chipProps } from "../PopoverChip";
 import styles from "./Ranked.module.css";
 import { movement, rankedRows, tieKeys, type Movement, type RankedSlot, type RankedView } from "./rankedRows";
 
@@ -31,6 +32,9 @@ interface Props { payload: RankedPayload; view: RankedView }
 export function RankedTable({ payload, view }: Props) {
   const model = useMemo(() => rankedRows(payload, view), [payload, view]);
   const [shown, setShown] = useState(ROW_LIMIT);
+  // Display state only: which partition groups are folded away.
+  const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (key: string) => setClosed((c) => { const n = new Set(c); if (!n.delete(key)) n.add(key); return n; });
   const unit = unitOf(payload);
   const labelOf = (obs: string) => payload.rounds.items.find((i) => i.obs_id === obs)?.label ?? obs;
   const all = useMemo(() => model.groups.flatMap((g) => g.rows), [model]);
@@ -86,11 +90,18 @@ export function RankedTable({ payload, view }: Props) {
     remaining -= visible.length;
     if (visible.length === 0) return [];
     const eligible = view.showDetails ? Object.values(group.eligible_count).find((n) => n !== null) : undefined;
+    const open = !closed.has(group.key);
     const header = partitioned && (
       <tr key={`g:${group.key}`}>
-        <th colSpan={columns} scope="rowgroup" style={{ fontWeight: 600, background: "var(--mb-header-bg)" }}>
-          {Object.entries(group.partition).map(([k, v]) => partitionText(k, v)).join(" · ")}
-          {eligible !== undefined && ` · ${eligible} ranked`}
+        <th colSpan={columns} scope="rowgroup" style={{ background: "var(--mb-header-bg)", padding: 0 }}>
+          <button type="button" aria-expanded={open} onClick={() => toggle(group.key)} className={chipProps(false).className}
+            style={{ background: "none", border: 0, font: "inherit", color: "inherit", textAlign: "left", boxSizing: "border-box", display: "flex", width: "100%", gap: 8, padding: "0.6em 1.1em", fontWeight: 600 }}>
+            <span aria-hidden style={{ transition: "transform .2s", transform: open ? "none" : "rotate(-90deg)" }}>▾</span>
+            <span>
+              {Object.entries(group.partition).map(([k, v]) => partitionText(k, v)).join(" · ")}
+              {eligible !== undefined && ` · ${eligible} ranked`}
+            </span>
+          </button>
         </th>
       </tr>
     );
@@ -143,7 +154,7 @@ export function RankedTable({ payload, view }: Props) {
         </tr>
       );
     });
-    return [<tbody key={group.key}>{header}{rowsOut}</tbody>];
+    return [<tbody key={group.key}>{header}{partitioned && !open ? null : rowsOut}</tbody>];
   });
 
   if (model.groups.length === 0) {
