@@ -56,6 +56,11 @@ Spec: `docs/specs/2026-11-20-card-visual-design.md`. Built on branch `feat/card-
 | O-V6 | Seat selector's All choice exists only when the card asked for the sibling cut (the remaining fields on their own); otherwise it defaults to the first seat value | owner | open |
 | O-V7 | Dark mode; Configure at phone width; narrow cards checked in a browser only at one width | eng | open |
 | O-V8 | The per-endpoint "Seat summary" benchmark table is replaced by the merged Summary; its seat-share and eligible columns are not shown (CSV export keeps them) | owner | open |
+| O-V9 | Review minors: a ranked slot with a null rank shows a dash, not "Not ranked"; the row limit and folded groups survive a new run, and folded groups still use the 100-row budget | eng | open |
+| O-V10 | Export CSV on a crossed seat cut exports only the chosen seat group, without saying so; the cut changes shape once field scopes arrive | eng | open |
+| O-V11 | The seat list, lens tabs and table tabs announce listbox and tab roles without arrow-key navigation or tab panels; the narrow Cut chip, the table chooser and the seat selector never show the changed-from-default mark | eng | open |
+| O-V12 | Tint rgb values in `formatRules.ts` duplicate the theme tokens and are outside the colour test; the last row of each table group loses its bottom rule; no test for a Summary group with no row for a party; `docs/testing.md` does not exist | eng | open |
+
 
 ### 2.2 Relationship cards
 
