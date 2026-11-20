@@ -42,6 +42,21 @@ Last reviewed: 2026-11-19.
 | O-C12 | Engine `validate_selection` only runs live (completed-seat metadata); the offline loader test covers `selection_view_from_dict`. Verify live | eng | VERIFIED live: the engine accepted the selection run (validate_selection passed) for ranking and benchmark sources |
 | O-C13 | The cohort tab has no nav item; reachable through Use as cohort or `/cohort` | owner (UI) | open |
 
+### 2.1b Card visual design (build of 2026-11-20)
+
+Spec: `docs/specs/2026-11-20-card-visual-design.md`. Built on branch `feat/card-visual-design`. The items below are what the build did not do or decided differently from the mock-ups.
+
+| ID | What | Owner | Status |
+|---|---|---|---|
+| O-V1 | Friendly question names: the options endpoint returns the id as the label, so pickers show ids. A label source (backend) is needed | eng | open |
+| O-V2 | Relationship Matrix keeps the engine's pair-per-row table with all measures; the mock-up's origin by destination grid (one measure, tinted) is not built. Decide whether the grid replaces the measures | owner | open |
+| O-V3 | Configure pickers are native grouped selects and check-box lists (groups, recalled and seat marks, reasons, disabled options); the mock-up's popover list with search is not built | owner (UI) | open |
+| O-V4 | The ranking, benchmark and relationship cards keep their own control rows (Order, Search and a menu); the shared View menu and chip system are on the grid card only | eng | open |
+| O-V5 | Make cohort rows in the margin-bucket and flip tables (a shortcut per row); the card menu item is the only entry point | eng | open |
+| O-V6 | Seat selector's All choice exists only when the card asked for the sibling cut (the remaining fields on their own); otherwise it defaults to the first seat value | owner | open |
+| O-V7 | Dark mode; Configure at phone width; narrow cards checked in a browser only at one width | eng | open |
+| O-V8 | The per-endpoint "Seat summary" benchmark table is replaced by the merged Summary; its seat-share and eligible columns are not shown (CSV export keeps them) | owner | open |
+
 ### 2.2 Relationship cards
 
 | ID | Item | Owner | Status |

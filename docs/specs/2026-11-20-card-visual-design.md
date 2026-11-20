@@ -1,6 +1,6 @@
 # Card visual design: decisions
 
-Status: mock-ups approved at the overall level on 2026-11-20. Not yet built. Logic is unchanged by this work; it restyles the cards and the Configure panel.
+Status: mock-ups approved at the overall level on 2026-11-20. Built on branch `feat/card-visual-design` (plan `docs/plans/2026-11-20-card-visual-build.md`), with the deviations listed in `docs/open-items.md` section 2.1b. Logic is unchanged by this work; it restyles the cards and the Configure panel.
 
 The mock-ups are browser pages in `docs/mockups/`:
 
