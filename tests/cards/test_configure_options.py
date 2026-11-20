@@ -121,6 +121,21 @@ def test_fields_respect_capabilities():
     assert "ac_num" not in pc and "party_zone" not in pc and "pc_num" in pc and "pc_zone" in pc
 
 
+@pytest.mark.parametrize("use", ["cut", "filter"])
+def test_fields_say_whether_they_describe_the_seat_or_the_respondent(use):
+    found = {i.value: i.scope for i in items("fields", {"family": "distribution"}, use=use)}
+    seat = {"ac_num", "pc_num", "party_zone", "incumbent_mla_party", "incumbent_mla_caste", "ac_seat_category"}
+    respondent = {"age_group", "gender", "caste", "category"}
+    assert {name: found[name] for name in seat if name in found} == {name: "seat" for name in seat if name in found}
+    assert {name: found[name] for name in respondent} == {name: "respondent" for name in respondent}
+    assert {"ac_num", "party_zone", "incumbent_mla_party"} <= set(found)  # the seat side of the check is not vacuous
+
+
+def test_only_fields_carry_a_scope():
+    assert {i.scope for i in items("scenarios", kind="any")} == {None}
+    assert {i.scope for i in items("elections", {"family": "seat_benchmark"})} == {None}
+
+
 def test_level_and_partition_and_seat_attributes():
     level = values(items("fields", {"family": "demographic_ranking"}, use="level"))
     assert "caste" in level and "ac_num" not in level and "party_zone" not in level
