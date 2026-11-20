@@ -12,8 +12,8 @@
 }
 
 .rank[data-top="true"] {
-  background: var(--mb-primary-soft);
-  color: var(--mb-ink);
+  background: color-mix(in srgb, var(--mb-gain) 16%, var(--mb-surface));
+  color: var(--mb-gain);
 }
 
 .cell {
@@ -29,10 +29,15 @@
 
 .bar {
   display: block;
-  height: 0.6em;
+  height: 1em;
   min-width: 2px;
-  border-radius: 0.3em;
-  background: var(--mb-bar);
+  border-radius: 0.25em;
+  /* A green scale, like the heat format; the top three read stronger. */
+  background: color-mix(in srgb, var(--mb-gain) 26%, var(--mb-surface));
+}
+
+.bar[data-top="true"] {
+  background: color-mix(in srgb, var(--mb-gain) 62%, var(--mb-surface));
 }
 
 .barRow {

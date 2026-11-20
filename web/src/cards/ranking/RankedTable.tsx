@@ -124,7 +124,7 @@ export function RankedTable({ payload, view }: Props) {
             <td style={cellPad}>
               {slot?.kind === "absent" ? null : (
                 <div className={styles.barRow}>
-                  <span className={styles.barTrack}>{pct !== null && <i className={styles.bar} data-bar style={{ width: `${pct}%` }} />}</span>
+                  <span className={styles.barTrack}>{pct !== null && <i className={styles.bar} data-bar data-top={slot?.kind === "ranked" && slot.rank !== null && slot.rank <= 3} style={{ width: `${pct}%` }} />}</span>
                   <span className={styles.value} aria-label={v?.label} title={v?.title}>{v?.shown ?? "—"}</span>
                 </div>
               )}

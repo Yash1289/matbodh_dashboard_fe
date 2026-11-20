@@ -6,9 +6,9 @@ export type FormatRule =
   | { kind: "heat"; within: Within }
   | { kind: "diverging"; within: Within };
 
-// Soft washes: a gain or loss tone for diverging, the primary tone for heat. The change figures carry an
+// Soft washes: a gain or loss tone for diverging, the gain green for heat (a single value is better or worse than the rest, not blue). The change figures carry an
 // arrow and a sign, so colour is never the only signal.
-const TONES = { gain: "10, 108, 65", loss: "180, 45, 45", primary: "38, 99, 235" } as const;
+const TONES = { gain: "10, 108, 65", loss: "180, 45, 45" } as const;
 const MIN_ALPHA = 0.04;
 const MAX_ALPHA = 0.16;
 
@@ -41,7 +41,7 @@ export function cellStyle(g: CellGrid, rowKey: string, colKey: string, rule: For
   if (rule.kind === "heat") {
     const min = Math.min(...all), max = Math.max(...all);
     const t = max === min ? 0.5 : (v - min) / (max - min);
-    return { background: tint("primary", t) };
+    return { background: tint("gain", t) };
   }
   const m = Math.max(...all.map(Math.abs));
   if (m === 0 || v === 0) return {};
