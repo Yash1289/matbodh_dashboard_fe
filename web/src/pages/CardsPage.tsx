@@ -1,25 +1,37 @@
 import { Button, Group, Modal, Skeleton, Stack, Text, Title } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useCards, useFamilies } from "../api/queries";
 import {
   isBenchmarkFamily, isRankingFamily, isRelationshipFamily,
   type CardConfigJson, type CardInfo, type FamilyDescriptor, type FamilyMeta, type StateContext,
 } from "../api/types";
-import { BenchmarkCard } from "../cards/benchmark/BenchmarkCard";
 import { CardShell } from "../cards/CardShell";
-import { RankingCard } from "../cards/ranking/RankingCard";
-import { RelationshipCard } from "../cards/relationship/RelationshipCard";
 import { AddCardMenu } from "../configure/AddCardMenu";
 import { Canvas } from "../canvas/Canvas";
 import { useWorkspace, workspaceStore } from "../canvas/workspaceStore";
 import { cardStore, configOfInfo, useStoredCards, type StoredCard } from "../configure/cardStore";
-import { ConfigurePanel } from "../configure/ConfigurePanel";
 import { ContextStep } from "../context/ContextStep";
 import { useDashboardContext } from "../context/urlContext";
 import { tokens } from "../theme";
 
-/** A stored config as the card components expect it: library-shaped, marked inline. */
+// Families other than the plain grid, and the Configure panel, load when first needed.
+const BenchmarkCard = lazy(() => import("../cards/benchmark/BenchmarkCard").then((m) => ({ default: m.BenchmarkCard })));
+const RankingCard = lazy(() => import("../cards/ranking/RankingCard").then((m) => ({ default: m.RankingCard })));
+const RelationshipCard = lazy(() => import("../cards/relationship/RelationshipCard").then((m) => ({ default: m.RelationshipCard })));
+const ConfigurePanel = lazy(() => import("../configure/ConfigurePanel").then((m) => ({ default: m.ConfigurePanel })));
+
+const infoCache = new WeakMap<StoredCard, { meta: FamilyMeta; info: CardInfo }>();
+
+/** A stored config as the card components expect it: library-shaped, marked inline. The same object for the same card, so an unchanged card is not redrawn. */
 function infoOfStored(stored: StoredCard, meta: FamilyMeta): CardInfo {
+  const hit = infoCache.get(stored);
+  if (hit !== undefined && hit.meta === meta) return hit.info;
+  const info = buildInfo(stored, meta);
+  infoCache.set(stored, { meta, info });
+  return info;
+}
+
+function buildInfo(stored: StoredCard, meta: FamilyMeta): CardInfo {
   const c = stored.config;
   return {
     section: "cards", scenarios: [], cuts: [[]], filters: [], caste_clubbing: false, requires: { min_level: "state" },
@@ -29,7 +41,11 @@ function infoOfStored(stored: StoredCard, meta: FamilyMeta): CardInfo {
   } as unknown as CardInfo;
 }
 
-const renderCard = (c: CardInfo, ctx: StateContext) => (isBenchmarkFamily(c.family)
+const renderCard = (c: CardInfo, ctx: StateContext) => (
+  <Suspense key={c.id} fallback={<Skeleton height={80} aria-label="Loading card…" />}>{renderFamily(c, ctx)}</Suspense>
+);
+
+const renderFamily = (c: CardInfo, ctx: StateContext) => (isBenchmarkFamily(c.family)
   ? <BenchmarkCard key={c.id} info={c} ctx={ctx} />
   : isRelationshipFamily(c.family)
     ? <RelationshipCard key={c.id} info={c} ctx={ctx} />
@@ -66,6 +82,8 @@ function CardsList({ ctx }: { ctx: StateContext }) {
       el?.focus();
     });
   };
+  const editingFamily = editing === null ? null : editing.kind === "new" ? editing.descriptor.family : editing.stored.config.family;
+  const dialogTitle = `Configure ${(families.data?.find((d) => d.family === editingFamily)?.label ?? "card").toLowerCase()}`;
   const metaOf = (family: string): FamilyMeta | undefined => families.data?.find((d) => d.family === family)?.meta;
 
   const apply = (config: CardConfigJson) => {
@@ -107,16 +125,16 @@ function CardsList({ ctx }: { ctx: StateContext }) {
         </Group>
       )}
       {body}
-      <Modal opened={editing !== null} onClose={closeEditing} title="Configure card" size="lg" centered
+      <Modal opened={editing !== null} onClose={closeEditing} title={dialogTitle} size="min(960px, 94vw)" centered
         closeOnClickOutside={false} returnFocus={false} closeButtonProps={{ "aria-label": "Close" }}>
         {editing !== null && (
-          <ConfigurePanel
+          <Suspense fallback={<Skeleton height={160} aria-label="Loading settings…" />}><ConfigurePanel
             key={editing.kind === "new" ? `new:${editing.descriptor.family}` : editing.stored.id}
             family={editing.kind === "new" ? editing.descriptor.family : editing.stored.config.family}
             initial={editing.kind === "new"
               ? { id: "draft", family: editing.descriptor.family as CardConfigJson["family"], title: editing.descriptor.label }
               : editing.stored.config}
-            ctx={ctx} onApply={apply} onCancel={closeEditing} />
+            ctx={ctx} onApply={apply} onCancel={closeEditing} /></Suspense>
         )}
       </Modal>
     </Stack>

@@ -1,6 +1,7 @@
 import { NativeSelect } from "@mantine/core";
 import { useOptions } from "../../api/queries";
 import type { BenchmarkReference } from "../../api/types";
+import { rowProps } from "./Well";
 import { asParams, optionLabel, type WidgetProps } from "./types";
 
 const toValue = (r: BenchmarkReference | undefined): string =>
@@ -17,7 +18,7 @@ const toReference = (v: string): BenchmarkReference | undefined => {
 export function ElectionPicker({ field, value, onChange, draft, ctx, error }: WidgetProps) {
   const options = useOptions(field.options?.source ?? "elections", asParams(field), draft, ctx);
   return (
-    <NativeSelect label={field.label} description={field.help} error={error}
+    <NativeSelect {...rowProps} label={field.label} description={field.help} error={error}
       value={toValue(value as BenchmarkReference | undefined)}
       onChange={(e) => onChange(toReference(e.currentTarget.value))}
       data={[{ value: "", label: "Default (the comparison round)" },

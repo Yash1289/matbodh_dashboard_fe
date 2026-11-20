@@ -1,10 +1,13 @@
-import { Alert, Button, Group, Stack, Text, Title } from "@mantine/core";
-import { useMemo, useState, type ComponentType } from "react";
+import { Alert, Button, Text } from "@mantine/core";
+import { useMemo, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { useFamilies, useOptions } from "../api/queries";
 import type { CardConfigJson, Condition, FieldDescriptor, StateContext, Widget } from "../api/types";
 import { compareGroup, evaluate, getPath, isSet, setPath, visibleFields, type ScenarioKinds } from "./conditions";
 import { normalize } from "./draft";
+import { describeDraft } from "./summary";
 import { useDraftValidation } from "./useDraftValidation";
+import styles from "./ConfigurePanel.module.css";
+import { Well } from "./widgets/Well";
 import { ChoiceField } from "./widgets/ChoiceField";
 import { CutBuilder } from "./widgets/CutBuilder";
 import { ElectionPicker } from "./widgets/ElectionPicker";
@@ -40,6 +43,7 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
   const descriptor = families.data?.find((d) => d.family === family);
   const [draft, setDraft] = useState<CardConfigJson>(initial);
   const [more, setMore] = useState(false);
+  const body = useRef<HTMLDivElement>(null);
   const scenarios = useOptions("scenarios", { kind: "any" }, draft, ctx);
   const kinds: ScenarioKinds = useMemo(
     () => Object.fromEntries((scenarios.data ?? []).map((o) => [o.value, o.recalled ? "recalled" : o.kind ?? ""])),
@@ -71,56 +75,101 @@ export function ConfigurePanel({ family, initial, ctx, onApply, onCancel }: Prop
   const canApply = validation.upToDate && validation.data?.valid === true;
   const inCompare = compareGroup(primary);
   const setCount = rest.filter((f) => isSet(getPath(normalized, f.path))).length;
+  const summary = describeDraft(normalized, ctx);
   const problems = errors.length + (validation.data?.unavailable.length ?? 0);
 
+  /** The status link: take the analyst to the first thing that blocks Apply. */
+  const goToProblem = () => {
+    const field = body.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    (field ?? body.current?.querySelector<HTMLElement>('[data-problems]'))?.scrollIntoView({ block: "center" });
+    field?.focus();
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (canApply) onApply(normalized);
+  };
+
+  const titleField = primary.find((f) => f.path === "title");
+  const SPLIT = new Set(["cut_builder", "filter_list"]);
+  const answer = primary.filter((f) => f !== titleField && !SPLIT.has(f.widget));
+  const split = primary.filter((f) => SPLIT.has(f.widget));
+  /** A field that is its own framed well (a long list, the cuts, the filters); the others are property rows. */
+  const isWell = (f: FieldDescriptor) =>
+    SPLIT.has(f.widget) || (f.multiple === true && ["choice", "scenario_picker", "metric_picker", "party_picker"].includes(f.widget));
+  const compareWell = (
+    <div key="compare" className="mb-reveal" data-testid="compare-block">
+      <Well title="Comparing two questions">
+        {inCompare.map(render)}
+        {shakti && <p className={styles.shakti}>Shakti comparison</p>}
+      </Well>
+    </div>
+  );
+  /** Wells stand alone; consecutive property rows share one "Settings" well; the comparison is drawn once, at its first field. */
+  const arrange = (fields: FieldDescriptor[], label: string) => {
+    const out: ReactNode[] = [];
+    let rows: FieldDescriptor[] = [];
+    const flush = () => {
+      if (rows.length > 0) out.push(<Well key={`${label}:${rows[0].path}`} title="Settings">{rows.map(render)}</Well>);
+      rows = [];
+    };
+    for (const f of fields) {
+      if (inCompare.includes(f)) {
+        if (f === inCompare[0]) { flush(); out.push(compareWell); }
+      } else if (isWell(f)) { flush(); out.push(render(f)); } else rows.push(f);
+    }
+    flush();
+    return out;
+  };
+
   return (
-    <Stack gap="sm">
-      <div>
-        <Title order={3}>{descriptor.label}</Title>
-        <Text size="sm" c="var(--mb-muted)">{descriptor.description}</Text>
-      </div>
-      {primary.map((f) => {
-        if (!inCompare.includes(f)) return render(f);
-        if (f !== inCompare[0]) return null; // the block is drawn once, at its first field
-        return (
-          <div key="compare" data-testid="compare-block" style={{
-            padding: "10px 14px 14px", borderRadius: 12, background: "var(--mb-primary-soft)", border: "1px solid var(--mb-soft-line)",
-          }}>
-            <Text size="xs" fw={600} c="var(--mb-ink)" mb={6}>Comparing two questions</Text>
-            <Stack gap="sm">
-              {inCompare.map(render)}
-              {shakti && <Text size="sm" fw={600}>Shakti comparison</Text>}
-            </Stack>
+    <form className={styles.panel} onSubmit={submit} noValidate>
+      <div className={styles.body} ref={body}>
+        <div>
+          <Text size="sm" c="var(--mb-muted)">{descriptor.description}</Text>
+        </div>
+        {titleField && <div className={styles.titleCard}>{render(titleField)}</div>}
+        <div className={styles.columns} data-split={split.length > 0 && answer.length > 0}>
+          <div className={styles.group} role="group" aria-labelledby="cfg-answer">
+            {split.length > 0 && <p className={styles.groupLabel} id="cfg-answer">What to show</p>}
+            {arrange(answer, "show")}
+            {shakti && inCompare.length === 0 && <p className={styles.shakti}>Shakti comparison</p>}
           </div>
-        );
-      })}
-      {shakti && inCompare.length === 0 && <Text size="sm" fw={600}>Shakti comparison</Text>}
-      {rest.length > 0 && (
-        <Group gap={8} style={{ alignSelf: "flex-start" }}>
-          <Button variant="subtle" size="xs" onClick={() => setMore((m) => !m)}>
-            {more ? "Fewer options" : "More options"}
-          </Button>
-          <span data-testid="more-count" style={{
-            fontSize: 11.5, padding: "1px 8px", borderRadius: 10, background: setCount > 0 ? "var(--mb-primary-soft)" : "var(--mb-header-bg)",
-            color: setCount > 0 ? "var(--mb-ink)" : "var(--mb-muted)",
-          }}>{setCount} set</span>
-        </Group>
-      )}
-      {more && rest.map(render)}
-      {(stray.length > 0 || (validation.data?.unavailable.length ?? 0) > 0) && (
-        <Alert color="orange" title="This card cannot run yet">
-          {stray.map((e) => <Text key={`${e.path}:${e.message}`} size="sm">{e.message}</Text>)}
-          {validation.data?.unavailable.map((u) => <Text key={u.reason} size="sm">{u.reason}</Text>)}
-        </Alert>
-      )}
-      {validation.data?.notes.map((n) => <Text key={n} size="sm" c="var(--mb-muted)">{n}</Text>)}
-      <Group justify="flex-end" align="center">
-        <Text size="xs" c="var(--mb-muted)" mr="auto" role="status">
-          {canApply ? "Ready to apply" : problems > 0 ? `${problems} thing${problems === 1 ? "" : "s"} to fix` : "Checking…"}
-        </Text>
+          {split.length > 0 && (
+            <div className={styles.group} role="group" aria-labelledby="cfg-split">
+              <p className={styles.groupLabel} id="cfg-split">How to split it</p>
+              {arrange(split, "split")}
+            </div>
+          )}
+        </div>
+        {rest.length > 0 && (
+          <section className={styles.more}>
+            <div className={styles.moreBar}>
+              <Button variant="subtle" size="xs" onClick={() => setMore((m) => !m)} aria-expanded={more}>
+                {more ? "Fewer options" : "More options"}
+              </Button>
+              <span data-testid="more-count" className={styles.moreCount} data-set={setCount > 0}>{setCount} set</span>
+            </div>
+            {more && <div className={`mb-reveal ${styles.moreGrid}`}>{arrange(rest, "more")}</div>}
+          </section>
+        )}
+        {(stray.length > 0 || (validation.data?.unavailable.length ?? 0) > 0) && (
+          <Alert color="orange" variant="light" title="This card cannot run yet" data-problems styles={{ title: { color: "var(--mb-text)" }, message: { color: "var(--mb-text)" } }}>
+            {stray.map((e) => <Text key={`${e.path}:${e.message}`} size="sm">{e.message}</Text>)}
+            {validation.data?.unavailable.map((u) => <Text key={u.reason} size="sm">{u.reason}</Text>)}
+          </Alert>
+        )}
+        {validation.data?.notes.map((n) => <Text key={n} size="sm" c="var(--mb-muted)">{n}</Text>)}
+      </div>
+      {summary !== null && <p className={styles.summary} data-testid="draft-summary">{summary}</p>}
+      <div className={styles.footer}>
+        <span className={styles.status} role="status">
+          {canApply ? "Ready to apply" : problems > 0
+            ? <button type="button" className={styles.fix} onClick={goToProblem}>{`${problems} thing${problems === 1 ? "" : "s"} to fix`}</button>
+            : "Checking…"}
+        </span>
         <Button variant="default" onClick={onCancel}>Cancel</Button>
-        <Button disabled={!canApply} onClick={() => onApply(normalized)}>Apply</Button>
-      </Group>
-    </Stack>
+        <Button type="submit" disabled={!canApply}>Apply</Button>
+      </div>
+    </form>
   );
 }

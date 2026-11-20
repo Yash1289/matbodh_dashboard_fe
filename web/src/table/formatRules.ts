@@ -1,4 +1,3 @@
-import { formatDelta, formatValue } from "../cells/format";
 import type { CellGrid, GridCell } from "./grid";
 
 type Within = "column" | "row" | "table";
@@ -47,30 +46,4 @@ export function cellStyle(g: CellGrid, rowKey: string, colKey: string, rule: For
   const m = Math.max(...all.map(Math.abs));
   if (m === 0 || v === 0) return {};
   return { background: tint(v > 0 ? "gain" : "loss", Math.abs(v) / m) };
-}
-
-const SCOPE_TEXT = { column: " (scaled within each column)", row: " (scaled within each row)", table: "" } as const;
-
-/** Legend; a min-max range is only meaningful (and shown) when scaling is across the whole table. */
-export function legend(g: CellGrid, rule: FormatRule): { label: string; range: string | null } | null {
-  if (rule.kind === "none") return null;
-  const part = partOf(rule, g);
-  const found = g.rows.flatMap((r) =>
-    g.columns.flatMap((c) => {
-      const gc = g.cells[r.key]?.[c.key];
-      const v = gc?.cell?.[part] ?? null;
-      return gc && v !== null ? [{ v, unit: gc.unit }] : [];
-    }),
-  );
-  if (found.length === 0) return null;
-  const name = rule.kind === "heat" ? "Heat on value" : part === "delta" ? "Diverging on Δ" : "Diverging on value";
-  const label = name + SCOPE_TEXT[rule.within];
-  if (rule.within !== "table") return { label, range: null };
-  if (rule.kind === "heat") {
-    const lo = found.reduce((a, b) => (b.v < a.v ? b : a));
-    const hi = found.reduce((a, b) => (b.v > a.v ? b : a));
-    return { label, range: `${formatValue(lo.v, lo.unit)} to ${formatValue(hi.v, hi.unit)}` };
-  }
-  const big = found.reduce((a, b) => (Math.abs(b.v) > Math.abs(a.v) ? b : a));
-  return { label, range: `${formatDelta(-Math.abs(big.v), big.unit)} to ${formatDelta(Math.abs(big.v), big.unit)}` };
 }

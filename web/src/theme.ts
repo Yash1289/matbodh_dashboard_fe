@@ -1,4 +1,4 @@
-import { colorsTuple, createTheme, type CSSVariablesResolver } from "@mantine/core";
+import { colorsTuple, createTheme, InputWrapper, Modal, type CSSVariablesResolver } from "@mantine/core";
 import type { Unit } from "./api/types";
 import { formatDelta } from "./cells/format";
 
@@ -29,8 +29,8 @@ export const tokens = {
   },
   font: {
     family: 'Inter, "Segoe UI", system-ui, sans-serif',
-    pageTitle: 24, cardTitle: 17, subtitle: 12, tableHeader: 12.5, headerSub: 11, rowLabel: 13,
-    composite: 16, delta: 12, subLine: 11.5, chip: 12, button: 13, nav: 13, navSection: 11, pill: 13, brand: 17,
+    pageTitle: 24, cardTitle: 17, subtitle: 12, tableHeader: 13, headerSub: 12, rowLabel: 13,
+    composite: 16, delta: 12, subLine: 12, chip: 12, button: 13, nav: 13, navSection: 12, pill: 13, brand: 17,
   },
   radius: { card: 10, pill: 8, strip: 8, chip: 14, button: 6, nav: 6 },
   /** Three elevations with different jobs, and the one focus style every control shares. */
@@ -53,6 +53,12 @@ export const theme = createTheme({
   respectReducedMotion: true,
   defaultRadius: tokens.radius.button,
   black: tokens.color.text,
+  components: {
+    // Help under a field reads at 13px in the app's muted colour (Mantine's default dimmed grey is 3.3:1 at 12px).
+    InputWrapper: InputWrapper.extend({ styles: { description: { fontSize: 13, color: "var(--mb-muted)", lineHeight: 1.4 } } }),
+    // A dialog's title is its heading, not a caption.
+    Modal: Modal.extend({ styles: { title: { fontSize: 20, fontWeight: 700, color: "var(--mb-text)", lineHeight: 1.3 } } }),
+  },
 });
 
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
@@ -77,6 +83,7 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     "--mb-accent-soft": tokens.color.accentSoft,
     // Mantine's default placeholder grey is 2:1 on white; the muted text colour reads at 5.9:1.
     "--input-placeholder-color": tokens.color.muted,
+    "--mantine-color-dimmed": tokens.color.muted,
     "--mb-gain-tint": tokens.color.gainTint,
     "--mb-loss-tint": tokens.color.lossTint,
     "--mb-ring": tokens.focusRing,

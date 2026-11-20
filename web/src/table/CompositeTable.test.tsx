@@ -65,14 +65,14 @@ describe("CompositeTable", () => {
     }
   });
 
-  it("sorts rows from the sort prop and shows a legend only with a rule", () => {
+  it("sorts rows from the sort prop and shows no legend text under the table", () => {
     const g = baseGrid();
     const valueOf = (key: string) => g.cells[key][COLUMN.key].cell?.value ?? null;
     const asc = g.rows.map((r) => r.key).filter((k) => valueOf(k) !== null).sort((a, b) => valueOf(a)! - valueOf(b)!);
     const { container } = show(["value"], { sort: sortOn(COLUMN.key, "asc"), rule: { kind: "heat", within: "column" } }, g);
     const first = [...container.querySelectorAll("tbody th")][0].textContent;
     expect(first).toContain(g.rows.find((r) => r.key === asc[0])!.label);
-    expect(screen.getByText(/Heat on value/)).toBeTruthy();
+    expect(screen.queryByText(/Heat on value/)).toBeNull();
   });
 
   it("sits in the table frame and pins every row label", () => {

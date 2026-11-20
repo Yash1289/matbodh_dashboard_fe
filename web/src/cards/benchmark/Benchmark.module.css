@@ -38,7 +38,7 @@
 }
 
 .delta {
-  font-size: max(11px, 0.88em);
+  font-size: max(10px, 0.88em);
   font-weight: 500;
 }
 
@@ -69,7 +69,7 @@
 .mb b {
   min-width: 2.4em;
   text-align: right;
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .bar {
@@ -101,7 +101,7 @@
   display: flex;
   align-items: center;
   padding: 0 10px;
-  font-weight: 620;
+  font-weight: 600;
   font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;

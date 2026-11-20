@@ -1,0 +1,159 @@
+/* The form scrolls; the footer (status, Cancel, Apply) never leaves the dialog. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Whatever the window height, the summary and footer stay in the dialog and only the form scrolls. */
+  max-height: calc(100dvh - 200px);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* Leave room for the dialog's own header and the footer, whatever the window height. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  /* A canvas the white wells sit on, like a BI tool's build pane. */
+  background: var(--mb-page);
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+  container-type: inline-size;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* Question and its comparison on the left; how to split and filter it on the right. */
+@container (min-width: 640px) {
+  .columns[data-split="true"] {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.groupLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mb-text);
+  margin: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mb-soft-line);
+}
+
+.status {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--mb-muted);
+  min-width: 0;
+}
+
+.fix {
+  font: inherit;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--mb-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fix:focus-visible {
+  outline: 2px solid var(--mb-primary);
+  outline-offset: 1px;
+}
+
+/* What the card will show, in one sentence, kept in view next to Apply. */
+.summary {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mb-primary-soft);
+  color: var(--mb-ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.titleCard {
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+  box-shadow: var(--mb-lift);
+  padding: 2px 12px;
+}
+
+.shakti {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.more {
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+  box-shadow: var(--mb-lift);
+}
+
+.moreBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  min-height: 36px;
+  background: var(--mb-header-bg);
+  border-radius: 10px;
+}
+
+.moreCount {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--mb-header-bg);
+  color: var(--mb-muted);
+  border: 1px solid var(--mb-border);
+}
+
+.moreCount[data-set="true"] {
+  background: var(--mb-primary-soft);
+  color: var(--mb-ink);
+  border-color: var(--mb-soft-line);
+}
+
+.moreGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+  border-top: 1px solid var(--mb-border);
+  background: var(--mb-page);
+  border-radius: 0 0 10px 10px;
+}
+
+@container (min-width: 640px) {
+  .moreGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}

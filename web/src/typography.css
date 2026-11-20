@@ -1,0 +1,3 @@
+/* Line breaks: headings balance their lines; running text avoids a lone last word. */
+h1, h2, h3, h4 { text-wrap: balance; }
+p, small { text-wrap: pretty; }

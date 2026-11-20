@@ -140,7 +140,7 @@ describe("CardsPage: the analyst's own cards", () => {
     mount();
     await addPartyCard();
     const dialog = await screen.findByRole("dialog");
-    expect(await within(dialog).findByRole("heading", { name: "Party vote share" })).toBeInTheDocument();
+    expect(await within(dialog).findByRole("heading", { name: "Configure party vote share" })).toBeInTheDocument();
     expect(cardStore.list(STATE)).toHaveLength(0);
     const apply = await within(dialog).findByRole("button", { name: "Apply" });
     await waitFor(() => expect(apply).toBeEnabled());

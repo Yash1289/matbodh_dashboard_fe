@@ -1,5 +1,5 @@
 import { Alert, Button, Drawer, Group, Menu, NativeSelect, SegmentedControl, Skeleton, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
-import { useMemo, useState, type ReactNode } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { CardInfo, Density, RankedPayload, RunError, StateContext } from "../../api/types";
@@ -7,7 +7,8 @@ import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
 import { CohortDialog } from "../../cohorts/CohortDialog";
-import { MethodDrawer } from "../MethodDrawer";
+import { MethodDrawer } from "../LazyMethodDrawer";
+import { methodNote } from "../notes";
 import { PopoverChip, chipStyle } from "../PopoverChip";
 import { RankedTable } from "./RankedTable";
 import { rankedToCsv } from "./rankedCsv";
@@ -42,7 +43,7 @@ const settled = (view: RankedView, p: RankedPayload): RankedView => {
 };
 
 /** One ranking card: runs the engine for its config (one job per round in a trend), then shows the ranked table. */
-export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
+function RankingCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
   const ref = toCardRef(info);
   const plan = useCardPlan(ref, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
@@ -81,12 +82,6 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
       <Stack gap="xs">
         {failed.length > 0 && <Alert color="yellow" p="xs">{`Some parts failed: ${failed.join(", ")}`}</Alert>}
         <RankedTable payload={run.current} view={view} />
-        <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-footer">
-          {[coverageNote(run.current.rounds),
-            ...run.current.not_asked.map((n) => `Not asked in ${n.rounds.join(", ")}`),
-            `Method: rules ${run.current.rules_version} · engine ${run.current.engine_version} · metadata r${run.current.metadata_revision}`,
-          ].join(" · ")}
-        </Text>
       </Stack>
     );
   } else if (status?.state === "failed") {
@@ -174,8 +169,12 @@ export function RankingCard({ info, ctx }: { info: CardInfo; ctx: StateContext }
       <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} card={ref} kind="ranking" ctx={ctx}
         reference={null} hasReference={false} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
-        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
+        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}}
+          notes={shown === null ? [] : [coverageNote(shown.rounds), ...shown.not_asked.map((n) => `Not asked in ${n.rounds.join(", ")}`), methodNote(shown)]} />
       </Drawer>
     </div>
   );
 }
+
+/** Skipped when its card and context are unchanged, so one card's edit or move does not redraw every table. */
+export const RankingCard = memo(RankingCardBody);

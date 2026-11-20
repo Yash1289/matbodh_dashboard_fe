@@ -21,7 +21,7 @@ export function cellDeltaTitle(cell: Cell | null, dTitle: string): string {
 export function Delta({ delta, unit, title }: { delta: number | null; unit: Unit; title?: string }) {
   const tone = deltaTone(delta, unit);
   return (
-    <span title={title} data-tone={tone} style={{ fontSize: "max(11px, .88em)", fontWeight: 600, color: TONE_COLOUR[tone] }}>
+    <span title={title} data-tone={tone} style={{ fontSize: "max(10px, .88em)", fontWeight: 600, color: TONE_COLOUR[tone] }}>
       {formatDelta(delta, unit)}
     </span>
   );
@@ -54,7 +54,7 @@ export function CellFrame({ value, delta, sub }: { value: ReactNode; delta: Reac
         {delta}
       </div>
       {sub.length > 0 && (
-        <div data-row="sub" style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: "max(11px, .92em)", color: "var(--mb-muted)" }}>
+        <div data-row="sub" style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: "max(10px, .92em)", color: "var(--mb-muted)" }}>
           {sub}
         </div>
       )}

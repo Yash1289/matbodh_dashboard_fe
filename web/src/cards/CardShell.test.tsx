@@ -66,16 +66,22 @@ describe("CardShell", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
-  it("footer shows per-round coverage and not-asked notes", async () => {
+  it("the method drawer, not the card, shows per-round coverage and not-asked notes", async () => {
     const p = PAYLOADS.distributionStandalone();
     p.not_asked = [{ part: "grid", rounds: ["2027 VS CAPI R1"] }];
     p.coverage = [{ job: "grid", part: "grid", coverage: { excluded_by_observation: { R2: [5, 9] } } }];
     stubCardApi({ payloads: [p] });
     mount(p);
-    const footer = await screen.findByTestId("card-footer");
-    expect(footer).toHaveTextContent("2027 VS CAPI R2: 403 seats · Normal");
-    expect(footer).toHaveTextContent("Not asked in 2027 VS CAPI R1");
-    expect(footer).toHaveTextContent("2 seats excluded in 2027 VS CAPI R2");
+    await screen.findByRole("table");
+    expect(screen.queryByTestId("card-footer")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "How this was calculated" }));
+    const drawer = await screen.findByRole("dialog");
+    const notes = (await within(drawer).findAllByTestId("method-note")).map((n) => n.textContent).join(" | ");
+    expect(notes).toContain("2027 VS CAPI R2: 403 seats · Normal");
+    expect(notes).toContain("Not asked in 2027 VS CAPI R1");
+    expect(notes).toContain("2 seats excluded in 2027 VS CAPI R2");
+    expect(notes).toMatch(/Method: rules .* engine .* metadata r.* alliances e/);
   });
 
   it("subtitle uses series-qualified round names, bare labels only as sub-headers", async () => {
@@ -101,7 +107,8 @@ describe("CardShell", () => {
     stubCardApi({ payloads: [p] });
     mount(p);
     await screen.findByRole("table");
-    await userEvent.click(screen.getByRole("button", { name: /How this was calculated/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "How this was calculated" }));
     const drawer = await screen.findByRole("dialog");
     await waitFor(() => expect(within(drawer).getByText("Contract")).toBeInTheDocument());
     expect(within(drawer).getByText(/Rounds/)).toBeInTheDocument();

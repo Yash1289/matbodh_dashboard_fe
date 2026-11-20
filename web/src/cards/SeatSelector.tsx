@@ -32,7 +32,7 @@ export function SeatSelector({ field, values, hasAll, value, onChange }: Props) 
     <div role="group" aria-label={name} style={{
       display: "inline-flex", alignItems: "center", gap: 4, height: 32, padding: "0 8px 0 12px", whiteSpace: "nowrap",
       background: "var(--mb-primary-soft)", border: "1px solid var(--mb-soft-line)", borderRadius: 16,
-      color: "var(--mb-ink)", fontSize: 12.5, fontWeight: 600,
+      color: "var(--mb-ink)", fontSize: 13, fontWeight: 600,
     }}>
       <Popover position="bottom-start" shadow="md" withinPortal trapFocus returnFocus transitionProps={{ duration: 0 }}
         onClose={() => setQuery("")}>

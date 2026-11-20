@@ -6,7 +6,7 @@
   height: 1.9em;
   padding: 0 0.4em;
   border-radius: 0.6em;
-  font-weight: 650;
+  font-weight: 700;
   background: var(--mb-header-bg);
   color: var(--mb-muted);
 }
@@ -24,7 +24,7 @@
 }
 
 .value {
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .bar {
@@ -50,7 +50,7 @@
 }
 
 .move {
-  font-size: max(11px, 0.88em);
+  font-size: max(10px, 0.88em);
   font-weight: 600;
   color: var(--mb-muted);
 }

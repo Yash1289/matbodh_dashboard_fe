@@ -507,3 +507,5 @@ export interface ValidateResponse {
   rounds: RoundItem[];
 }
 export interface FilterValues { kind: "filter_values"; field: string; values: string[] }
+/** A filter's values from a lookup; `engine` means this field needs the engine run instead. */
+export interface DistinctValues extends FilterValues { source: "responses" | "engine" }

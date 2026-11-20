@@ -112,10 +112,13 @@ describe("BenchmarkCard", () => {
     expect(screen.queryByRole("table")).toBeNull();
   });
 
-  it("explains how Other is built in the footer", async () => {
+  it("explains how Other is built in the method drawer, not under the card", async () => {
     mount(BENCHMARK.surveyVs2022());
     await screen.findByRole("table", { name: /Comparison/ });
-    expect(screen.getByTestId("card-footer")).toHaveTextContent(/Other: every party outside the major list, and NOTA/);
+    expect(screen.queryByTestId("card-footer")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText(/Other: every party outside the major list, and NOTA/)).toBeInTheDocument();
   });
 
   it("clears the old subtitle, chips and method text while a new run is in progress", async () => {

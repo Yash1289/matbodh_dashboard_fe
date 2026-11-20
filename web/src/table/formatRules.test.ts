@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Cell } from "../api/types";
 import type { CellGrid } from "./grid";
-import { cellStyle, legend, tint } from "./formatRules";
+import { cellStyle, tint } from "./formatRules";
 
 const c = (value: number | null, delta: number | null): Cell => ({ value, delta, trend: [], secondary: null, flags: [], base: null });
 const grid = (vals: [number | null, number | null][]): CellGrid => ({
@@ -45,23 +45,12 @@ describe("formatRules", () => {
     const rule = { kind: "heat", within: "column" } as const;
     expect(cellStyle(g, "r0", "a", rule)).toEqual({});
     expect(alpha(cellStyle(g, "r2", "a", rule))).toBeGreaterThan(alpha(cellStyle(g, "r1", "a", rule)));
-    expect(legend(g, rule)).toEqual({ label: "Heat on value (scaled within each column)", range: null });
-  });
-
-  it("legend states its scope and gives a range only for the whole table", () => {
-    const g = grid([[10, -3], [20, 4]]);
-    expect(legend(g, { kind: "heat", within: "row" })).toEqual({ label: "Heat on value (scaled within each row)", range: null });
-    expect(legend(g, { kind: "heat", within: "table" })).toEqual({ label: "Heat on value", range: "10% to 20%" });
-    expect(legend(g, { kind: "diverging", within: "column" })).toEqual({ label: "Diverging on Δ (scaled within each column)", range: null });
-    expect(legend(g, { kind: "diverging", within: "table" })).toEqual({ label: "Diverging on Δ", range: "▼4% to ▲4%" });
   });
 
   it("none and null delta are unstyled", () => {
     const g = grid([[1, null]]);
     expect(cellStyle(g, "r0", "a", { kind: "none" })).toEqual({});
     expect(cellStyle(g, "r0", "a", { kind: "diverging", within: "table" })).toEqual({});
-    expect(legend(g, { kind: "none" })).toBeNull();
-    expect(legend(g, { kind: "diverging", within: "table" })).toBeNull();
   });
 
   it("row scope uses only that row", () => {

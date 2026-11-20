@@ -1,13 +1,14 @@
 import { Button, Drawer, Group, Menu, Skeleton, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useMemo, useState, type ReactNode } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { BenchmarkPayload, BenchmarkReference, BenchmarkTable, CardInfo, RunError, StateContext } from "../../api/types";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
-import { MethodDrawer } from "../MethodDrawer";
+import { MethodDrawer } from "../LazyMethodDrawer";
+import { methodNote } from "../notes";
 import { PopoverChip, chipProps, chipStyle } from "../PopoverChip";
 import { sizeClass } from "../sizeClass";
 import { TableChooser } from "../TableChooser";
@@ -35,7 +36,7 @@ const Progress = ({ children }: { children: ReactNode }) => (
  * The table chooser and search are display-only. What the survey is compared with is part of the card's
  * config (set in Configure), so no control on the card re-runs the engine.
  */
-export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
+function BenchmarkCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
   // The reference is in the card's own config; requests send none (a library card's config carries it too).
   const reference: BenchmarkReference | null = null;
   const ref = toCardRef(info);
@@ -75,12 +76,6 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
     body = (
       <Stack gap="xs">
         <BenchmarkTables payload={run.current} view={view} />
-        <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-footer">
-          {[coverageNote(run.current.rounds),
-            `${run.current.other_label}: every party outside the major list, and NOTA`,
-            `Method: rules ${run.current.rules_version} · engine ${run.current.engine_version} · metadata r${run.current.metadata_revision}`,
-          ].join(" · ")}
-        </Text>
       </Stack>
     );
   } else if (status?.state === "failed") {
@@ -150,8 +145,12 @@ export function BenchmarkCard({ info, ctx }: { info: CardInfo; ctx: StateContext
       <CohortDialog opened={cohortOpen} onClose={() => setCohortOpen(false)} card={ref} kind="benchmark" ctx={ctx}
         reference={reference} hasReference={effective.kind !== "none"} cardTitle={info.title} />
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
-        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
+        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}}
+          notes={shown === null ? [] : [coverageNote(shown.rounds), `${shown.other_label}: every party outside the major list, and NOTA`, methodNote(shown)]} />
       </Drawer>
     </div>
   );
 }
+
+/** Skipped when its card and context are unchanged, so one card's edit or move does not redraw every table. */
+export const BenchmarkCard = memo(BenchmarkCardBody);

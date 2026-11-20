@@ -249,7 +249,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
                     <i className={styles.swatch} data-bucket={x.bucket} />{bucketLabel(x.bucket)}
                     <small className={styles.sub}>{flipText(x.bucket, t, r)}</small>
                   </th>
-                  <td className={styles.num} style={{ fontWeight: 620 }}>{x.seats}</td>
+                  <td className={styles.num} style={{ fontWeight: 600 }}>{x.seats}</td>
                   <td className={`${styles.num} ${styles.muted}`}>{x.eligible_seats}</td>
                 </tr>
               ))}

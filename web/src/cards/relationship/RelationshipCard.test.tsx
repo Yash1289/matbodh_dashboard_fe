@@ -64,7 +64,9 @@ describe("RelationshipCard", () => {
     await userEvent.click(screen.getByRole("button", { name: /Round/ }));
     const chooser = await screen.findByLabelText("Round");
     expect(within(chooser).getAllByRole("option").map((o) => o.textContent)).toEqual(["R2"]);
-    expect(screen.getByTestId("card-footer")).toHaveTextContent(/Not asked in 2027 VS CAPI R1/);
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText(/Not asked in 2027 VS CAPI R1/)).toBeInTheDocument();
   });
 
   it("says so when the chosen value pair does not exist", async () => {
@@ -125,19 +127,23 @@ describe("RelationshipCard", () => {
     expect(screen.queryByRole("table")).toBeNull();
   });
 
-  it("the footer says what the numbers are", async () => {
+  it("the method drawer says what the numbers are, and the card carries no footer", async () => {
     mount(RELATIONSHIP.transition());
     await screen.findByRole("table", { name: /Flow summary/ });
-    const footer = screen.getByTestId("card-footer");
-    expect(footer).toHaveTextContent("Recalled vote, not longitudinal linkage");
-    expect(footer).toHaveTextContent("Shares include respondents who chose smaller parties");
-    expect(footer).toHaveTextContent(/Method: rules/);
+    expect(screen.queryByTestId("card-footer")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText("Recalled vote, not longitudinal linkage")).toBeInTheDocument();
+    expect(screen.getByText("Shares include respondents who chose smaller parties")).toBeInTheDocument();
+    expect(screen.getByText(/Method: rules/)).toBeInTheDocument();
   });
 
   it("a current-survey origin says same-row answers, not a panel", async () => {
     mount({ ...RELATIONSHIP.transition(), origin: "mla_choice_party" });
     await screen.findByRole("table", { name: /Flow summary/ });
-    expect(screen.getByTestId("card-footer")).toHaveTextContent("Same-row answers, not a panel");
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText("Same-row answers, not a panel")).toBeInTheDocument();
   });
 
   it("the method drawer states a recalled-status inclusion", async () => {
@@ -154,7 +160,9 @@ describe("RelationshipCard", () => {
     p.cells = p.cells.filter((c) => c.round === "R2");
     mount(p);
     await screen.findByRole("table", { name: /Flow summary/ });
-    expect(screen.getByTestId("card-footer")).toHaveTextContent(/No result in 2027 VS CAPI R1/);
+    await userEvent.click(screen.getByRole("button", { name: "⋯" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "How this was calculated" }));
+    expect(await screen.findByText(/No result in 2027 VS CAPI R1/)).toBeInTheDocument();
   });
 
   it("the method drawer names the joint weight and the alliance mapping version", async () => {

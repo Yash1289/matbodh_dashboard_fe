@@ -1,13 +1,14 @@
 import { Button, Drawer, Group, Menu, NativeSelect, Skeleton, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useMemo, useState, type ReactNode } from "react";
+import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { CardInfo, RelationshipPayload, RelationshipTable, RunError, StateContext } from "../../api/types";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
-import { MethodDrawer } from "../MethodDrawer";
+import { MethodDrawer } from "../LazyMethodDrawer";
+import { methodNote } from "../notes";
 import { PopoverChip, chipStyle } from "../PopoverChip";
 import { sizeClass } from "../sizeClass";
 import { TableChooser } from "../TableChooser";
@@ -66,7 +67,7 @@ function settled(chosen: Partial<RelationshipView>, p: RelationshipPayload): Rel
 }
 
 /** One relationship card: one engine run, shown as a table the user chooses; every chip is display-only. */
-export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
+function RelationshipCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext }) {
   const ref = toCardRef(info);
   const plan = useCardPlan(ref, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
@@ -100,15 +101,6 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
         {view.table === "matrix"
           ? <RelationshipMatrixTable payload={p} view={view} />
           : <RelationshipSummaryTable payload={p} view={view} />}
-        <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-footer">
-          {[coverageNote(p.rounds),
-            ...p.not_asked.map((n) => `Not asked in ${n.rounds.join(", ")}`),
-            ...noResult(p),
-            isRecalled(p.origin) ? "Recalled vote, not longitudinal linkage" : "Same-row answers, not a panel",
-            "Shares include respondents who chose smaller parties",
-            `Method: rules ${p.rules_version} · engine ${p.engine_version} · metadata r${p.metadata_revision}`,
-          ].join(" · ")}
-        </Text>
       </Stack>
     );
   } else if (status?.state === "failed") {
@@ -196,8 +188,14 @@ export function RelationshipCard({ info, ctx }: { info: CardInfo; ctx: StateCont
         {body}
       </Stack>
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
-        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
+        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}}
+          notes={shown === null ? [] : [coverageNote(shown.rounds), ...shown.not_asked.map((n) => `Not asked in ${n.rounds.join(", ")}`), ...noResult(shown),
+            isRecalled(shown.origin) ? "Recalled vote, not longitudinal linkage" : "Same-row answers, not a panel",
+            "Shares include respondents who chose smaller parties", methodNote(shown)]} />
       </Drawer>
     </div>
   );
 }
+
+/** Skipped when its card and context are unchanged, so one card's edit or move does not redraw every table. */
+export const RelationshipCard = memo(RelationshipCardBody);

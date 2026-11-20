@@ -1,4 +1,4 @@
-/* One frame for every card table: the text scales with the card's own width, and the first column stays put. */
+/* One frame for every card table: the text scales with the card's own width (10px in a narrow card, 13px from about 700px), and the first column stays put. */
 .scroller {
   container-type: inline-size;
   overflow-x: auto;
@@ -11,7 +11,7 @@
   min-width: var(--table-min, 100%);
   border-collapse: separate;
   border-spacing: 0;
-  font-size: clamp(12px, 10px + 0.35cqw, 13px);
+  font-size: clamp(10px, 7.75px + 0.75cqw, 13px);
 }
 
 .scroller :is(th, td) {
@@ -56,5 +56,5 @@
   box-shadow: var(--mb-edge);
 }
 
-/* Notes under a value never go below 11px, whatever the table's own size. */
-.scroller small { font-size: max(11px, 0.8em); }
+/* Notes under a value never go below the table's floor, whatever the table's own size. */
+.scroller small { font-size: max(10px, 0.8em); }

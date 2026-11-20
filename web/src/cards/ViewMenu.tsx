@@ -23,7 +23,7 @@ export interface ViewAction {
 
 const badge = {
   minWidth: 18, height: 18, padding: "0 5px", borderRadius: 9, marginLeft: 6, display: "inline-grid", placeItems: "center",
-  background: "var(--mb-border)", color: "var(--mb-muted)", fontSize: 11,
+  background: "var(--mb-border)", color: "var(--mb-muted)", fontSize: 12,
 } as const;
 
 /** The View chip: the settings behind it with their current values, and the card's actions. */

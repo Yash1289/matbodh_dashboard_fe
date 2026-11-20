@@ -6,15 +6,19 @@ interface Props {
   payload: CardPayload | null;
   plan: PlanResponse | null;
   errors: Record<string, RunError>;
+  /** Coverage, caveats and the method line that used to sit under each card. */
+  notes?: string[];
 }
 
 /** Read-only method detail; the only place fingerprints appear. */
-export function MethodDrawer({ payload, plan, errors }: Props) {
+export function MethodDrawer({ payload, plan, errors, notes = [] }: Props) {
   const rounds = payload?.rounds.items ?? plan?.rounds ?? [];
   const modes = Object.entries(plan?.coverage_mode ?? {});
   const errs = Object.entries(errors);
   return (
     <Stack gap="sm">
+      {notes.length > 0 && <Title order={3}>Notes</Title>}
+      {notes.map((n) => <Text key={n} size="sm" data-testid="method-note">{n}</Text>)}
       <Title order={3}>Rounds</Title>
       {rounds.length === 0 && <Text size="sm">No result yet</Text>}
       {rounds.map((r) => (

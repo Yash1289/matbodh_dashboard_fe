@@ -1,0 +1,209 @@
+/* Configure's building blocks: framed wells with a header bar, property rows, option grids and chip rows. */
+.well {
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+  box-shadow: var(--mb-lift);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 36px;
+  background: var(--mb-header-bg);
+  border-bottom: 1px solid var(--mb-border);
+  border-radius: 10px 10px 0 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mb-text);
+}
+
+.badge {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--mb-primary-soft);
+  color: var(--mb-ink);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: 0;
+  padding: 8px 12px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--mb-muted);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+
+/* A property row: label at the left, control at the right, its note under the control. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(96px, 150px) minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--mb-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rowLabel {
+  grid-column: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mb-text);
+}
+
+.rowControl {
+  grid-column: 2;
+}
+
+.rowNote {
+  grid-column: 2;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+@container (max-width: 420px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .rowLabel, .rowControl, .rowNote { grid-column: 1; }
+}
+
+/* Many choices: a compact grid of selectable rows that scrolls inside its well. */
+.search {
+  margin-bottom: 2px;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.optionsTall {
+  max-height: 340px;
+}
+
+.group {
+  grid-column: 1 / -1;
+  margin: 8px 0 2px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--mb-soft-line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mb-muted);
+}
+
+.group:first-child {
+  margin-top: 0;
+}
+
+.option {
+  padding: 4px 6px;
+  border-radius: 6px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+.option:hover {
+  background: var(--mb-header-bg);
+}
+
+.option[data-selected="true"] {
+  background: var(--mb-primary-soft);
+}
+
+.none {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mb-muted);
+}
+
+/* One cut or filter: a framed row in the well. */
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--mb-chip-border);
+  border-radius: 8px;
+  background: var(--mb-surface);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.itemName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mb-ink);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--mb-ink);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mantine-color-red-7);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--mb-primary-soft);
+  border: 1px solid var(--mb-soft-line);
+  color: var(--mb-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.toggle {
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--mb-border);
+}
+
+.toggle:last-child {
+  border-bottom: 0;
+}

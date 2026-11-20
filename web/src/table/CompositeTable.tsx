@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import type { CellPart, RoundsBlock } from "../api/types";
 import { CompositeCell } from "../cells/CompositeCell";
 import { PipeCell } from "../cells/PipeCell";
-import { cellStyle, legend, type FormatRule } from "./formatRules";
+import { cellStyle, type FormatRule } from "./formatRules";
 import { PIN, TableFrame } from "./TableFrame";
 import { sortRows, type CellGrid, type Header, type SortSpec } from "./grid";
 
@@ -40,7 +40,6 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
   const apiOrder = useMemo(() => grid.rows.map((r) => r.key), [grid.rows]);
   const ordered = useMemo(() => sortRows(grid, sort, apiOrder), [grid, sort, apiOrder]);
   const anchor = rounds.items.find((r) => r.obs_id === rounds.anchor)?.base_name ?? rounds.anchor;
-  const key = legend(grid, rule);
 
   const columns = useMemo(
     () => [
@@ -63,7 +62,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
               <Swatch colour={c.colour} />
               {c.label}
               {sort?.column === c.key && sort.part === "value" ? (sort.dir === "desc" ? " ↓" : " ↑") : ""}
-              {c.sub && <span style={{ display: "block", fontSize: "max(11px, .85em)", fontWeight: 400 }}>{c.sub}</span>}
+              {c.sub && <span style={{ display: "block", fontSize: "max(10px, .85em)", fontWeight: 400 }}>{c.sub}</span>}
               {c.note && <small style={{ display: "block", fontWeight: 400 }}>{c.note}</small>}
             </button>
           ),
@@ -132,7 +131,6 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
           <button type="button" onClick={() => setShown(shown + ROW_LIMIT)}>Show {ROW_LIMIT} more</button>
         </p>
       )}
-      {key && <p>{key.range === null ? key.label : `${key.label}: ${key.range}`}</p>}
     </div>
   );
 }

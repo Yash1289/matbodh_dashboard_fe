@@ -67,6 +67,40 @@ describe("ConfigurePanel", () => {
     expect(screen.queryByRole("combobox", { name: "Compared with" })).not.toBeInTheDocument(); // compare only
   });
 
+  it("Enter in the title applies a valid card, and does nothing while the card cannot run", async () => {
+    stub();
+    const { onApply } = mount();
+    const title = await screen.findByRole("textbox", { name: "Title" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Apply" })).toBeEnabled());
+    await userEvent.type(title, "{Enter}");
+    expect(onApply).toHaveBeenCalledTimes(1);
+  });
+
+  it("Enter does not apply while validation reports a problem", async () => {
+    stub(() => ok({ valid: false, errors: [{ path: "scenarios", message: "Choose a question" }] }));
+    const { onApply } = mount();
+    const title = await screen.findByRole("textbox", { name: "Title" });
+    await screen.findByRole("button", { name: "1 thing to fix" });
+    await userEvent.type(title, "{Enter}");
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it("the status names what to fix and takes you to the first field with a problem", async () => {
+    stub(() => ok({ valid: false, errors: [{ path: "title", message: "Give the card a title" }] }));
+    mount();
+    await userEvent.click(await screen.findByRole("button", { name: "1 thing to fix" }));
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveFocus();
+  });
+
+  it("keeps one sentence of what the card will show next to Apply, and updates it as questions are chosen", async () => {
+    stub();
+    mount();
+    const none = await screen.findByRole("checkbox", { name: "vs_voting_intention" });
+    expect(screen.queryByTestId("draft-summary")).toBeNull(); // nothing chosen yet: nothing claimed
+    await userEvent.click(none);
+    expect(await screen.findByTestId("draft-summary")).toHaveTextContent("Shows vs_voting_intention in R2");
+  });
+
   it("More options reveals the rest", async () => {
     stub();
     mount();

@@ -91,11 +91,11 @@ test("the cards journey", async ({ page }) => {
   await expect(dist.locator("tbody td").first()).toContainText(SIGNED);
   await dist.getByRole("button", { name: /Transpose/ }).click();
 
-  // Diverging format shows its legend.
+  // Diverging format colours the cells; no legend text is added to the card.
   await dist.getByRole("button", { name: /^Format/ }).click();
   await page.getByRole("dialog").getByText("Diverging on value", { exact: true }).click();
   await page.keyboard.press("Escape");
-  await expect(dist.getByText(/Diverging on value/)).toBeVisible();
+  await expect(dist.getByText(/Diverging on value/)).toHaveCount(0);
 
   // Switching the cut changes the rows, again without a request.
   const rowsBefore = await dist.locator("tbody th").allInnerTexts();
@@ -163,14 +163,14 @@ test("the ranking cards journey", async ({ page }) => {
   expect(calls.length).toBe(requestsAfterLoad); // no request after any control change
 });
 
-test("table text stays readable on a narrow window", async ({ page }) => {
+test("table text scales down to 10px in a narrow card and never below", async ({ page }) => {
   await serve(page);
   await seed(page, PAYLOADS);
   await page.setViewportSize({ width: 820, height: 800 });
   await page.goto(CONTEXT);
   await expect(page.getByRole("table")).toHaveCount(3);
   const sizes = await page.locator("tbody td, thead th").evaluateAll((cells) => cells.map((c) => parseFloat(getComputedStyle(c).fontSize)));
-  expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
+  expect(Math.min(...sizes)).toBeGreaterThanOrEqual(10);
   const notes = await page.locator("tbody small").evaluateAll((cells) => cells.map((c) => parseFloat(getComputedStyle(c).fontSize)));
-  for (const size of notes) expect(size).toBeGreaterThanOrEqual(11);
+  for (const size of notes) expect(size).toBeGreaterThanOrEqual(10);
 });

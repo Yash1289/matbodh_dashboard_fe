@@ -1,16 +1,16 @@
 import { Alert, Button, Drawer, Group, Skeleton, Stack, Text, Title } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun, useFieldScopes } from "../api/queries";
 import { toCardRef } from "../api/types";
 import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
 import { tokens } from "../theme";
-import { CardFooter } from "./CardFooter";
 import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
 import { payloadToGrid } from "./grid/payloadToGrid";
-import { MethodDrawer } from "./MethodDrawer";
+import { MethodDrawer } from "./LazyMethodDrawer";
+import { gridNotes } from "./notes";
 import { SeatSelector } from "./SeatSelector";
 import { applySeat, resolveSeat, seatChoices, seatSplit } from "./seatScope";
 import { sizeClass } from "./sizeClass";
@@ -48,7 +48,7 @@ const Progress = ({ children }: { children: ReactNode }) => (
 );
 
 /** One card: runs the engine for its config, then hands the payload to its family's body. */
-export function CardShell({ info, ctx, presentationRules, order, colors }: Props) {
+function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const cardRef = toCardRef(info);
   const plan = useCardPlan(cardRef, ctx);
   const blocked = plan.data !== undefined && plan.data.unavailable.length > 0;
@@ -113,7 +113,6 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
       <Stack gap="xs">
         {failed.length > 0 && <Alert color="yellow" p="xs">{`Some parts failed: ${failed.join(", ")}`}</Alert>}
         {bodyOf(run.current, view)}
-        <CardFooter payload={run.current} grid={grid} onMethod={() => setMethodOpen(true)} />
       </Stack>
     );
   } else if (run.current) {
@@ -182,8 +181,11 @@ export function CardShell({ info, ctx, presentationRules, order, colors }: Props
         {body}
       </Stack>
       <Drawer opened={methodOpen} onClose={() => setMethodOpen(false)} title="How this was calculated" position="right">
-        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} />
+        <MethodDrawer payload={shown} plan={plan.data ?? null} errors={status?.errors ?? {}} notes={shown !== null && grid !== null ? gridNotes(shown, grid) : []} />
       </Drawer>
     </div>
   );
 }
+
+/** Skipped when its card and context are unchanged, so one card's edit or move does not redraw every table. */
+export const CardShell = memo(CardShellBody);

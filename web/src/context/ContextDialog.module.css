@@ -12,7 +12,7 @@
 }
 
 /* The state leads; the qualifiers read as detail. */
-.pillState { font-weight: 650; }
+.pillState { font-weight: 700; }
 .pillSep { color: var(--mb-muted); }
 
 .trigger { flex-shrink: 0; }
@@ -229,7 +229,7 @@
   padding: 0;
   margin-bottom: 8px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .round {
@@ -274,7 +274,7 @@
   border-radius: 5px;
   background: var(--mb-primary-soft);
   color: var(--mb-text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 

@@ -1,5 +1,5 @@
 import type {
-  BenchmarkReference, CardConfigJson, CardRef, OptionItem, PlanResponse, RunStatus, StateContext, ValidateResponse,
+  BenchmarkReference, CardConfigJson, CardMode, CardRef, DistinctValues, OptionItem, PlanResponse, RunStatus, StateContext, ValidateResponse,
 } from "./types";
 
 const BASE = "/api";
@@ -68,6 +68,12 @@ export const startValues = async (
   (await apiPost<{ run_id: string }>("/configure/values", {
     field, scenario, context: ctx, pipe_rounds: pipeRounds,
   })).run_id;
+
+/** The values of one respondent field from a lookup (reporting mapping, else distinct answers), for the rounds the card's mode reads. */
+export const fetchDistinctValues = (
+  field: string, mode: CardMode, ctx: StateContext, pipeRounds: number | null,
+): Promise<DistinctValues> =>
+  apiPost<DistinctValues>("/configure/values/distinct", { field, mode, context: ctx, pipe_rounds: pipeRounds });
 
 export const fetchOptions = (
   source: string, params: Record<string, string>, draft: CardConfigJson, ctx: StateContext,
