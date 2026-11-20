@@ -22,7 +22,7 @@ afterEach(() => vi.unstubAllGlobals());
 const show = async (cuts: string[][]) => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(OPTIONS), { status: 200 })));
   renderWithProviders(<CutBuilder field={FIELD} value={cuts} onChange={vi.fn()} draft={DRAFT} ctx={CTX} />);
-  await screen.findByRole("option", { name: "party_zone (seat)" }); // the field list has arrived
+  await screen.findAllByRole("option", { name: "party_zone (seat)" }); // the field list has arrived
 };
 
 describe("CutBuilder", () => {
