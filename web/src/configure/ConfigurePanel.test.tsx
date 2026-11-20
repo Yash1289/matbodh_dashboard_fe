@@ -151,4 +151,40 @@ describe("ConfigurePanel", () => {
     const applied = onApply.mock.calls[0][0] as CardConfigJson;
     expect(applied.relationship?.include_recalled).toEqual({ origin: ["Did Not Vote"] });
   });
+
+  it("groups the compare fields in one tinted block, only when comparing", async () => {
+    stub();
+    mount({ ...BASE, comparison: { mode: "compare" } });
+    const block = await screen.findByTestId("compare-block");
+    expect(block).toHaveTextContent("Comparing two questions");
+    expect(within(block).getByText("Question")).toBeInTheDocument();
+    expect(within(block).getByText("Compared with")).toBeInTheDocument();
+  });
+
+  it("has no compare block while standalone", async () => {
+    stub();
+    mount();
+    await screen.findByRole("button", { name: "Apply" });
+    expect(screen.queryByTestId("compare-block")).toBeNull();
+  });
+
+  it("says how many More options are set, beside the button", async () => {
+    stub();
+    mount({ ...BASE, display_parties: ["NDA"] });
+    expect(await screen.findByTestId("more-count")).toHaveTextContent("1 set");
+  });
+
+  it("starts at 0 set, and the footer says Ready to apply when the card is valid", async () => {
+    stub();
+    mount();
+    expect(await screen.findByTestId("more-count")).toHaveTextContent("0 set");
+    expect(await screen.findByText("Ready to apply")).toBeInTheDocument();
+  });
+
+  it("counts what is wrong in the footer and keeps Apply off", async () => {
+    stub(() => ok({ valid: false, errors: [{ path: "title", message: "Enter a title" }] }));
+    mount();
+    expect(await screen.findByText("1 thing to fix")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+  });
 });
