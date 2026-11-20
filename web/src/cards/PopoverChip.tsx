@@ -1,5 +1,5 @@
 import { Popover, UnstyledButton } from "@mantine/core";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { tokens } from "../theme";
 import styles from "./chip.module.css";
 
@@ -26,13 +26,18 @@ export const chipProps = (selected: boolean) => ({
  * A chip that opens its controls in a popover. Focus moves into the popover on open and
  * returns to the chip on close, so Enter opens it and Escape closes it from the keyboard.
  */
-export function PopoverChip({ label, selected, children }: { label: ReactNode; selected: boolean; children: ReactNode }) {
+export function PopoverChip({ label, selected, children }: {
+  label: ReactNode; selected: boolean;
+  /** The controls; a function gets `close` so an action can dismiss the popover. */
+  children: ReactNode | ((close: () => void) => ReactNode);
+}) {
+  const [opened, setOpened] = useState(false);
   return (
-    <Popover position="bottom-start" shadow="md" withinPortal trapFocus returnFocus transitionProps={{ duration: 0 }}>
+    <Popover opened={opened} onChange={setOpened} position="bottom-start" shadow="md" withinPortal trapFocus returnFocus transitionProps={{ duration: 0 }}>
       <Popover.Target>
-        <UnstyledButton {...chipProps(selected)} style={chipStyle(selected)}>{label}</UnstyledButton>
+        <UnstyledButton {...chipProps(selected)} style={chipStyle(selected)} onClick={() => setOpened((o) => !o)}>{label}</UnstyledButton>
       </Popover.Target>
-      <Popover.Dropdown>{children}</Popover.Dropdown>
+      <Popover.Dropdown>{typeof children === "function" ? children(() => setOpened(false)) : children}</Popover.Dropdown>
     </Popover>
   );
 }

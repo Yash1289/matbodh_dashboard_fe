@@ -31,6 +31,7 @@ export function ViewMenu({ rows, actions }: { rows: ViewRow[]; actions: ViewActi
   const changed = rows.filter((r) => r.selected).length;
   return (
     <PopoverChip label={<>View{changed > 0 && <span style={badge}>{changed}</span>}</>} selected={changed > 0}>
+      {(close) => (
       <Stack gap="sm" miw={250}>
         {rows.map((r) => (
           <div key={r.id} data-testid={`view-row-${r.id}`}>
@@ -54,12 +55,13 @@ export function ViewMenu({ rows, actions }: { rows: ViewRow[]; actions: ViewActi
         ))}
         <Divider />
         {actions.map((a) => (
-          <UnstyledButton key={a.id} disabled={a.disabled} onClick={a.onSelect} fz={tokens.font.button}
+          <UnstyledButton key={a.id} disabled={a.disabled} onClick={() => { close(); a.onSelect(); }} fz={tokens.font.button}
             style={{ opacity: a.disabled ? 0.5 : 1, textAlign: "left" }}>
             {a.label}
           </UnstyledButton>
         ))}
       </Stack>
+      )}
     </PopoverChip>
   );
 }
