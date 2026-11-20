@@ -22,6 +22,10 @@ export const tokens = {
     lossTint: "#f9eded",
     white: "#ffffff",
     page: "#f1f2f5",
+    /** The starting page's identity: a deep ink for the mark and title, and one warm accent for progress. */
+    deepInk: "#16213a",
+    accent: "#b85c0a",
+    accentSoft: "#fdf1e4",
   },
   font: {
     family: 'Inter, "Segoe UI", system-ui, sans-serif',
@@ -46,6 +50,7 @@ export const theme = createTheme({
   primaryColor: "mb",
   colors: { mb: colorsTuple(tokens.color.primary) },
   primaryShade: 6,
+  respectReducedMotion: true,
   defaultRadius: tokens.radius.button,
   black: tokens.color.text,
 });
@@ -67,6 +72,11 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     "--mb-soft-line": tokens.color.softLine,
     "--mb-bar": tokens.color.bar,
     "--mb-faint": tokens.color.faint,
+    "--mb-deep-ink": tokens.color.deepInk,
+    "--mb-accent": tokens.color.accent,
+    "--mb-accent-soft": tokens.color.accentSoft,
+    // Mantine's default placeholder grey is 2:1 on white; the muted text colour reads at 5.9:1.
+    "--input-placeholder-color": tokens.color.muted,
     "--mb-gain-tint": tokens.color.gainTint,
     "--mb-loss-tint": tokens.color.lossTint,
     "--mb-ring": tokens.focusRing,

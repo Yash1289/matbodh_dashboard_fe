@@ -6,6 +6,7 @@ import states from "../test/fixtures/states.json";
 import surveys from "../test/fixtures/surveys.json";
 import { renderWithProviders } from "../test/render";
 import { ContextStep } from "./ContextStep";
+import { saveLastContext } from "./lastContext";
 import { parseContext } from "./urlContext";
 import { useLocation } from "react-router-dom";
 
@@ -27,7 +28,7 @@ function stubApi() {
 
 const Probe = () => <div data-testid="search">{useLocation().search}</div>;
 const renderStep = () => renderWithProviders(<><ContextStep /><Probe /></>, { route: "/" });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
 
 describe("ContextStep", () => {
   it("is a page of its own, not a dialog, and runs nothing", async () => {
@@ -62,5 +63,84 @@ describe("ContextStep", () => {
       const ctx = parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""));
       expect(ctx).toMatchObject({ state: "Uttar Pradesh", level: "ac", rounds: [R1, R2] });
     });
+  });
+
+  const LAST = {
+    state: "Uttar Pradesh", level: "ac" as const, rounds: [R1, R2], compare_round: null, anchor_round: null,
+    version_mode: "extrapolated" as const, geo_scope: "state" as const,
+  };
+
+  it("offers to continue with the last context, focused so Enter takes it, and checks it still exists", async () => {
+    stubApi();
+    saveLastContext(LAST);
+    const user = userEvent.setup();
+    renderStep();
+    const button = await screen.findByRole("button", { name: /^Continue with Uttar Pradesh/ });
+    await waitFor(() => expect(button).toHaveFocus());
+    await user.click(button);
+    await waitFor(() => {
+      expect(parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""))).toMatchObject({ state: "Uttar Pradesh", level: "ac", rounds: [R1, R2] });
+    });
+  });
+
+  it("does not offer a remembered context whose rounds are no longer in the catalogue", async () => {
+    stubApi();
+    saveLastContext({ ...LAST, rounds: ["2027 VS CAPI R9"] });
+    renderStep();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: /^Continue with/ })).not.toBeInTheDocument();
+  });
+
+  it("offers nothing to continue on a first visit", async () => {
+    stubApi();
+    renderStep();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    expect(screen.queryByRole("button", { name: /^Continue with/ })).not.toBeInTheDocument();
+  });
+
+  it("section headings are h2 under the page's h1", async () => {
+    stubApi();
+    renderStep();
+    expect(screen.getByRole("heading", { level: 2, name: "Survey rounds" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  });
+
+  it("Comparison appears once a round is chosen, not before", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderStep();
+    expect(screen.queryByRole("heading", { name: "Comparison" })).toBeNull();
+    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
+    await user.click(await screen.findByRole("checkbox", { name: R1 }));
+    expect(await screen.findByRole("heading", { name: "Comparison" })).toBeInTheDocument();
+  });
+
+  it("a progress list marks where, rounds and ready as they are done", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderStep();
+    const list = screen.getByRole("list", { name: "Progress" });
+    expect(list.querySelectorAll("[data-done='true']")).toHaveLength(0);
+    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
+    await waitFor(() => expect(list.querySelectorAll("[data-done='true']")).toHaveLength(1));
+    await user.click(await screen.findByRole("checkbox", { name: R1 }));
+    await waitFor(() => expect(list.querySelectorAll("[data-done='true']")).toHaveLength(3));
+  });
+
+  it("with reduced motion, Continue applies at once, with no leaving animation to wait for", async () => {
+    stubApi();
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: /prefers-reduced-motion/.test(query), media: query, onchange: null, addEventListener: () => {}, removeEventListener: () => {},
+      addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    }));
+    const user = userEvent.setup();
+    renderStep();
+    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
+    await user.click(await screen.findByRole("checkbox", { name: R1 }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByTestId("search").textContent).toContain("state=Uttar+Pradesh");
   });
 });

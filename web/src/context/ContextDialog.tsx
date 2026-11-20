@@ -41,9 +41,11 @@ interface Props {
   planError: string | null;
   onCancel(): void;
   onApply(context: StateContext): void;
+  /** The first step reports how far along the choice is (0 to 3: where, rounds, ready), for its progress list. */
+  onProgress?(done: number): void;
 }
 
-export function ContextDialog({ variant = "dialog", context, planError, onCancel, onApply }: Props) {
+export function ContextDialog({ variant = "dialog", context, planError, onCancel, onApply, onProgress }: Props) {
   const step = variant === "step";
   const [draft, setDraft] = useState<Draft>(context ?? EMPTY);
   const roundId = useId();
@@ -76,6 +78,10 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
   const selectionCount = `${selected.length} ${selected.length === 1 ? "round" : "rounds"} selected`;
   const status = step && (draft.level === null || selected.length === 0)
     ? "Choose a survey level and at least one round to continue." : selectionCount;
+
+  const done = (draft.state && draft.level !== null ? 1 : 0) + (selected.length > 0 ? 1 : 0) + (canApply ? 1 : 0);
+  useEffect(() => { onProgress?.(done); }, [done, onProgress]);
+  const Heading = step ? "h2" : "h3";
 
   const toggleRound = (name: string, checked: boolean) => {
     const next = checked ? [...names, name] : names.filter((value) => value !== name);
@@ -119,14 +125,14 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
 
         <div className={styles.columns}>
           <section aria-label="Survey rounds">
-            <h3>Survey rounds</h3>
+            <Heading>Survey rounds</Heading>
             <p className={styles.help}>Select the rounds you want to see in the dashboard.</p>
             {draft.state && surveys.isPending && <Skeleton height={76} mt="md" aria-label="Loading survey rounds" />}
             {!surveys.isError && !(draft.state && surveys.isPending) && groups.length === 0 && (
               <p className={styles.empty}>{roundPrompt}</p>
             )}
             {groups.map((group) => (
-              <fieldset className={styles.roundGroup} key={group.group}>
+              <fieldset className={styles.roundGroup} key={`${draft.level}:${group.group}`}>
                 <legend>{group.group}</legend>
                 {group.rounds.map((round) => {
                   const name = round.base_name;
@@ -152,8 +158,8 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
             {multipleSeries && <p className={styles.notice}>Different survey series. Check the series names before comparing rounds.</p>}
           </section>
 
-          <section className={styles.comparison} aria-label="Comparison">
-            <h3>Comparison</h3>
+          {selected.length > 0 && <section className={styles.comparison} aria-label="Comparison">
+            <Heading>Comparison</Heading>
             <Stack gap={14}>
               <Select label="Current round" placeholder="Choose survey rounds first" size="md" disabled={!latest}
                 data={latest ? [{ value: "latest", label: `Latest selected · ${latest}` }, ...options] : []}
@@ -188,7 +194,7 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
                 </p>}
               </details>
             )}
-          </section>
+          </section>}
         </div>
       </div>
 
@@ -196,7 +202,7 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
         <Text size="sm" fw={600} role="status">{status}</Text>
         <div className={styles.actions}>
           {!step && <Button variant="default" onClick={onCancel}>Cancel</Button>}
-          <Button disabled={!canApply} onClick={() => {
+          <Button className={canApply ? styles.ready : undefined} disabled={!canApply} onClick={() => {
             if (canApply && draft.level) onApply({
               ...draft, level: draft.level, rounds: names, anchor_round: explicitAnchor, compare_round: compare,
               version_mode: matched ? "matched" : "extrapolated",

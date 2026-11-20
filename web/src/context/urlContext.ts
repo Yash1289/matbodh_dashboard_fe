@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Level, StateContext } from "../api/types";
 import { useSessionCohort } from "../cohorts/cohortStore";
+import { saveLastContext } from "./lastContext";
 
 const LEVELS: readonly Level[] = ["ac", "pc", "zone", "state"];
 
@@ -41,7 +42,7 @@ export function useDashboardContext(): { ctx: StateContext | null; setCtx(next: 
   const ctx = useMemo(() => (parsed && cohort ? { ...parsed, cohort } : parsed), [parsed, cohort]);
   // Default navigation pushes, so Back restores the previous context.
   const setCtx = useCallback(
-    (next: StateContext) => setParams((prev) => serialiseContext(next, prev)),
+    (next: StateContext) => { saveLastContext(next); setParams((prev) => serialiseContext(next, prev)); },
     [setParams],
   );
   return { ctx, setCtx };

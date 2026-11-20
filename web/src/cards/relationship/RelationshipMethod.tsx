@@ -11,7 +11,7 @@ export function RelationshipMethod({ payload }: { payload: RelationshipPayload }
   const units = payload.contract.units as Record<string, string> | undefined;
   return (
     <Stack gap={4}>
-      <Title order={5}>Relationship</Title>
+      <Title order={3}>Relationship</Title>
       <Text size="sm">{payload.origin} → {payload.destination}</Text>
       <Text size="sm">{payload.focal_party === null ? "No focal party (agreement only)" : `Focal party: ${payload.focal_party}`}</Text>
       <Text size="sm">Joint weight: {weights.source ?? "unknown"}{weights.source === "scenario" ? ` (${weights.scenario}, ${weights.mode})` : ""}</Text>

@@ -15,31 +15,31 @@ export function MethodDrawer({ payload, plan, errors }: Props) {
   const errs = Object.entries(errors);
   return (
     <Stack gap="sm">
-      <Title order={5}>Rounds</Title>
+      <Title order={3}>Rounds</Title>
       {rounds.length === 0 && <Text size="sm">No result yet</Text>}
       {rounds.map((r) => (
         <Text key={r.obs_id} size="sm">
           {r.base_name} · dataset {r.dataset_id} · {r.version}{r.fallback ? " (fallback)" : ""} · {r.seats} seats
         </Text>
       ))}
-      {modes.length > 0 && <Title order={5}>Coverage mode</Title>}
+      {modes.length > 0 && <Title order={3}>Coverage mode</Title>}
       {modes.map(([part, mode]) => <Text key={part} size="sm">{part}: {mode ?? "—"}</Text>)}
       {payload && isRelationshipPayload(payload) && <RelationshipMethod payload={payload} />}
       {payload && (
         <>
-          <Title order={5}>Contract</Title>
+          <Title order={3}>Contract</Title>
           <Code block>{JSON.stringify(
             isBenchmarkPayload(payload) || isRelationshipPayload(payload) ? payload.contract
               : isRankedPayload(payload) ? payload.contracts : payload.provenance.contract, null, 2)}</Code>
           {!isBenchmarkPayload(payload) && !isRelationshipPayload(payload) && (
             <>
-              <Title order={5}>Coverage</Title>
+              <Title order={3}>Coverage</Title>
               <Code block>{JSON.stringify(payload.coverage, null, 2)}</Code>
             </>
           )}
         </>
       )}
-      {errs.length > 0 && <Title order={5}>Errors</Title>}
+      {errs.length > 0 && <Title order={3}>Errors</Title>}
       {errs.map(([part, e]) => (
         <Text key={part} size="sm">
           {part}: {e.kind} · {e.message} · fingerprint {e.fingerprint ?? "—"}

@@ -38,7 +38,7 @@
 }
 
 .delta {
-  font-size: 0.88em;
+  font-size: max(11px, 0.88em);
   font-weight: 500;
 }
 
