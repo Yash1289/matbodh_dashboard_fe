@@ -5,6 +5,7 @@ import { useCardPlan, useCardRun, useFieldScopes } from "../api/queries";
 import { toCardRef } from "../api/types";
 import type { CardInfo, GridFamily, GridPayload, PresentationRules, RunError, StateContext } from "../api/types";
 import { toCsv } from "../table/csv";
+import chrome from "./card.module.css";
 import { tokens } from "../theme";
 import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
@@ -156,10 +157,7 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   ].filter((p) => p !== null).join(" · ");
 
   return (
-    <div ref={ref} data-testid={`card:${info.id}`} style={{
-      background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
-      padding: "17px 19px",
-    }}>
+    <div ref={ref} data-testid={`card:${info.id}`} className={chrome.card}>
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>

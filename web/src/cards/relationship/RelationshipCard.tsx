@@ -4,6 +4,7 @@ import { memo, useMemo, useState, type ReactNode } from "react";
 import { useCardPlan, useCardRun } from "../../api/queries";
 import { toCardRef } from "../../api/types";
 import type { CardInfo, RelationshipPayload, RelationshipTable, RunError, StateContext } from "../../api/types";
+import chrome from "../card.module.css";
 import { tokens } from "../../theme";
 import { coverageNote } from "../coverage";
 import { downloadCsv } from "../CardShell";
@@ -124,10 +125,7 @@ function RelationshipCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext
   const dimensions = shown && view ? cuts.find((c) => c.key === view.cut)?.dimensions ?? [] : [];
 
   return (
-    <div ref={boxRef} data-testid={`card:${info.id}`} style={{
-      background: "var(--mb-surface)", border: "1px solid var(--mb-border)", borderRadius: tokens.radius.card,
-      padding: "17px 19px",
-    }}>
+    <div ref={boxRef} data-testid={`card:${info.id}`} className={chrome.card}>
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>

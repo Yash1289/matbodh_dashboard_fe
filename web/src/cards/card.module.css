@@ -1,0 +1,8 @@
+/* The frame every card family shares: a raised white panel, so a canvas of cards reads like a BI board. */
+.card {
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-border);
+  border-radius: 12px;
+  box-shadow: var(--mb-elev-card);
+  padding: 15px 17px 17px;
+}

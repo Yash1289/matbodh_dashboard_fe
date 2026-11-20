@@ -66,3 +66,14 @@
 
 /* Notes under a value never go below the table's floor, whatever the table's own size. */
 .scroller small { font-size: max(10px, 0.8em); }
+
+/* The table's own title line (which rounds it reads): left aligned and quiet, like a chart subtitle. */
+.scroller caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0.55em 1em;
+  font-size: 0.95em;
+  font-weight: 500;
+  color: var(--mb-muted);
+  border-bottom: 1px solid var(--mb-border);
+}
