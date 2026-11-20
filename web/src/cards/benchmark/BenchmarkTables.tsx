@@ -100,7 +100,7 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
     return (
       <TableFrame minWidthEm={38}>
         <table>
-          <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>Summary</caption>
+          <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>{`Summary · ${anchorLabel(p)}${p.reference.kind === "none" ? "" : ` vs ${referenceLabel(p)}`}`}</caption>
           <thead>
             <tr><th scope="col" className={PIN}>Seat group</th>{m.parties.map((x) => <th key={x} scope="col">{x}</th>)}</tr>
           </thead>

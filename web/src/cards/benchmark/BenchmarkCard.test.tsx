@@ -63,7 +63,7 @@ describe("BenchmarkCard", () => {
     renderWithProviders(<BenchmarkCard info={info} ctx={CTX} />);
     await screen.findByRole("table", { name: /Comparison/ });
     expect(screen.queryByRole("button", { name: /Reference/ })).toBeNull();
-    expect(screen.getByTestId("card-subtitle").textContent).toMatch(/ vs /); // the reference, read-only
+    expect(screen.getByRole("table", { name: /Comparison · .* vs / })).toBeInTheDocument(); // the reference, read-only, in the caption
     const posts = runPosts(f);
     expect(posts.length).toBeGreaterThan(0);
     expect(posts.every((body) => !("reference" in body))).toBe(true); // the reference is in the card's config
@@ -136,11 +136,11 @@ describe("BenchmarkCard", () => {
     };
     renderWithProviders(<Harness />);
     await screen.findByRole("table", { name: /Comparison/ });
-    expect(screen.getByTestId("card-subtitle")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /Comparison/ })).toBeInTheDocument();
     runs[p.card_id] = { state: "running", done: 0, total: 1, result: null, errors: {} };
     await userEvent.click(screen.getByRole("button", { name: "drop compare" })); // a new context starts a new run
     expect(await screen.findByText(/Running the benchmark/)).toBeInTheDocument();
-    expect(screen.queryByTestId("card-subtitle")).toBeNull();
+    expect(screen.queryByRole("table")).toBeNull();
     expect(screen.queryByRole("button", { name: /Search/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "⋯" })).toBeNull();
   });

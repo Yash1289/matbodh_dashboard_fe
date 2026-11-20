@@ -117,10 +117,6 @@ function RelationshipCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext
     body = <Progress>Running the relationship…</Progress>;
   }
 
-  const subtitle = shown && !errored
-    ? [`anchor round ${roundLabel(shown, shown.rounds.anchor)}`, `${shown.origin} → ${shown.destination}`,
-      shown.focal_party ? `focal ${shown.focal_party}` : null].filter((p) => p !== null).join(" · ")
-    : "";
   const cuts = shown ? cutsOf(shown) : [];
   const dimensions = shown && view ? cuts.find((c) => c.key === view.cut)?.dimensions ?? [] : [];
 
@@ -130,7 +126,6 @@ function RelationshipCardBody({ info, ctx }: { info: CardInfo; ctx: StateContext
         <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} fz={tokens.font.cardTitle} fw={700} c="var(--mb-text)">{info.title}</Title>
-            {subtitle && <Text fz={tokens.font.subtitle} c="var(--mb-muted)" data-testid="card-subtitle">{subtitle}</Text>}
           </div>
           {shown && view && (
             <Group gap={8} wrap="wrap" justify="flex-end">
