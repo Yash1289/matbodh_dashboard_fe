@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLUMNS, defaultSize, firstFreeSpot, fitHeight, moveBy, normalise, readingOrder, resizeTo, settle, type Item } from "./layout";
+import { COLUMNS, ROW_HEIGHT, defaultSize, firstFreeSpot, fitHeight, moveBy, normalise, readingOrder, resizeTo, rowsFor, settle, type Item } from "./layout";
 
 const item = (cardId: string, x: number, y: number, w: number, h: number): Item => ({ cardId, x, y, w, h });
 const byId = (items: Item[], id: string): Item => items.find((i) => i.cardId === id)!;
@@ -100,5 +100,15 @@ describe("readingOrder", () => {
     const items = [item("c", 0, 4, 4, 2), item("b", 6, 0, 4, 2), item("a", 0, 0, 4, 2)];
     expect(readingOrder(items).map((i) => i.cardId)).toEqual(["a", "b", "c"]);
     expect(items.map((i) => i.cardId)).toEqual(["c", "b", "a"]);
+  });
+});
+
+describe("rowsFor", () => {
+  it("is the fewest rows whose height holds the content, counting the gap between rows", () => {
+    const gap = 18;
+    const height = (rows: number) => rows * ROW_HEIGHT + (rows - 1) * gap;
+    expect(rowsFor(height(5), gap)).toBe(5);
+    expect(rowsFor(height(5) + 1, gap)).toBe(6);
+    expect(rowsFor(0, gap)).toBe(1);
   });
 });

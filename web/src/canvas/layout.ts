@@ -5,6 +5,8 @@ import { isBenchmarkFamily, isRankingFamily, isRelationshipFamily, type Family }
 export interface Item { cardId: string; x: number; y: number; w: number; h: number }
 
 export const COLUMNS = 12;
+/** Pixel height of one grid row; the gap between rows comes from the theme. */
+export const ROW_HEIGHT = 40;
 export const SIZE_PRESETS = { small: 4, medium: 6, wide: 8, full: 12 } as const;
 export type SizePreset = keyof typeof SIZE_PRESETS;
 export type Direction = "left" | "right" | "up" | "down";
@@ -78,4 +80,9 @@ export function fitHeight(items: Item[], cardId: string, rows: number): Item[] {
 /** Rows top to bottom, then columns left to right: the order of the one-column layout. */
 export function readingOrder(items: Item[]): Item[] {
   return [...items].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+/** The fewest rows whose height (rows of ROW_HEIGHT with `gap` between them) holds `px` of content. */
+export function rowsFor(px: number, gap: number): number {
+  return Math.max(1, Math.ceil((px + gap) / (ROW_HEIGHT + gap)));
 }

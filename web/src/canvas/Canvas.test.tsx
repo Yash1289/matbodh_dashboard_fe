@@ -45,7 +45,7 @@ function setup(width: number) {
   const a = workspaceStore.addCard(STATE, CONFIG);
   const b = workspaceStore.addCard(STATE, CONFIG);
   const tab = workspaceStore.get(STATE).tabs[0];
-  renderWithProviders(<Canvas state={STATE} tab={tab} renderCard={(id) => <p>card {id}</p>} />);
+  renderWithProviders(<Canvas state={STATE} tab={tab} renderCard={(id) => <p>card {id}</p>} onConfigure={() => {}} />);
   return { a, b, tab };
 }
 
@@ -75,10 +75,15 @@ describe("Canvas", () => {
     expect(text).toEqual([`card ${a.id}`, `card ${b.id}`]);
   });
 
+  it("every cell has the card menu, on the grid and in one column", async () => {
+    setup(900);
+    expect(await screen.findAllByRole("button", { name: "Card actions" })).toHaveLength(2);
+  });
+
   it("shows nothing until the width is known", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     workspaceStore.addCard(STATE, CONFIG);
-    renderWithProviders(<Canvas state={STATE} tab={workspaceStore.get(STATE).tabs[0]} renderCard={(id) => <p>card {id}</p>} />);
+    renderWithProviders(<Canvas state={STATE} tab={workspaceStore.get(STATE).tabs[0]} renderCard={(id) => <p>card {id}</p>} onConfigure={() => {}} />);
     expect(screen.queryByTestId("grid")).toBeNull();
     expect(screen.queryByText(/^card /)).toBeNull();
   });
