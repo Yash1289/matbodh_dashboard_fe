@@ -41,11 +41,16 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
       </Stack>
     );
   }
-  const current = typeof value === "string" ? value : "";
+  // CardConfig.scenarios is a list even where a card takes one question; a bare string there fails the backend's validation.
+  const asList = field.path === "scenarios";
+  const current = asList ? (Array.isArray(value) && typeof value[0] === "string" ? value[0] : "") : typeof value === "string" ? value : "";
   const blank = field.default === undefined || field.default === null;
   return (
     <NativeSelect label={field.label} description={field.help} error={error} value={current}
-      onChange={(e) => onChange(e.currentTarget.value === "" ? undefined : e.currentTarget.value)}
+      onChange={(e) => {
+        const picked = e.currentTarget.value;
+        onChange(picked === "" ? undefined : asList ? [picked] : picked);
+      }}
       data={[...(blank ? [{ value: "", label: "—" }] : []),
         ...selectData(items),
         ...(current !== "" && stale(current) ? [{ value: current, label: `${current} (no longer available)` }] : [])]} />

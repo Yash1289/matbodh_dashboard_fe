@@ -80,3 +80,40 @@ describe("ChoiceField option lists", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
+
+describe("ChoiceField on the scenarios list", () => {
+  // CardConfig.scenarios is a list on the backend even where the card takes one question (ranking, benchmark),
+  // so a single select there must store a one-item list, never a bare string ("Input should be a valid list").
+  const questionField: FieldDescriptor = {
+    path: "scenarios", label: "Question", widget: "scenario_picker", required: true, tier: "primary", multiple: false,
+    options: { source: "scenarios", params: { kind: "any" } },
+  };
+
+  it("choosing a question stores it as a one-item list", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("pm_satisfaction", "opinion")]);
+    const onChange = vi.fn();
+    renderWithProviders(<ChoiceField field={questionField} value={[]} onChange={onChange} draft={DRAFT} ctx={CTX} />);
+    const select = await screen.findByRole("combobox", { name: /Question/ });
+    await within(select).findByRole("option", { name: "pm_satisfaction" });
+    await userEvent.selectOptions(select, "pm_satisfaction");
+    expect(onChange).toHaveBeenLastCalledWith(["pm_satisfaction"]);
+  });
+
+  it("shows the stored one-item list as the chosen question", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("pm_satisfaction", "opinion")]);
+    renderWithProviders(<ChoiceField field={questionField} value={["pm_satisfaction"]} onChange={vi.fn()} draft={DRAFT} ctx={CTX} />);
+    const select = await screen.findByRole("combobox", { name: /Question/ });
+    await within(select).findByRole("option", { name: "pm_satisfaction" });
+    expect(select).toHaveValue("pm_satisfaction");
+  });
+
+  it("other single selects keep storing a plain string", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("pm_satisfaction", "opinion")]);
+    const onChange = vi.fn();
+    renderWithProviders(<ChoiceField field={scenarioField(false)} value="" onChange={onChange} draft={DRAFT} ctx={CTX} />);
+    const select = await screen.findByRole("combobox", { name: /Compared with/ });
+    await within(select).findByRole("option", { name: "pm_satisfaction" });
+    await userEvent.selectOptions(select, "pm_satisfaction");
+    expect(onChange).toHaveBeenLastCalledWith("pm_satisfaction");
+  });
+});
