@@ -2,7 +2,7 @@ import { Text } from "@mantine/core";
 import { Fragment } from "react";
 import type { RelationshipPayload, RelationshipSummary } from "../../api/types";
 import { formatValue } from "../../cells/format";
-import { tokens } from "../../theme";
+import { PIN, TableFrame } from "../../table/TableFrame";
 import { roundLabel, roundsWithData, summaryRows, type RelationshipView } from "./relationshipRows";
 
 type Unit = "pct" | "pp";
@@ -13,7 +13,7 @@ interface Column {
   value: (s: RelationshipSummary) => number | null;
 }
 
-const cell = { padding: "4px 8px", textAlign: "right" as const };
+const cell = { textAlign: "right" as const };
 const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 100) / 100));
 
 /** Main columns: with a focal party the five readout measures, otherwise agreement alone. */
@@ -56,21 +56,22 @@ export function RelationshipSummaryTable({ payload, view }: Props) {
   const rounds = roundsWithData(payload);
   const columns = [...mainColumns(payload.focal_party), ...(view.showDetails ? detailColumns(payload.focal_party) : [])];
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: tokens.font.chip }}>
-      <caption style={{ textAlign: "left", color: "var(--mb-muted)", paddingBottom: 6 }}>
+    <TableFrame minWidthEm={14 + 9 * columns.length}>
+    <table>
+      <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>
         Flow summary · {payload.origin} → {payload.destination}
         {payload.focal_party !== null && ` · focal ${payload.focal_party}`}
       </caption>
       <thead>
         <tr>
-          <th scope="col" style={{ ...cell, textAlign: "left" }}>Group</th>
+          <th scope="col" className={PIN}>Group</th>
           {columns.map((c) => <th key={c.head} scope="col" title={c.tip} style={cell}>{c.head}</th>)}
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.key}>
-            <th scope="row" style={{ ...cell, textAlign: "left", fontWeight: 600 }}>{row.label}</th>
+            <th scope="row" className={PIN}>{row.label}</th>
             {columns.map((c) => (
               <td key={c.head} style={cell}>
                 <div role="group" style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: 8 }}>
@@ -91,5 +92,6 @@ export function RelationshipSummaryTable({ payload, view }: Props) {
         ))}
       </tbody>
     </table>
+    </TableFrame>
   );
 }

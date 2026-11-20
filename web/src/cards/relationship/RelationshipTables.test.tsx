@@ -120,4 +120,28 @@ describe("RelationshipMatrixTable", () => {
     expect(screen.getByText("No such group in this round")).toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
   });
+
+  it("sits in the table frame, pins the origin column and marks the rows where respondents stayed", () => {
+    const p = RELATIONSHIP.transition();
+    const { container } = renderWithProviders(<RelationshipMatrixTable payload={p} view={matrixView()} />);
+    expect(screen.getByTestId("table-frame")).toContainElement(container.querySelector("table"));
+    const heads = [...container.querySelectorAll("tbody th")];
+    expect(heads.every((h) => h.className.includes("pin"))).toBe(true);
+    const diagonal = [...container.querySelectorAll("tbody tr[data-diagonal]")];
+    expect(diagonal.length).toBeGreaterThan(0);
+    expect(diagonal.every((r) => /stayed/.test(r.textContent ?? ""))).toBe(true);
+    expect([...container.querySelectorAll("tbody tr")].filter((r) => /stayed/.test(r.textContent ?? ""))).toHaveLength(diagonal.length);
+  });
+
+  it("tints the origin-share cell softly, never beyond the wash ceiling", () => {
+    const p = RELATIONSHIP.transition();
+    const { container } = renderWithProviders(<RelationshipMatrixTable payload={p} view={matrixView()} />);
+    const tinted = [...container.querySelectorAll<HTMLElement>("tbody td[data-share]")];
+    expect(tinted.length).toBeGreaterThan(0);
+    for (const td of tinted) {
+      const alpha = Number(/,\s*([\d.]+)\)$/.exec(td.style.background)![1]);
+      expect(alpha).toBeGreaterThanOrEqual(0.04);
+      expect(alpha).toBeLessThanOrEqual(0.16);
+    }
+  });
 });
