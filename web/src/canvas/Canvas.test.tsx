@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardConfigJson } from "../api/types";
 import { _dropMemory } from "../configure/cardStore";
 import { renderWithProviders } from "../test/render";
+import { tokens } from "../theme";
 import { Canvas, NARROW_PAGE } from "./Canvas";
 import { _dropWorkspaceMemory, workspaceStore } from "./workspaceStore";
 
@@ -68,8 +69,7 @@ describe("Canvas", () => {
 
   it(`below ${NARROW_PAGE}px the cards are one column in reading order, with no grid and no handle`, async () => {
     const { a, b } = setup(500);
-    await screen.findByText(`card ${a.id}`);
-    expect(screen.queryByTestId("grid")).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId("grid")).toBeNull());
     expect(screen.queryByLabelText("Drag card")).toBeNull();
     const text = screen.getAllByText(/^card /).map((p) => p.textContent);
     expect(text).toEqual([`card ${a.id}`, `card ${b.id}`]);
@@ -80,12 +80,12 @@ describe("Canvas", () => {
     expect(await screen.findAllByRole("button", { name: "Card actions" })).toHaveLength(2);
   });
 
-  it("shows nothing until the width is known", () => {
+  it("lays out at the usual page width until the width is known", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     workspaceStore.addCard(STATE, CONFIG);
     renderWithProviders(<Canvas state={STATE} tab={workspaceStore.get(STATE).tabs[0]} renderCard={(id) => <p>card {id}</p>} onConfigure={() => {}} />);
-    expect(screen.queryByTestId("grid")).toBeNull();
-    expect(screen.queryByText(/^card /)).toBeNull();
+    expect(screen.getByTestId("grid")).toBeInTheDocument();
+    expect(grid!.width).toBe(tokens.layout.content);
   });
 
   it("saves the layout once when a drag ends, not while it moves", async () => {

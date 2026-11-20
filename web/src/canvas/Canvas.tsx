@@ -42,8 +42,8 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
   );
 
   const body = (() => {
-    if (width === 0) return null; // not measured yet: a grid at width 0 would flash
-    if (width < NARROW_PAGE) {
+    // Before the first measurement (and where nothing can be measured) the grid is laid out at the usual page width.
+    if (width !== 0 && width < NARROW_PAGE) {
       return (
         <div className={styles.stack}>
           {readingOrder(tab.items).map((i) => <div key={i.cardId}>{cell(i.cardId, false)}</div>)}
@@ -52,7 +52,7 @@ export function Canvas({ state, tab, renderCard, onConfigure }: Props) {
     }
     return (
       <GridLayout
-        width={width}
+        width={width === 0 ? tokens.layout.content : width}
         layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: i.h }))}
         gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, gap], containerPadding: [0, 0] }}
         dragConfig={{ enabled: true, handle: ".canvas-handle" }}

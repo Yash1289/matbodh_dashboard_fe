@@ -1,16 +1,30 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App";
-import { CONTEXT_QUERY, PAYLOADS, stubCardApi } from "../test/cardApi";
+import { _dropWorkspaceMemory } from "../canvas/workspaceStore";
+import { _dropMemory } from "../configure/cardStore";
+import { CONTEXT_QUERY, PAYLOADS, seedStoredCards, stubCardApi } from "../test/cardApi";
 import { renderWithProviders } from "../test/render";
 
 const CARD = () => PAYLOADS.distributionStandalone();
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+  _dropMemory();
+  _dropWorkspaceMemory();
+});
+
+/** The engine serves one card; the analyst has it on their canvas. */
+function mountCard() {
+  const card = CARD();
+  stubCardApi({ payloads: [card] });
+  seedStoredCards("Uttar Pradesh", [card]);
+}
 
 describe("shell", () => {
   it("top bar shows brand, context pill and Edit context", async () => {
-    stubCardApi({ payloads: [CARD()] });
+    mountCard();
     renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
     expect(screen.getByText("MatBodh")).toBeInTheDocument();
     const pill = await screen.findByTestId("context-pill");
@@ -21,7 +35,7 @@ describe("shell", () => {
   });
 
   it("nav labels and active style", async () => {
-    stubCardApi({ payloads: [CARD()] });
+    mountCard();
     renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
     const nav = screen.getByRole("navigation", { name: "Sections" });
     expect(within(nav).getAllByRole("link").map((l) => l.textContent)).toEqual(["Cards"]);
@@ -35,14 +49,14 @@ describe("shell", () => {
   });
 
   it("an old placeholder path goes to the cards page", async () => {
-    stubCardApi({ payloads: [CARD()] });
+    mountCard();
     renderWithProviders(<AppRoutes />, { route: `/leadership${CONTEXT_QUERY}` });
     expect(await screen.findByRole("heading", { name: "Cards" })).toBeInTheDocument();
     expect(screen.queryByText(/arrives in phase/)).toBeNull();
   });
 
   it("renders the cards page at / and sends unknown paths there", async () => {
-    stubCardApi({ payloads: [CARD()] });
+    mountCard();
     renderWithProviders(<AppRoutes />, { route: `/nowhere${CONTEXT_QUERY}` });
     expect(await screen.findByRole("heading", { name: "Cards" })).toBeInTheDocument();
     expect(await screen.findByRole("table")).toBeInTheDocument();
