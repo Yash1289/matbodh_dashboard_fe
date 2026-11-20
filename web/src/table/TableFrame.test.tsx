@@ -28,4 +28,9 @@ describe("TableFrame", () => {
     render(<TableFrame>{table}</TableFrame>);
     expect(screen.getByTestId("table-frame").style.getPropertyValue("--table-min")).toBe("");
   });
+
+  it("limits its height when asked, so the header can stay in view", () => {
+    render(<TableFrame maxHeight="70vh">{table}</TableFrame>);
+    expect(screen.getByTestId("table-frame").style.maxHeight).toBe("70vh");
+  });
 });

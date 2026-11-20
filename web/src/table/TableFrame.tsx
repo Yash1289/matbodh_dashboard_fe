@@ -8,11 +8,16 @@ interface Props {
   children: ReactNode;
   /** Minimum table width in em; a narrower card then scrolls sideways instead of hiding columns. */
   minWidthEm?: number;
+  /** Limit the height (e.g. "70vh") so a long table scrolls under a header that stays in view. */
+  maxHeight?: string;
 }
 
-export function TableFrame({ children, minWidthEm }: Props) {
+export function TableFrame({ children, minWidthEm, maxHeight }: Props) {
   const [scrolled, setScrolled] = useState(false);
-  const style = minWidthEm === undefined ? undefined : ({ "--table-min": `${minWidthEm}em` } as CSSProperties);
+  const style = {
+    ...(minWidthEm === undefined ? {} : { "--table-min": `${minWidthEm}em` }),
+    ...(maxHeight === undefined ? {} : { maxHeight }),
+  } as CSSProperties;
   return (
     <div
       className={styles.scroller}

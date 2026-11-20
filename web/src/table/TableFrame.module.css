@@ -20,6 +20,9 @@
 }
 
 .scroller thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--mb-header-bg);
   color: var(--mb-muted);
   font-size: 1em;
@@ -46,6 +49,7 @@
 
 .scroller thead .pin {
   background: var(--mb-header-bg);
+  z-index: 3;
 }
 
 .scroller[data-scrolled="true"] .pin {
