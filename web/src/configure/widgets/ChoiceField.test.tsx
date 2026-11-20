@@ -39,3 +39,44 @@ describe("ChoiceField with values the lists no longer offer", () => {
     expect(select).toHaveValue("XYZ");
   });
 });
+
+const scenarioField = (multiple: boolean): FieldDescriptor => ({
+  path: "comparison.reference.scenario", label: "Compared with", widget: "scenario_picker", required: true, tier: "primary", multiple,
+  options: { source: "scenarios", params: { kind: "any" } },
+});
+const stubItems = (items: object[]) => vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(items), { status: 200 })));
+const item = (value: string, kind: string | null, over: object = {}) =>
+  ({ value, label: value, kind, recalled: false, disabled_reason: null, ...over });
+
+describe("ChoiceField option lists", () => {
+  it("groups questions by kind and marks recalled ones", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("vs_past", "party", { recalled: true }), item("pm_satisfaction", "opinion")]);
+    renderWithProviders(<ChoiceField field={scenarioField(false)} value="" onChange={vi.fn()} draft={DRAFT} ctx={CTX} />);
+    const select = await screen.findByRole("combobox", { name: /Compared with/ });
+    await within(select).findByRole("option", { name: "vs_past (recalled)" });
+    expect(within(select).getByRole("group", { name: "Party questions" })).toBeInTheDocument();
+    expect(within(select).getByRole("group", { name: "Opinion questions" })).toBeInTheDocument();
+    expect(within(within(select).getByRole("group", { name: "Opinion questions" })).getByRole("option", { name: "pm_satisfaction" })).toBeInTheDocument();
+  });
+
+  it("greys an unavailable option with its reason so it cannot be picked", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("mla_choice_party", "party", { disabled_reason: "Not asked in 2027 VS CAPI R3" })]);
+    renderWithProviders(<ChoiceField field={scenarioField(false)} value="" onChange={vi.fn()} draft={DRAFT} ctx={CTX} />);
+    const select = await screen.findByRole("combobox", { name: /Compared with/ });
+    const option = await within(select).findByRole("option", { name: "mla_choice_party (Not asked in 2027 VS CAPI R3)" });
+    expect(option).toBeDisabled();
+  });
+
+  it("groups and marks the check boxes of a multiple list too, and a disabled one stays off", async () => {
+    stubItems([item("vs_voting_intention", "party"), item("vs_past", "party", { recalled: true }), item("pm_satisfaction", "opinion", { disabled_reason: "Not asked in R3" })]);
+    const onChange = vi.fn();
+    renderWithProviders(<ChoiceField field={scenarioField(true)} value={[]} onChange={onChange} draft={DRAFT} ctx={CTX} />);
+    expect(await screen.findByText("Party questions")).toBeInTheDocument();
+    expect(screen.getByText("Opinion questions")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "vs_past (recalled)" })).toBeInTheDocument();
+    const off = screen.getByRole("checkbox", { name: "pm_satisfaction (Not asked in R3)" });
+    expect(off).toBeDisabled();
+    await userEvent.click(off);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});

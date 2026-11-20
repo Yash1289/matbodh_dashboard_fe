@@ -1,7 +1,7 @@
 import { Checkbox, NativeSelect, Stack, Text } from "@mantine/core";
 import { useOptions } from "../../api/queries";
 import type { OptionItem } from "../../api/types";
-import { asParams, optionLabel, type WidgetProps } from "./types";
+import { asParams, grouped, markedLabel, selectData, type WidgetProps } from "./types";
 
 /**
  * One widget for every pick-from-a-list field: fixed choices, or an option list from the backend
@@ -25,9 +25,14 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
       <Stack gap={4}>
         <Text size="sm" fw={500}>{field.label}</Text>
         {field.help && <Text size="xs" c="var(--mb-muted)">{field.help}</Text>}
-        {items.map((o) => (
-          <Checkbox key={o.value} label={optionLabel(o)} checked={chosen.includes(o.value)}
-            disabled={o.disabled_reason !== null && !chosen.includes(o.value)} onChange={() => toggle(o.value)} />
+        {grouped(items).map((g) => (
+          <Stack key={g.heading ?? "all"} gap={4}>
+            {g.heading !== null && <Text size="xs" fw={600} c="var(--mb-muted)" mt={4}>{g.heading}</Text>}
+            {g.items.map((o) => (
+              <Checkbox key={o.value} label={markedLabel(o)} checked={chosen.includes(o.value)}
+                disabled={o.disabled_reason !== null && !chosen.includes(o.value)} onChange={() => toggle(o.value)} />
+            ))}
+          </Stack>
         ))}
         {chosen.filter(stale).map((v) => (
           <Checkbox key={v} label={`${v} (no longer available)`} checked onChange={() => toggle(v)} />
@@ -42,7 +47,7 @@ export function ChoiceField({ field, value, onChange, draft, ctx, error }: Widge
     <NativeSelect label={field.label} description={field.help} error={error} value={current}
       onChange={(e) => onChange(e.currentTarget.value === "" ? undefined : e.currentTarget.value)}
       data={[...(blank ? [{ value: "", label: "—" }] : []),
-        ...items.map((o) => ({ value: o.value, label: optionLabel(o), disabled: o.disabled_reason !== null })),
+        ...selectData(items),
         ...(current !== "" && stale(current) ? [{ value: current, label: `${current} (no longer available)` }] : [])]} />
   );
 }
