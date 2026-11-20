@@ -1,0 +1,53 @@
+/* One frame for every card table: the text scales with the card's own width, and the first column stays put. */
+.scroller {
+  container-type: inline-size;
+  overflow-x: auto;
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+}
+
+.scroller table {
+  width: 100%;
+  min-width: var(--table-min, 100%);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: clamp(10.5px, 8px + 0.57cqw, 13px);
+}
+
+.scroller :is(th, td) {
+  text-align: left;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.scroller thead th {
+  background: var(--mb-header-bg);
+  color: var(--mb-muted);
+  font-size: 1em;
+  font-weight: 600;
+  padding: 0.7em 1.1em;
+  white-space: nowrap;
+}
+
+.scroller :is(tbody th, tbody td) {
+  padding: 0.8em 1.1em;
+  border-bottom: 1px solid var(--mb-border);
+}
+
+.scroller tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.pin {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--mb-surface);
+}
+
+.scroller thead .pin {
+  background: var(--mb-header-bg);
+}
+
+.scroller[data-scrolled="true"] .pin {
+  box-shadow: var(--mb-edge);
+}
