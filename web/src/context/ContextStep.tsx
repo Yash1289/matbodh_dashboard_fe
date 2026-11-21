@@ -1,4 +1,5 @@
 import { Button, Text, Title } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStates, useSurveys } from "../api/queries";
 import type { Level, StateContext, SurveysResponse } from "../api/types";
@@ -25,6 +26,10 @@ const LEVEL_NAME: Record<Level, string> = { ac: "AC", pc: "PC", zone: "Zone", st
 
 const STEPS = ["Where", "Which rounds", "Ready"] as const;
 
+/** The layout was drawn for this width; on a wider area everything scales up with it instead of leaving the right empty. */
+const DESIGN_WIDTH = 1160;
+const MAX_SCALE = 1.5;
+
 /** The first screen: choose the state, level and rounds once; Continue opens the canvas. The bar edits them later. */
 export function ContextStep() {
   const { setCtx } = useDashboardContext();
@@ -46,8 +51,12 @@ export function ContextStep() {
     timer.current = setTimeout(() => setCtx(ctx), LEAVE_MS);
   }, [setCtx]);
 
+  const { ref: fitRef, width: fitWidth } = useElementSize();
+  const scale = fitWidth > 0 ? Math.min(MAX_SCALE, Math.max(1, fitWidth / DESIGN_WIDTH)) : 1;
+
   return (
-    <div className={styles.step} data-leaving={leaving || undefined}>
+    <div ref={fitRef} className={styles.stepFit}>
+    <div className={styles.step} data-leaving={leaving || undefined} style={scale > 1 ? { zoom: scale, width: fitWidth / scale } : undefined}>
       <header className={styles.stepHeader}>
         <Mark className={styles.mark} />
         <div>
@@ -83,6 +92,7 @@ export function ContextStep() {
           ))}
         </ol>
       </div>
+    </div>
     </div>
   );
 }

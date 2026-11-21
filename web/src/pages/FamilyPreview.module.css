@@ -1,0 +1,48 @@
+.preview {
+  height: 96px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--mb-header-bg);
+  border: 1px solid var(--mb-border);
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  --saffron: var(--mb-saffron);
+}
+.preview > * { flex: 1; }
+
+[data-tone="saffron"] { --tone: var(--mb-saffron); }
+[data-tone="mint"] { --tone: var(--mb-mint); }
+[data-tone="sky"] { --tone: var(--mb-sky); }
+
+.table { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 8px 1fr 1fr; gap: 6px 8px; align-items: center; }
+.head { height: 6px; border-radius: 3px; background: var(--tone); }
+.cell { font-size: 12px; font-weight: 600; color: var(--mb-text); text-align: left; }
+
+.bars { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.barRow { display: grid; grid-template-columns: 1fr 34px; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+.barRow i, .rank i { display: block; height: 8px; width: var(--w); border-radius: 4px; background: var(--tone); transform-origin: left; transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1); }
+.net { display: flex; justify-content: space-between; font-size: 12px; color: var(--mb-muted); }
+.net b { color: var(--mb-text); }
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.col { display: grid; grid-template-rows: 1fr auto auto; justify-items: center; gap: 2px; font-size: 11px; color: var(--mb-muted); }
+.col i { align-self: end; width: 70%; height: var(--h); border-radius: 5px 5px 2px 2px; background: var(--tone); transform-origin: bottom; transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1); }
+.col b { font-size: 12px; color: var(--mb-text); }
+
+.rank { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; justify-content: center; gap: 7px; }
+.rank li { display: grid; grid-template-columns: 14px 1fr 34px; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+.rank em { font-style: normal; color: var(--mb-muted); font-size: 11px; }
+
+.flow { width: 100%; height: 100%; }
+
+/* On hover the drawn bars grow a little: the only motion, and it says "these are live". */
+:global(.mb-tile):hover .barRow i,
+:global(.mb-tile):hover .rank i { transform: scaleX(1.08); }
+:global(.mb-tile):hover .col i { transform: scaleY(1.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .barRow i, .rank i, .col i { transition: none; }
+  :global(.mb-tile):hover .barRow i, :global(.mb-tile):hover .rank i, :global(.mb-tile):hover .col i { transform: none; }
+}

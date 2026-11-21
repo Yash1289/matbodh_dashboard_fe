@@ -2,8 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1080px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding-bottom: 32px;
 }
 
 .hero {
@@ -143,7 +144,7 @@
 
 .steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
   margin: 0;
   padding: 0;
@@ -151,10 +152,11 @@
 }
 
 .step {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px 20px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: start;
+  gap: 4px 14px;
+  padding: 16px 20px 18px;
   border: 1px solid var(--mb-border);
   border-radius: 14px;
   background: var(--mb-surface);
@@ -175,7 +177,7 @@
 }
 
 .stepTitle {
-  margin: 6px 0 0;
+  margin: 3px 0 4px;
   font-size: 16px;
   font-weight: 700;
   color: var(--mb-deep-ink);
@@ -189,18 +191,48 @@
   text-wrap: pretty;
 }
 
-.families {
+.glimpse { display: flex; flex-direction: column; gap: 14px; }
+.glimpseHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; }
+.note { margin: 0; font-size: 13px; color: var(--mb-muted); }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
   margin: 0;
-  font-size: 13px;
-  color: var(--mb-muted);
+  padding: 0;
+  list-style: none;
 }
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 14px 18px;
+  border: 1px solid var(--mb-border);
+  border-radius: 14px;
+  background: var(--mb-surface);
+  box-shadow: var(--mb-lift);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease-out, border-color 180ms ease-out;
+  animation: rise 360ms calc(120ms + var(--i, 0) * 60ms) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.tile:hover { transform: translateY(-3px); box-shadow: var(--mb-elev-card); border-color: var(--mb-soft-line); }
+.ctaTile { justify-content: center; align-items: flex-start; gap: 10px; padding: 22px 22px 24px; background: var(--mb-deep-ink); border-color: var(--mb-deep-ink); }
+.ctaTile .tileTitle { color: var(--mb-surface); margin: 0; font-size: 19px; }
+.ctaTile .tileText { color: rgba(255, 255, 255, 0.78); }
+.ctaTile:hover { border-color: var(--mb-saffron); }
+.tileTitle { margin: 6px 0 0; font-size: 16px; font-weight: 700; color: var(--mb-deep-ink); }
+.tileText { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--mb-muted); text-wrap: pretty; }
+
+.trust { margin: 4px 0 0; padding-top: 14px; border-top: 1px solid var(--mb-border); font-size: 13px; color: var(--mb-muted); max-width: 90ch; text-wrap: pretty; }
 
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero, .resume, .step { animation-name: fade; }
+  .hero, .resume, .step, .tile { animation-name: fade; }
+  .tile:hover { transform: none; }
   .primary:hover svg { transform: none; }
   @keyframes fade { from { opacity: 0; } }
 }
@@ -255,3 +287,10 @@
 @media (max-width: 900px) {
   .sketch { display: none; }
 }
+
+/* The three ghost cards drift a few pixels, each on its own beat: the canvas is alive, not static. */
+@keyframes drift { from { translate: 0 0; } to { translate: 0 -6px; } }
+.sketch i { animation: drift 4.8s ease-in-out infinite alternate; }
+.sketch i:nth-child(2) { animation-delay: -1.6s; }
+.sketch i:nth-child(3) { animation-delay: -3.2s; }
+@media (prefers-reduced-motion: reduce) { .sketch i { animation: none; } }

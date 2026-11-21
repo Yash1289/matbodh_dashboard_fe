@@ -18,12 +18,14 @@
 .trigger { flex-shrink: 0; }
 
 /* First step: a page, not a dialog. It sits where the canvas will. */
+.stepFit { width: 100%; }
+
 .step {
   container: stepPage / inline-size;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1160px;
+  max-width: none;
   transition: opacity 160ms ease-in, transform 160ms ease-in;
 }
 

@@ -8,6 +8,7 @@ import { contextParts } from "../context/summary";
 import { serialiseContext, useDashboardContext } from "../context/urlContext";
 import barStyles from "../context/ContextBar.module.css";
 import { Mark } from "../shell/Mark";
+import { FamilyPreview } from "./FamilyPreview";
 import styles from "./HomePage.module.css";
 
 function Chips({ ctx, surveys }: { ctx: StateContext; surveys: SurveysResponse }) {
@@ -75,23 +76,47 @@ export function HomePage() {
         </section>
       )}
 
+      {families.data !== undefined && families.data.length > 0 && (
+        <section aria-labelledby="home-glimpse" className={styles.glimpse}>
+          <div className={styles.glimpseHead}>
+            <h2 id="home-glimpse" className={styles.h2}>A glimpse of the cards</h2>
+            <p className={styles.note}>Drawn with placeholders: these show how each card reads, never what a survey found.</p>
+          </div>
+          <ul className={styles.tiles}>
+            {families.data.map((d, i) => (
+              <li key={d.family} className={`${styles.tile} mb-tile`} style={{ "--i": i } as React.CSSProperties}>
+                <FamilyPreview family={d.family} />
+                <h3 className={styles.tileTitle}>{d.label}</h3>
+                <p className={styles.tileText}>{d.description}</p>
+              </li>
+            ))}
+            <li className={`${styles.tile} ${styles.ctaTile}`} style={{ "--i": families.data.length } as React.CSSProperties}>
+              <h3 className={styles.tileTitle}>Your canvas</h3>
+              <p className={styles.tileText}>Mix any of these on tabs, each reading from the context you set once.</p>
+              <Link className={styles.primary} to={{ pathname: "/" }}>Start with a state</Link>
+            </li>
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="home-how" className={styles.how}>
         <h2 id="home-how" className={styles.h2}>How it works</h2>
         <ol className={styles.steps}>
           {STEPS.map((s, i) => (
             <li key={s.title} className={styles.step} style={{ "--i": i } as React.CSSProperties}>
               <span className={styles.stepNo} aria-hidden="true">{i + 1}</span>
-              <h3 className={styles.stepTitle}>{s.title}</h3>
-              <p className={styles.stepText}>{s.text}</p>
+              <div>
+                <h3 className={styles.stepTitle}>{s.title}</h3>
+                <p className={styles.stepText}>{s.text}</p>
+              </div>
             </li>
           ))}
         </ol>
-        {families.data !== undefined && families.data.length > 0 && (
-          <p className={styles.families}>
-            Cards: {families.data.map((d) => d.label).join(" · ")}
-          </p>
-        )}
       </section>
+
+      <p className={styles.trust}>
+        The engine computes every number; this page only arranges them. A value that is missing shows as a dash, with the reason on hover.
+      </p>
     </div>
   );
 }
