@@ -170,7 +170,7 @@ describe("BenchmarkCard", () => {
       const cells = within(first).getAllByRole("cell");
       const nda = cells[1].textContent ?? "";
       expect(nda).toContain("42.1%");
-      expect(nda).toContain("▼ 1.8 pp");
+      expect(nda).toContain("▼ 1.8%");
       expect(nda).toContain("154");
       expect(nda).toContain("▼ 119");
       expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(
@@ -184,7 +184,7 @@ describe("BenchmarkCard", () => {
       expect(heads).toEqual(expect.arrayContaining(["Vote share", "Seats won", "Seat share change"]));
       expect(heads).not.toContain("Share of seats"); // the cells are a change in the share, not the share
       const nda = within(table).getAllByRole("row").find((r) => within(r).queryByRole("rowheader", { name: "NDA" }))!;
-      expect(nda.textContent).toContain("-29.5 pp");
+      expect(nda.textContent).toContain("-29.5%");
     });
 
     it("lists the six margin rows and a total of 403 on each side", async () => {

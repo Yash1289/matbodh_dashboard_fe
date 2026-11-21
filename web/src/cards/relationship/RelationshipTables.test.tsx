@@ -17,7 +17,7 @@ describe("RelationshipSummaryTable", () => {
   it("shows exactly the five focal columns, round values as pipes in round order", () => {
     const p = RELATIONSHIP.transition();
     renderWithProviders(<RelationshipSummaryTable payload={p} view={initialRelationshipView(p)} />);
-    expect(headers()).toEqual(["Group", "Net flow (pp)", "Retention share", "Gained population share",
+    expect(headers()).toEqual(["Group", "Net flow", "Retention share", "Gained population share",
       "Lost population share", "Acquisition share"]);
     const row = screen.getByRole("rowheader", { name: "Male" }).closest("tr")!;
     const r1 = p.summaries.find((s) => s.round === "R1" && s.group.dimensions.gender === "Male")!;
@@ -67,7 +67,7 @@ describe("RelationshipMatrixTable", () => {
   it("shows exactly the four measure columns and nine pair rows with the diagonal marked", () => {
     const p = RELATIONSHIP.transition();
     renderWithProviders(<RelationshipMatrixTable payload={p} view={matrixView()} />);
-    expect(headers()).toEqual(["Origin → destination", "Origin share", "Destination share", "Joint share", "Size of impact (pp)"]);
+    expect(headers()).toEqual(["Origin → destination", "Origin share", "Destination share", "Joint share", "Size of impact"]);
     const rows = screen.getAllByRole("row").slice(1);
     expect(rows).toHaveLength(9);
     expect(screen.getAllByText("stayed")).toHaveLength(3);

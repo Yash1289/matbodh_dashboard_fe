@@ -399,7 +399,7 @@
     },
     {
      "id": "size_of_impact_pp",
-     "label": "Impact pp",
+     "label": "Impact",
      "unit": "percentage_points",
      "has_delta": true
     }
@@ -768,19 +768,19 @@
     },
     {
      "id": "net_size_of_impact_pp",
-     "label": "Net impact pp",
+     "label": "Net impact",
      "unit": "percentage_points",
      "has_delta": true
     },
     {
      "id": "positive_size_of_impact_pp",
-     "label": "Positive impact pp",
+     "label": "Positive impact",
      "unit": "percentage_points",
      "has_delta": true
     },
     {
      "id": "negative_size_of_impact_pp",
-     "label": "Negative impact pp",
+     "label": "Negative impact",
      "unit": "percentage_points",
      "has_delta": true
     },
@@ -962,7 +962,7 @@
    "lenses": [
     {
      "id": "gender_differential_pp",
-     "label": "Differential pp",
+     "label": "Differential",
      "unit": "percentage_points",
      "has_delta": false
     },
@@ -980,7 +980,7 @@
     },
     {
      "id": "size_of_impact_pp",
-     "label": "Impact pp",
+     "label": "Impact",
      "unit": "percentage_points",
      "has_delta": false
     }

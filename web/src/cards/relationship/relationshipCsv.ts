@@ -18,7 +18,7 @@ export function relationshipToCsv(p: RelationshipPayload, view: RelationshipView
     const round = view.round === null ? "" : roundLabel(p, view.round);
     const extra = view.showDetails ? DETAIL_RAW : [];
     return [line(["Group", "Round", "Origin", "Destination", "Stayed", "Origin share", "Destination share",
-      "Joint share", "Size of impact (pp)", "Absent", ...extra.map((m) => m.head)]),
+      "Joint share", "Size of impact", "Absent", ...extra.map((m) => m.head)]),
     ...rows.map((r) => line([label, round, r.origin, r.destination, r.stayed ? "yes" : "no", r.cell.origin_share,
       r.cell.destination_share, r.cell.joint_share, r.cell.size_of_impact_pp,
       r.cell.absent === null ? "" : "no respondents moved", ...extra.map((m) => m.raw(r.cell))]))].join("\n");

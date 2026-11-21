@@ -9,7 +9,7 @@ describe("relationshipToCsv", () => {
   it("summary: one row per group and round with the engine values unformatted", () => {
     const p = RELATIONSHIP.transition();
     const out = lines(relationshipToCsv(p, initialRelationshipView(p)));
-    expect(out[0]).toBe("Group,Round,Net flow (pp),Retention share,Gained population share,Lost population share,Acquisition share");
+    expect(out[0]).toBe("Group,Round,Net flow,Retention share,Gained population share,Lost population share,Acquisition share");
     expect(out).toHaveLength(1 + 2 * 2); // two genders, two rounds
     const r2 = p.summaries.find((s) => s.round === "R2" && s.group.dimensions.gender === "Male")!;
     expect(out).toContain(["Male", "R2", r2.net_flow_pp, r2.retention_share, r2.gained_population_share,
@@ -23,7 +23,7 @@ describe("relationshipToCsv", () => {
       : c);
     const view = { ...initialRelationshipView(p), table: "matrix" as const, round: "R2", values: { gender: "Male" } };
     const out = lines(relationshipToCsv(p, view));
-    expect(out[0]).toBe("Group,Round,Origin,Destination,Stayed,Origin share,Destination share,Joint share,Size of impact (pp),Absent");
+    expect(out[0]).toBe("Group,Round,Origin,Destination,Stayed,Origin share,Destination share,Joint share,Size of impact,Absent");
     expect(out).toHaveLength(10);
     expect(out).toContain("Male,R2,BJP+,SP+,no,,,,,no respondents moved");
     const kept = p.cells.find((c) => c.round === "R2" && c.group.dimensions.gender === "Male" && c.origin === "SP+" && c.destination === "SP+")!;

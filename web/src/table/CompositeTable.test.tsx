@@ -34,7 +34,7 @@ describe("CompositeTable", () => {
     const g = baseGrid();
     g.cells[g.rows[0].key][COLUMN.key] = { cell: null, unit: "pct" };
     show(["value"], {}, g);
-    expect(screen.getAllByTitle("Not applicable")[0].textContent).toBe("—");
+    expect(screen.getAllByTitle("—")[0].textContent).toBe("—");
   });
 
   it("a column header's sort button is at least 24px tall, so it is a reachable target", () => {

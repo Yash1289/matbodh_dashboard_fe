@@ -6,8 +6,8 @@ import { flagInfo, formatDelta, nullReason } from "./format";
 export const DASH = "—";
 const TONE_COLOUR = { gain: "var(--mb-gain)", loss: "var(--mb-loss)", neutral: "var(--mb-muted)" } as const;
 
-/** Reason a cell has no value; a missing cell is "not applicable". */
-export const reasonOf = (cell: Cell | null): string => (cell === null ? "Not applicable" : nullReason(cell));
+/** Reason a cell has no value; a missing cell is a dash. */
+export const reasonOf = (cell: Cell | null): string => (cell === null ? DASH : nullReason(cell));
 
 /** Title of a Δ: the round pair, plus the reason when the Δ is missing. */
 export function cellDeltaTitle(cell: Cell | null, dTitle: string): string {

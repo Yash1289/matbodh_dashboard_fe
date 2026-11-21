@@ -17,7 +17,7 @@ const MEASURES: Measure[] = [
   { head: "Origin share", text: (c) => formatValue(c.origin_share, "pct") },
   { head: "Destination share", text: (c) => formatValue(c.destination_share, "pct") },
   { head: "Joint share", text: (c) => formatValue(c.joint_share, "pct") },
-  { head: "Size of impact (pp)", text: (c) => formatValue(c.size_of_impact_pp, "pp") },
+  { head: "Size of impact", text: (c) => formatValue(c.size_of_impact_pp, "pp") },
 ];
 export const DETAIL_RAW: RawMeasure[] = [
   { head: "Respondents", raw: (c) => c.joint_count },

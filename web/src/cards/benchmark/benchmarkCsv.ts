@@ -15,7 +15,7 @@ export function benchmarkToCsv(p: BenchmarkPayload, view: BenchmarkView): string
   const flat = <T extends { group: Parameters<typeof groupLabel>[0] }>(rows: T[]) =>
     groupedRows(rows as (T & { party?: string })[], p.parties, p.other_label, view.search).flatMap((g) => g.rows);
   if (view.table === "comparison") {
-    return [line(["Group", "Party", `${t} vote share`, `${r} vote share`, "Vote share change (pp)",
+    return [line(["Group", "Party", `${t} vote share`, `${r} vote share`, "Vote share change",
       `${t} seats`, `${r} seats`, "Seat change"]),
     ...flat(p.comparisons).map((x) => line([groupLabel(x.group), x.party, x.target_vote_share,
       x.reference_vote_share, x.vote_share_delta_pp, x.target_seats, x.reference_seats, x.seat_delta]))].join("\n");

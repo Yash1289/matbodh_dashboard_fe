@@ -1,7 +1,7 @@
 import type { Cell, CellPart, RoundsBlock, Unit } from "../api/types";
 import { formatTrendPipes, formatValue } from "./format";
 import { deltaTitle, seriesBreaks } from "./parts";
-import { CellFrame, Dash, Delta, Flags, cellDeltaTitle, reasonOf } from "./pieces";
+import { CellFrame, DASH, Dash, Delta, Flags, cellDeltaTitle, reasonOf } from "./pieces";
 import { Sparkline } from "./Sparkline";
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function CompositeCell({ cell, unit, parts, rounds, deltaLabel }: Props) {
-  if (cell === null) return <CellFrame value={<Dash title="Not applicable" />} delta={null} sub={[<span key="r">Not applicable</span>]} />;
+  if (cell === null) return <CellFrame value={<Dash title={DASH} />} delta={null} sub={[<span key="r">{DASH}</span>]} />;
   const has = (p: CellPart) => parts.includes(p);
   const dTitle = deltaLabel ?? deltaTitle(rounds);
   const names = rounds.items.map((r) => r.base_name).join(" | ");

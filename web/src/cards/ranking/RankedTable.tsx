@@ -171,7 +171,7 @@ export function RankedTable({ payload, view }: Props) {
       <TableFrame minWidthEm={trend ? 8 + 11 * model.rounds.length : undefined}>
         <table>
           <caption style={{ textAlign: "left", color: "var(--mb-muted)", padding: "8px 12px" }}>
-            {unit === "pp" ? "Percentage points" : "Percentage"} · ranked {payload.direction === "ASC" ? "lowest" : "highest"} first
+            Percentage · ranked {payload.direction === "ASC" ? "lowest" : "highest"} first
             {payload.top_k !== null && ` · top ${payload.top_k} per ${partitioned ? "partition" : "ranking"}`}
           </caption>
           <thead>

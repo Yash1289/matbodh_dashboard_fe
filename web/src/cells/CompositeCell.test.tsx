@@ -14,7 +14,7 @@ const ALL = ["value", "delta", "trend", "base", "secondary", "flags"] as const;
 describe("CompositeCell", () => {
   it("not-asked cell shows dash with reason", () => {
     render(<CompositeCell cell={null} unit="pct" parts={[...ALL]} rounds={rounds} />);
-    expect(screen.getByTitle("Not applicable").textContent).toBe("—");
+    expect(screen.getByTitle("—").textContent).toBe("—");
     render(<CompositeCell cell={cell({ value: null, flags: ["not_asked"] })} unit="pct" parts={["value"]} rounds={rounds} />);
     expect(screen.getByTitle("Not asked in this round").textContent).toBe("—");
   });
@@ -97,6 +97,6 @@ describe("CompositeCell", () => {
     expect(container.querySelector('[data-row="sub"]')!.textContent).toBe("Not a seat contender");
     unmount();
     const r = render(<CompositeCell cell={null} unit="pct" parts={["value"]} rounds={rounds} />);
-    expect(r.container.querySelector('[data-row="sub"]')!.textContent).toBe("Not applicable");
+    expect(r.container.querySelector('[data-row="sub"]')!.textContent).toBe("—");
   });
 });

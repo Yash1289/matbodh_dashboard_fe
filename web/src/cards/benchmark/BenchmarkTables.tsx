@@ -21,11 +21,11 @@ export function bucketLabel(bucket: string): string {
   if (bucket in BUCKETS) return BUCKETS[bucket];
   const m = /^(ahead|behind)_(\d+)_(\d+|plus)$/.exec(bucket);
   if (!m) return bucket;
-  return `${m[1] === "ahead" ? "Ahead" : "Behind"} ${m[3] === "plus" ? `${m[2]}+` : `${m[2]}–${m[3]}`} pp`;
+  return `${m[1] === "ahead" ? "Ahead" : "Behind"} ${m[3] === "plus" ? `${m[2]}+` : `${m[2]}–${m[3]}`}%`;
 }
 
 export const pct = (v: number | null) => (v === null ? null : `${v.toFixed(1)}%`);
-export const pp = (v: number | null) => (v === null ? null : `${v > 0 ? "+" : ""}${v.toFixed(1)} pp`);
+export const pp = (v: number | null) => (v === null ? null : `${v > 0 ? "+" : ""}${v.toFixed(1)}%`);
 export const count = (v: number | null) => (v === null ? null : String(v));
 export const signed = (v: number | null) => (v === null ? null : `${v > 0 ? "+" : ""}${v}`);
 
@@ -70,7 +70,7 @@ function SummaryBox({ cell }: { cell: SummaryCell | null }) {
     <td>
       <div className={styles.line}>
         <span className={styles.big}>{pct(cell.voteShare) ?? "–"}</span>
-        {v !== null && <span className={styles.delta} data-tone={tone(v)}>{arrow(v)} {Math.abs(v).toFixed(1)} pp</span>}
+        {v !== null && <span className={styles.delta} data-tone={tone(v)}>{arrow(v)} {Math.abs(v).toFixed(1)}%</span>}
       </div>
       <div className={`${styles.line} ${styles.seats}`}>
         <b>{cell.seats ?? "–"}</b>

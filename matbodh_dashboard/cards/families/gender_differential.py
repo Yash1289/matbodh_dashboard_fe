@@ -14,11 +14,11 @@ GENDER_DIFFERENTIAL = FamilySpec(
     scenario_kind="party",
     gender_differential=True,
     lenses=(
-        LensDef(id="gender_differential_pp", label="Differential pp",
+        LensDef(id="gender_differential_pp", label="Differential",
                 unit="percentage_points"),
         LensDef(id="female_support_share", label="Female %", unit="percentage"),
         LensDef(id="male_support_share", label="Male %", unit="percentage"),
-        LensDef(id="size_of_impact_pp", label="Impact pp", unit="percentage_points"),
+        LensDef(id="size_of_impact_pp", label="Impact", unit="percentage_points"),
     ),
     lens_sources={
         "gender_differential_pp": _source("gender_differential_pp"),

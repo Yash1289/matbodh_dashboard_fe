@@ -20,7 +20,7 @@ const num = (v: number | null) => (v === null ? "—" : String(Math.round(v * 10
 export const mainColumns = (focal: string | null): Column[] => focal === null
   ? [{ head: "Agreement share", tip: "Respondents with the same party at both questions, as a share of those who answered both", unit: "pct", value: (s) => s.agreement_share }]
   : [
-    { head: "Net flow (pp)", tip: `${focal} gained minus lost, as a share of all respondents who answered both questions (percentage points)`, unit: "pp", value: (s) => s.net_flow_pp },
+    { head: "Net flow", tip: `${focal} gained minus lost, as a share of all respondents who answered both questions`, unit: "pp", value: (s) => s.net_flow_pp },
     { head: "Retention share", tip: `Of those who were ${focal} before, the share who still are`, unit: "pct", value: (s) => s.retention_share },
     { head: "Gained population share", tip: `Respondents who moved to ${focal}, as a share of all who answered both questions`, unit: "pct", value: (s) => s.gained_population_share },
     { head: "Lost population share", tip: `Respondents who left ${focal}, as a share of all who answered both questions`, unit: "pct", value: (s) => s.lost_population_share },

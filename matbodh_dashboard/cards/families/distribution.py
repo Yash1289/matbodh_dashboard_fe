@@ -22,7 +22,7 @@ DISTRIBUTION = FamilySpec(
         LensDef(id="contribution_share", label="Contribution %", unit="percentage"),
         LensDef(id="scenario_composition_share", label="Scenario share %", unit="percentage"),
         LensDef(id="joint_share", label="Joint %", unit="percentage"),
-        LensDef(id="size_of_impact_pp", label="Impact pp", unit="percentage_points",
+        LensDef(id="size_of_impact_pp", label="Impact", unit="percentage_points",
                 has_delta=True),
     ),
     lens_sources={
