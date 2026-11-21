@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Layouts apply to distribution and opinion families only (`MIXED_LEVEL_FAMILIES` minus gender differential and relationship, which keep their own layouts).
-- Several questions x several surveys: overall only; the measure is derived, never chosen: all party questions show support share, all opinion questions show net score; a mix of party and opinion questions is blocked (owner to confirm); cuts disabled.
+- Several questions x several surveys: overall only; the measure is derived, never chosen: all party questions show support share, all opinion questions show net score (a card is party-only or opinion-only by its family, so the two never mix); cuts disabled.
 - Any cut with several questions or several surveys: the extra questions or surveys become one chosen filter (the table shows one at a time), never extra columns.
 - With no seat-level cut the card applies no common-coverage intersection; each survey keeps its own coverage (zone/state rounds already force `independent`).
 - No cap on the number of surveys (the 4-round cap belongs to trend's pipe view only); a value the engine did not return stays empty with its reason, never filled.
@@ -24,9 +24,9 @@
 
 - A selected survey that did not ask one of the card's questions: that survey's cells are empty with "not asked" (as trend's `not_asked`), the card still runs.
 - `surveys` naming a round that is not in the context, or the anchor missing from it: card unavailable with the round named.
-- Several-by-several with a cut, or with party and opinion questions mixed: rejected by the backend with the rule, not an engine error.
+- Several-by-several with a cut: rejected by the backend with the rule, not an engine error.
 - Surveys of mixed levels with a seat-level cut (`ac_num`/`pc_num`): unavailable (rule from B), and coverage never `common` without a seat cut.
-- All-party several-by-several shows support share and all-opinion shows net score, with no measure control anywhere.
+- A Party vote share card shows support share and an Opinion card shows net score in several-by-several, with no measure control anywhere.
 - Switching the layout axis, the question filter or the survey filter never refetches (pure display state).
 
 ---
@@ -39,10 +39,10 @@
 
 **Interfaces:**
 - Produces: `CardConfig.surveys: list[str] = []` (round base names chosen from the context; empty = anchor only). No `measure` field: the measure follows the questions' kind (`scenario_kind`).
-- Rules in `_validate` (message prefix style of the existing `_fail`): `surveys` only for distribution/opinion in standalone mode; no duplicates; no length cap; when `len(surveys) > 1 and len(scenarios) > 1`: `cuts` must be `[[]]` and the scenarios must all be party or all be opinion.
+- Rules in `_validate` (message prefix style of the existing `_fail`): `surveys` only for distribution/opinion in standalone mode; no duplicates; no length cap; when `len(surveys) > 1 and len(scenarios) > 1`: `cuts` must be `[[]]`.
 - `_select` standalone mode: `used = [rounds named in config.surveys]` (anchor alone when empty); a survey missing from the context -> `unavailable` naming it; surveys lacking a scenario go to `not_asked` like trend. `read_levels` adds every `config.surveys` round, so `card_blockers` sees all their levels.
 
-- [ ] **Step 1: Write failing tests**: `test_surveys_rejected_outside_standalone_distribution_opinion`, `test_several_by_several_rejects_cuts`, `test_several_by_several_rejects_mixed_party_and_opinion`, `test_single_survey_list_equals_anchor_only_request`, `test_survey_not_in_context_is_unavailable_naming_it`, `test_survey_without_the_scenario_is_not_asked_not_error`, `test_mixed_level_surveys_with_ac_num_cut_unavailable`, `test_no_common_coverage_without_a_seat_cut` (request `coverage_mode != "common"` for AC+AC surveys cut by `district`... assert the existing `choose_coverage` result and fix only if wrong).
+- [ ] **Step 1: Write failing tests**: `test_surveys_rejected_outside_standalone_distribution_opinion`, `test_several_by_several_rejects_cuts`, `test_single_survey_list_equals_anchor_only_request`, `test_survey_not_in_context_is_unavailable_naming_it`, `test_survey_without_the_scenario_is_not_asked_not_error`, `test_mixed_level_surveys_with_ac_num_cut_unavailable`, `test_no_common_coverage_without_a_seat_cut` (request `coverage_mode != "common"` for AC+AC surveys cut by `district`... assert the existing `choose_coverage` result and fix only if wrong).
 - [ ] **Step 2: Run** `.venv\Scripts\python.exe -m pytest tests/cards/test_config.py tests/cards/test_compile.py -q`. Expected: new tests FAIL.
 - [ ] **Step 3: Implement** the fields, validation and `_select`/`read_levels` change above.
 - [ ] **Step 4: Run** the full suite. Expected: all pass (809+).
@@ -94,6 +94,6 @@
 
 ## Open questions for the owner (my calls, correctable)
 
-- **Party and opinion questions mixed** in several-by-several: blocked, since support share and net score cannot share one table. Say if it should be allowed another way.
+- **Where surveys are chosen in Configure:** pending the Configure design brief (a "Side by side" mode versus a Surveys field under standalone); Tasks 1 to 3 are adjusted once it is confirmed.
 - **Respondent filters** (the existing `filters` list) stay allowed with several-by-several; only cuts are disabled.
 - **Survey count:** no cap on the card; I will report if the engine rejects a large set.
