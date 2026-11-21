@@ -190,3 +190,31 @@ def test_copied_config_loads(tmp_path):
     path.write_text("cards:\n" + pasted + "\n", encoding="utf-8")
     card = load_cards(path)["mine.1"]
     assert card.title == "T: with, punctuation" and card.caste_clubbing and card.display_parties == ["NDA"]
+
+
+def _surveys_card(**kw):
+    data = {"id": "c", "family": "distribution", "title": "T", "scenarios": ["vs_voting_intention"],
+            "surveys": ["A", "B"]}
+    data.update(kw)
+    return CardConfig.model_validate(data)
+
+
+def test_surveys_accepted_for_distribution_and_opinion():
+    assert _surveys_card().surveys == ["A", "B"]
+    assert _surveys_card(family="opinion", scenarios=["pm_satisfaction"]).surveys == ["A", "B"]
+
+
+@pytest.mark.parametrize("bad", [
+    {"family": "seat_ranking", "rank": {"level": "ac", "metric": "support_share", "party_id": "BJP"}},
+    {"surveys": ["A"]}, {"surveys": ["A", "A"]}, {"anchor_round": "A"},
+    {"comparison": {"mode": "trend"}},
+])
+def test_surveys_rejected_elsewhere(bad):
+    with pytest.raises(Exception):
+        _surveys_card(**bad)
+
+
+def test_several_questions_across_surveys_reject_cuts():
+    with pytest.raises(Exception, match="cuts"):
+        _surveys_card(scenarios=["vs_voting_intention", "ls_past"], cuts=[["age_group"]])
+    assert _surveys_card(scenarios=["vs_voting_intention", "ls_past"]).cuts == [[]]

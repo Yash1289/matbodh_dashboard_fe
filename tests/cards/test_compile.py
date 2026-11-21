@@ -405,3 +405,39 @@ def test_demographic_ranking_over_two_levels_stays_blocked():
 def test_standalone_ac_card_in_a_mixed_context_is_unaffected():
     plan = _mixed(_config(cuts=[["ac_num"]]), rounds=(R2, ST1), anchor=R2, compare=None)
     assert plan.unavailable == ()
+
+
+def _surveys(**extra):
+    return _config(surveys=[R1, R3], **extra)
+
+
+def test_surveys_read_every_chosen_round_independently():
+    request = _request(_compile(_surveys()))
+    assert [o["survey_name"] for o in request["observations"]] == [R1, R3]
+    assert request["coverage_mode"] == "independent"
+
+
+def test_surveys_need_a_scenario_every_survey_asked_else_not_asked():
+    cm = "cm_satisfaction"  # R1 did not ask it
+    plan = _compile(_config(family="opinion", scenarios=[cm], surveys=[R1, R2, R3]))
+    assert plan.unavailable == ()
+    assert plan.not_asked == (("grid", (R1,)),)
+    assert [o["survey_name"] for o in plan.jobs[0].config["request"]["observations"]] == [R2, R3]
+
+
+def test_survey_not_in_context_is_unavailable_naming_it():
+    plan = _compile(_config(surveys=[R1, "Nope"]))
+    assert plan.unavailable and "Nope" in plan.unavailable[0][1]
+
+
+def test_read_levels_includes_every_chosen_survey():
+    from matbodh_dashboard.cards.compile import read_levels
+    from matbodh_dashboard.compiler.rounds import resolve_rounds
+    ctx = _ctx(rounds=(R1, R2, R3))
+    rounds = resolve_rounds(ctx, _catalogue("ac", 3))
+    assert read_levels(_surveys(), ctx, rounds, R3) == ["ac", "ac"]  # R1 and R3 only, not R2
+
+
+def test_surveys_district_cut_never_uses_common_coverage():
+    request = _request(_compile(_surveys(cuts=[["party_zone"]])))
+    assert request["coverage_mode"] != "common"

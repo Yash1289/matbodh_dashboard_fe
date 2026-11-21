@@ -63,6 +63,7 @@ def read_levels(config: CardConfig, ctx: StateContext, rounds: list[ResolvedRoun
         names.add(ctx.compare_round)
     if config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES:
         names.update(r.identity.base_name for r in rounds)
+    names.update(config.surveys)
     return [r.dataset.level for r in rounds if r.identity.base_name in names]
 
 
@@ -107,6 +108,21 @@ def _endpoint_round(ref: str, rounds, anchor: str, ctx: StateContext):
 def _select(config: CardConfig, ctx: StateContext, rounds, anchor: str,
             unavailable: list, not_asked: list) -> _Selection | None:
     mode = config.comparison.mode
+    if mode == "standalone" and config.surveys:
+        chosen = [_by_base_name(rounds, name) for name in config.surveys]
+        for name, found in zip(config.surveys, chosen):
+            if found is None:
+                unavailable.append((GRID, f"Round {name!r} is not among the selected rounds"))
+        if unavailable:
+            return None
+        asked = [r for r in chosen if all(s in r.dataset.scenarios for s in config.scenarios)]
+        dropped = [r for r in chosen if r not in asked]
+        if dropped:
+            not_asked.append((GRID, tuple(r.identity.base_name for r in dropped)))
+        if not asked:
+            unavailable.append((GRID, "None of the chosen surveys asked these questions"))
+        return _Selection(asked)
+
     if mode == "standalone":
         anchor_round = _by_base_name(rounds, anchor)
         for scenario in config.scenarios:

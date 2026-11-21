@@ -14,7 +14,7 @@ from matbodh_dashboard.cards.payload import FamilyMeta
 # CardConfig paths Configure never shows as fields: chosen when the card is added (family), generated
 # (id), replaced by the canvas (section), derived by the compilers (requires) or display-only (view).
 # anchor_round / compare_round get their fields in Task 3 of the multi-survey plan; remove them here then.
-DISPLAY_OR_GENERATED = frozenset({"family", "id", "section", "requires", "view", "anchor_round", "compare_round"})
+DISPLAY_OR_GENERATED = frozenset({"family", "id", "section", "requires", "view", "anchor_round", "compare_round", "surveys"})
 
 
 class _Strict(BaseModel):
