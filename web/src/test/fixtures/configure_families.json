@@ -54,6 +54,65 @@
     "multiple": true
    },
    {
+    "path": "surveys",
+    "label": "Surveys",
+    "help": "Empty uses the context's anchor round. One survey reads it; several are read side by side. With several surveys or questions, a split shows one at a time",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "standalone"
+    },
+    "options": {
+     "source": "surveys",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "equals",
+      "path": "comparison.mode",
+      "value": "standalone"
+     }
+    },
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": false
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "compare_round",
+    "label": "Compared with survey",
+    "help": "Empty uses the context's comparison round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": false
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
     "path": "comparison.mode",
     "label": "Show",
     "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
@@ -377,6 +436,65 @@
     "multiple": true
    },
    {
+    "path": "surveys",
+    "label": "Surveys",
+    "help": "Empty uses the context's anchor round. One survey reads it; several are read side by side. With several surveys or questions, a split shows one at a time",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "standalone"
+    },
+    "options": {
+     "source": "surveys",
+     "params": {}
+    },
+    "limits": {},
+    "multiple": true
+   },
+   {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "equals",
+      "path": "comparison.mode",
+      "value": "standalone"
+     }
+    },
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": false
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "compare_round",
+    "label": "Compared with survey",
+    "help": "Empty uses the context's comparison round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": false
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
     "path": "comparison.mode",
     "label": "Show",
     "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
@@ -674,6 +792,22 @@
     "multiple": true
    },
    {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": false
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
     "path": "comparison.mode",
     "label": "Show",
     "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
@@ -897,6 +1031,38 @@
      "source": "parties",
      "params": {
       "use": "rank"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "compare_round",
+    "label": "Compared with survey",
+    "help": "Empty uses the context's comparison round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
      }
     },
     "limits": {},
@@ -1164,6 +1330,38 @@
     "multiple": false
    },
    {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "compare_round",
+    "label": "Compared with survey",
+    "help": "Empty uses the context's comparison round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
     "path": "comparison.mode",
     "label": "Show",
     "help": "standalone: the anchor round; compare: anchor vs the comparison round (or two questions in one round); trend: the pipe rounds",
@@ -1365,6 +1563,38 @@
      "source": "scenarios",
      "params": {
       "kind": "party"
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "anchor_round",
+    "label": "Survey",
+    "help": "Empty uses the context's anchor round",
+    "widget": "choice",
+    "required": false,
+    "tier": "primary",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
+     }
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "compare_round",
+    "label": "Compared with survey",
+    "help": "Empty uses the context's comparison round",
+    "widget": "choice",
+    "required": false,
+    "tier": "more",
+    "options": {
+     "source": "surveys",
+     "params": {
+      "seat": true
      }
     },
     "limits": {},

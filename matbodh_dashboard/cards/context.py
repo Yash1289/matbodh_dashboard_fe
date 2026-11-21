@@ -13,6 +13,8 @@ def card_context(config: CardConfig, ctx: StateContext) -> StateContext:
     """The context this card reads: the card's anchor/compare rounds where set, else the context's.
     Raises ValueError naming a round that is not among the context's selected rounds."""
     chosen = {"anchor_round": config.anchor_round, "compare_round": config.compare_round}
+    if len(config.surveys) == 1:  # one chosen survey is simply this card's anchor
+        chosen["anchor_round"] = config.surveys[0]
     chosen = {key: name for key, name in chosen.items() if name is not None}
     for name in chosen.values():
         if name not in ctx.rounds:

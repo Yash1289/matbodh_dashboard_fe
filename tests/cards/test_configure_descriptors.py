@@ -19,18 +19,19 @@ ATOMIC = {"scenarios", "cuts", "filters", "display_parties", "comparison.delta_m
 
 COMPARE = {"comparison.mode", "comparison.target.round", "comparison.target.scenario",
            "comparison.reference.round", "comparison.reference.scenario"}
+SURVEY = {"anchor_round", "compare_round"}
 EXPECTED = {
-    "distribution": {"title", "scenarios", "all_party_scenarios", *COMPARE, "comparison.delta_measures",
+    "distribution": {*SURVEY, "surveys", "title", "scenarios", "all_party_scenarios", *COMPARE, "comparison.delta_measures",
                      "cuts", "filters", "caste_clubbing", "pipe_rounds", "display_parties"},
-    "opinion": {"title", "scenarios", *COMPARE, "comparison.delta_measures", "cuts", "filters",
+    "opinion": {*SURVEY, "surveys", "title", "scenarios", *COMPARE, "comparison.delta_measures", "cuts", "filters",
                 "caste_clubbing", "pipe_rounds"},
-    "gender_differential": {"title", "scenarios", "comparison.mode", "cuts", "filters", "caste_clubbing",
+    "gender_differential": {"anchor_round", "title", "scenarios", "comparison.mode", "cuts", "filters", "caste_clubbing",
                             "pipe_rounds", "display_parties"},
-    "seat_ranking": {"title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
+    "seat_ranking": {*SURVEY, "title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
                      "rank.partition_by", "rank.filters", "rank.top_k", "pipe_rounds"},
-    "demographic_ranking": {"title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
+    "demographic_ranking": {*SURVEY, "title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
                             "rank.partition_by", "rank.top_k", "filters", "pipe_rounds"},
-    "seat_benchmark": {"title", "scenarios", "benchmark.reference", "benchmark.focal_party",
+    "seat_benchmark": {*SURVEY, "title", "scenarios", "benchmark.reference", "benchmark.focal_party",
                        "benchmark.grouping_sets", "benchmark.contenders"},
     "relationship": {"title", "relationship.origin", "relationship.destination", "relationship.focal_party",
                      "relationship.include_recalled.origin", "relationship.include_recalled.destination",
@@ -38,7 +39,7 @@ EXPECTED = {
                      "pipe_rounds"},
 }
 # Optional fields shown on first open: how the card is split and in which mode / against what.
-PRIMARY_OPTIONAL = {"comparison.mode", "cuts", "benchmark.reference", "benchmark.grouping_sets"}
+PRIMARY_OPTIONAL = {"anchor_round", "surveys", "comparison.mode", "cuts", "benchmark.reference", "benchmark.grouping_sets"}
 
 
 def _models(annotation):

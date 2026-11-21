@@ -272,3 +272,22 @@ def test_seat_ranking_filters_still_need_a_seat_level():
     assert on_state == set()
     on_ac = _fields_for(draft, _levelled(), _mixed_ctx((R2,), R2, None), use="seat_attribute")
     assert "party_zone" in on_ac
+
+
+def test_survey_options_are_the_context_rounds_with_their_level():
+    found = items("surveys")
+    assert values(found) == NAMES
+    assert found[0].label == f"{R1} · AC"
+
+
+def test_seat_survey_options_drop_zone_and_state_rounds():
+    zone = service(catalogue(level="zone"))
+    assert items("surveys", svc=zone, seat=True) == []
+    assert values(items("surveys", svc=zone)) == NAMES
+
+
+def test_rounds_read_follows_the_cards_own_survey_and_surveys():
+    one = rounds_read({"family": "distribution", "anchor_round": R2}, ctx(), service().catalogue)
+    assert [r.identity.base_name for r in one] == [R2]
+    several = rounds_read({"family": "distribution", "surveys": [R1, R3]}, ctx(), service().catalogue)
+    assert [r.identity.base_name for r in several] == [R1, R3]

@@ -206,7 +206,7 @@ def test_surveys_accepted_for_distribution_and_opinion():
 
 @pytest.mark.parametrize("bad", [
     {"family": "seat_ranking", "rank": {"level": "ac", "metric": "support_share", "party_id": "BJP"}},
-    {"surveys": ["A"]}, {"surveys": ["A", "A"]}, {"anchor_round": "A"},
+    {"surveys": ["A", "A"]}, {"anchor_round": "A"},
     {"comparison": {"mode": "trend"}},
 ])
 def test_surveys_rejected_elsewhere(bad):

@@ -108,7 +108,7 @@ def _endpoint_round(ref: str, rounds, anchor: str, ctx: StateContext):
 def _select(config: CardConfig, ctx: StateContext, rounds, anchor: str,
             unavailable: list, not_asked: list) -> _Selection | None:
     mode = config.comparison.mode
-    if mode == "standalone" and config.surveys:
+    if mode == "standalone" and len(config.surveys) > 1:
         chosen = [_by_base_name(rounds, name) for name in config.surveys]
         for name, found in zip(config.surveys, chosen):
             if found is None:

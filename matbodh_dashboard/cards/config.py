@@ -212,7 +212,7 @@ class CardConfig(_Strict):
     # This card's own survey instead of the context's anchor / comparison round (base names; None = the context's).
     anchor_round: str | None = None
     compare_round: str | None = None
-    # Party vote share and opinion cards, standalone: several surveys read side by side (>= 2, any number).
+    # Party vote share and opinion cards, standalone: the surveys read (one = that survey, several = side by side).
     surveys: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
@@ -396,11 +396,11 @@ class CardConfig(_Strict):
     def _check_surveys(self, comparison: ComparisonConfig) -> None:
         if self.family not in ("distribution", "opinion") or comparison.mode != "standalone":
             _fail("surveys", "surveys apply to party vote share and opinion cards in standalone mode")
-        if len(self.surveys) < 2 or len(set(self.surveys)) != len(self.surveys):
-            _fail("surveys", "choose at least two different surveys")
+        if len(set(self.surveys)) != len(self.surveys):
+            _fail("surveys", "choose each survey once")
         if self.anchor_round is not None:
             _fail("surveys", "choose either one survey or several, not both")
-        if len(self.scenarios) > 1 and any(cut for cut in self.cuts):
+        if len(self.surveys) > 1 and len(self.scenarios) > 1 and any(cut for cut in self.cuts):
             _fail("cuts", "several questions across several surveys show overall only")
 
     def _check_delta_measures(self, comparison: ComparisonConfig) -> None:

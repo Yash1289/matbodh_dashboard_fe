@@ -62,8 +62,18 @@ def _asking(rounds: list[ResolvedRound], scenarios: list[str]) -> list[ResolvedR
     return [r for r in rounds if all(s in r.dataset.scenarios for s in scenarios)] if scenarios else rounds
 
 
+def _card_ctx(draft: Mapping[str, Any], ctx: StateContext) -> StateContext:
+    """The draft's own anchor/compare survey in place of the context's (a name outside the context is
+    ignored here; validation reports it)."""
+    surveys = draft.get("surveys") or []
+    wanted = {"anchor_round": surveys[0] if len(surveys) == 1 else draft.get("anchor_round"),
+              "compare_round": draft.get("compare_round")}
+    return ctx.model_copy(update={k: v for k, v in wanted.items() if v in ctx.rounds})
+
+
 def rounds_read(draft: Mapping[str, Any], ctx: StateContext, catalogue: Catalogue) -> list[ResolvedRound]:
     """The rounds this draft would read, in round order (mirrors the compilers' round selection)."""
+    ctx = _card_ctx(draft, ctx)
     rounds = resolve_rounds(ctx, catalogue)
     anchor = resolve_anchor(ctx, catalogue)
     anchor_round = _by_name(rounds, anchor)
@@ -86,6 +96,9 @@ def rounds_read(draft: Mapping[str, Any], ctx: StateContext, catalogue: Catalogu
         names = {"anchor": anchor, "compare": ctx.compare_round}
         wanted = {names.get(_get(draft, f"comparison.{end}.round") or "anchor") for end in ("target", "reference")}
         return [r for r in rounds if r.identity.base_name in wanted]
+    chosen = draft.get("surveys") or []
+    if len(chosen) > 1:
+        return [r for r in rounds if r.identity.base_name in chosen]
     return [anchor_round]
 
 
@@ -124,6 +137,16 @@ def _metrics(params, draft, ctx, service) -> list[OptionItem]:
         return []
     measures = PARTY_MEASURES if scenario_kind(scenario) == "party" else OPINION_MEASURES
     return [OptionItem(value=m, label=METRIC_LABELS[m]) for m in measures]
+
+
+LEVEL_TAGS = {"ac": "AC", "pc": "PC", "zone": "Zone", "state": "State-wide"}
+
+
+def _surveys(params, draft, ctx, service) -> list[OptionItem]:
+    """Every survey of the context with its level; seat cards (params seat=true) only AC and PC ones."""
+    seat_only = params.get("seat") is True
+    return [OptionItem(value=r.identity.base_name, label=f"{r.identity.base_name} · {LEVEL_TAGS[r.dataset.level]}")
+            for r in resolve_rounds(ctx, service.catalogue) if not seat_only or r.dataset.level in ("ac", "pc")]
 
 
 @lru_cache(maxsize=1)
@@ -238,7 +261,7 @@ def _elections(params, draft, ctx, service) -> list[OptionItem]:
 
 
 SOURCES: dict[str, Callable[..., list[OptionItem]]] = {
-    "scenarios": _scenarios, "metrics": _metrics, "fields": _fields,
+    "scenarios": _scenarios, "surveys": _surveys, "metrics": _metrics, "fields": _fields,
     "joint_weight_scenarios": _joint_weight_scenarios, "parties": _parties, "elections": _elections,
 }
 

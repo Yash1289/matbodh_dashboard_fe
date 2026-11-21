@@ -37,6 +37,16 @@ def _scenarios(kind: str, *, multiple: bool, show_when=NOT_COMPARE, label="Quest
               limits={"max_items": 12} if multiple else {})
 
 
+NOT_STANDALONE = Not(of=Equals(path="comparison.mode", value="standalone"))
+
+
+def _surveys_field() -> FieldDescriptor:
+    return _f("surveys", "Surveys", "choice", multiple=True, tier="primary",
+              show_when=Equals(path="comparison.mode", value="standalone"), options=_options("surveys"),
+              help="Empty uses the context's anchor round. One survey reads it; several are read side by side. "
+                   "With several surveys or questions, a split shows one at a time")
+
+
 def _mode(choices=("standalone", "compare", "trend")) -> FieldDescriptor:
     return _f("comparison.mode", "Show", "choice", tier="primary", choices=list(choices), default="standalone",
               help="standalone: the anchor round; compare: anchor vs the comparison round (or two questions "
@@ -80,6 +90,17 @@ def _pipe_rounds(show_when=TREND) -> FieldDescriptor:
               help="The last N pipe rounds up to the anchor; empty = all of them")
 
 
+def _survey(label="Survey", *, show_when=None, seat=False) -> FieldDescriptor:
+    """This card's own survey instead of the context's anchor (empty = the context's)."""
+    return _f("anchor_round", label, "choice", show_when=show_when, options=_options("surveys", seat=seat),
+              tier="primary", help="Empty uses the context's anchor round")
+
+
+def _compare_survey(seat=False) -> FieldDescriptor:
+    return _f("compare_round", "Compared with survey", "choice", options=_options("surveys", seat=seat),
+              help="Empty uses the context's comparison round")
+
+
 def _display_parties() -> FieldDescriptor:
     return _f("display_parties", "Show only these parties", "party_picker", multiple=True,
               options=_options("parties", use="hide"), help="Hides rows after calculation; bases are unchanged")
@@ -93,6 +114,7 @@ def _ranking(level: FieldDescriptor, *, seat: bool) -> list[FieldDescriptor]:
         _f("rank.metric", "Rank by", "metric_picker", required=True, tier="primary", options=_options("metrics")),
         _f("rank.party_id", "Party", "party_picker", required=True, tier="primary",
            show_when=Equals(path="rank.metric", value="support_share"), options=_options("parties", use="rank")),
+        _survey(seat=True), _compare_survey(seat=True),
         _mode(),
         *_compare("any", "any"),
     ]
@@ -135,6 +157,7 @@ def _all() -> tuple[FamilyDescriptor, ...]:
                 "Vote share for one or more party questions, split by the cuts you choose.", [
                     _title(),
                     _scenarios("party", multiple=True, show_when=All(of=[NOT_COMPARE, Not(of=every_party)])),
+                    _surveys_field(), _survey(show_when=NOT_STANDALONE), _compare_survey(),
                     _mode(),
                     *_compare("party", "any"),
                     _cuts(),
@@ -145,11 +168,13 @@ def _all() -> tuple[FamilyDescriptor, ...]:
                 ]),
         _family("opinion", "Opinion",
                 "Ratings and yes/no questions: positive, negative and net shares.", [
-                    _title(), _scenarios("opinion", multiple=True), _mode(), *_compare("opinion", "opinion"),
+                    _title(), _scenarios("opinion", multiple=True), _surveys_field(),
+                    _survey(show_when=NOT_STANDALONE), _compare_survey(),
+                    _mode(), *_compare("opinion", "opinion"),
                     _cuts(), opinion_delta, _filters(), _caste_clubbing(), _pipe_rounds(),
                 ]),
         _family("gender_differential", "Gender gap", "How women and men differ in party support.", [
-                    _title(), _scenarios("party", multiple=True, show_when=None),
+                    _title(), _scenarios("party", multiple=True, show_when=None), _survey(),
                     _mode(("standalone", "trend")), _cuts(family="gender_differential"),
                     _filters(), _caste_clubbing(), _pipe_rounds(), _display_parties(),
                 ]),
@@ -164,6 +189,7 @@ def _all() -> tuple[FamilyDescriptor, ...]:
         _family("seat_benchmark", "Seat benchmark",
                 "Seats won and vote share, against the comparison round or a past election.", [
                     _title(), _scenarios("party", multiple=False, show_when=None),
+                    _survey(seat=True), _compare_survey(seat=True),
                     _f("benchmark.reference", "Compared with", "election_picker", tier="primary",
                        options=_options("elections"),
                        help="Nothing, the comparison round (when left empty), or a past election"),
