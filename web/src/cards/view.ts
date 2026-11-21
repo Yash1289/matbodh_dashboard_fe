@@ -20,6 +20,10 @@ export interface FamilyView {
   showDetails: boolean;
   /** The chosen seat group when the cut's first field is a seat field: a value, or null for All. Unset means the default. */
   seat?: string | null;
+  /** Several surveys / questions / parties are read one at a time: the chosen one (unset = the first). Display only. */
+  survey?: string | null;
+  question?: string | null;
+  party?: string | null;
 }
 
 export const ruleOf = (v: FamilyView): FormatRule =>

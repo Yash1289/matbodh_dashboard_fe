@@ -13,6 +13,8 @@ import { payloadToGrid } from "./grid/payloadToGrid";
 import { MethodDrawer } from "./LazyMethodDrawer";
 import { gridNotes } from "./notes";
 import { SeatSelector } from "./SeatSelector";
+import { LayoutSelectors } from "./LayoutSelectors";
+import { layoutPayload } from "./grid/layout";
 import { applySeat, resolveSeat, seatChoices, seatSplit } from "./seatScope";
 import { sizeClass } from "./sizeClass";
 import { initialView, settled, type FamilyView } from "./view";
@@ -78,7 +80,10 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
   const seat = choices ? resolveSeat(choices, view?.seat) : null;
   const withSeat = useCallback(
-    (p: GridPayload): GridPayload => (split && view && choices ? applySeat(p, view.cut, split.field, seat) : p),
+    (p: GridPayload): GridPayload => {
+      const seated = split && view && choices ? applySeat(p, view.cut, split.field, seat) : p;
+      return view ? layoutPayload(seated, view.cut, view) : seated;
+    },
     [split, view, choices, seat],
   );
   const grid = useMemo(() => {
@@ -146,9 +151,14 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
           {shown && view && grid && (
             <ControlStrip
               payload={shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
-              leading={split && choices && (
-                <SeatSelector field={split.field} values={choices.values} hasAll={choices.all !== null} value={seat}
-                  onChange={(v) => onView({ seat: v })} />
+              leading={(
+                <>
+                  {split && choices && (
+                    <SeatSelector field={split.field} values={choices.values} hasAll={choices.all !== null} value={seat}
+                      onChange={(v) => onView({ seat: v })} />
+                  )}
+                  <LayoutSelectors payload={shown} cut={view.cut} view={view} onView={onView} />
+                </>
               )}
               onMethod={() => setMethodOpen(true)} onRefresh={run.refresh} canExport={run.current !== null}
               onExport={() => downloadCsv(`${info.id}.csv`, toCsv(grid))}
