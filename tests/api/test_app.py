@@ -145,12 +145,23 @@ def test_seeded_ranking_cards_are_listed_without_lenses_and_plan_as_valid(tmp_pa
     assert plan["valid"] is True and plan["unavailable"] == []
 
 
-def test_plan_rejects_mixed_levels(client, parts):
-    response = client.post("/cards/plan", json=body(rounds=[R1, ZONE_R1], compare_round=None))
-    assert response.status_code == 422
+def test_plan_accepts_mixed_levels_when_the_card_reads_one(client, parts):
+    response = client.post("/cards/plan", json=body(
+        rounds=[R1, ZONE_R1], anchor_round=R1, compare_round=None))
+    assert response.status_code == 200
     data = response.json()
-    assert data["valid"] is False
-    assert R1 in data["errors"][0] and ZONE_R1 in data["errors"][0]
+    assert data["valid"] is True and data["unavailable"] == []
+    assert parts[1].calls == []
+
+
+def test_plan_blocks_a_card_that_reads_two_levels(client, parts):
+    response = client.post("/cards/plan", json=body(
+        card=COMPARE.id, rounds=[R1, ZONE_R1], anchor_round=R1, compare_round=ZONE_R1))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["valid"] is True
+    assert {u["part"] for u in data["unavailable"]} == {"grid"}
+    assert "different levels" in data["unavailable"][0]["reason"]
     assert parts[1].calls == []
 
 

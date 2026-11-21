@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from matbodh_dashboard.capability import resolve_anchor, template_blockers
+from matbodh_dashboard.capability import anchor_level, resolve_anchor, round_level_blockers, template_blockers
 from matbodh_dashboard.cards.config import (
     party_scenarios_of,
     BENCHMARK_FAMILIES,
@@ -51,6 +51,17 @@ def windowed(config: CardConfig, rounds: list[ResolvedRound], anchor: str) -> tu
 def compare_in(rounds: list[ResolvedRound], name: str | None) -> str | None:
     """The comparison round, unless this card's window left it out."""
     return name if any(r.identity.base_name == name for r in rounds) else None
+
+
+def read_levels(config: CardConfig, ctx: StateContext, rounds: list[ResolvedRound], anchor: str) -> list[str]:
+    """Survey levels of the rounds this card actually reads: the anchor, the comparison round in
+    compare mode, and the whole window in trend (and relationship) cards."""
+    names = {anchor}
+    if config.comparison.mode == "compare" and ctx.compare_round:
+        names.add(ctx.compare_round)
+    if config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES:
+        names.update(r.identity.base_name for r in rounds)
+    return [r.dataset.level for r in rounds if r.identity.base_name in names]
 
 
 def _names(rounds) -> str:
@@ -181,7 +192,8 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                                   f"({', '.join(sorted(shown))})"))
         return plan()
     fields = _needed_fields(config, preset.gender.field if spec.gender_differential else None)
-    blockers = template_blockers(config.requires.min_level, fields, ctx.level)
+    blockers = [*template_blockers(config.requires.min_level, fields, anchor_level(ctx, catalogue)),
+                *round_level_blockers(read_levels(config, ctx, rounds, anchor))]
     if blockers:
         unavailable.extend((GRID, reason) for reason in blockers)
         return plan()

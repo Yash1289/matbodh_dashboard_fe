@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import logging
 
-from matbodh_dashboard.capability import resolve_anchor, template_blockers
+from matbodh_dashboard.capability import anchor_level, resolve_anchor, round_level_blockers, template_blockers
 from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, MajorPartyProvider
-from matbodh_dashboard.cards.compile import GRID, _by_base_name, compare_in, windowed
+from matbodh_dashboard.cards.compile import GRID, _by_base_name, compare_in, read_levels, windowed
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
@@ -43,7 +43,9 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
                        unavailable=tuple(unavailable), not_asked=tuple(not_asked), notes=notes)
 
     fields = list(dict.fromkeys(d for cut in config.cuts for d in cut))
-    unavailable.extend((GRID, r) for r in template_blockers(config.requires.min_level, fields, ctx.level))
+    unavailable.extend((GRID, r) for r in [
+        *template_blockers(config.requires.min_level, fields, anchor_level(ctx, catalogue)),
+        *round_level_blockers(read_levels(config, ctx, rounds, anchor))])
     if parties is None:
         unavailable.append((GRID, "The alliance party lookup is not configured"))
     if unavailable:

@@ -5,8 +5,10 @@ one engine ranking has exactly one target. No rank arithmetic happens here.
 """
 from __future__ import annotations
 
-from matbodh_dashboard.capability import capabilities, resolve_anchor, template_blockers
-from matbodh_dashboard.cards.compile import GRID, _select, _Selection, compare_in, windowed
+from matbodh_dashboard.capability import (
+    anchor_level, capabilities, resolve_anchor, round_level_blockers, template_blockers,
+)
+from matbodh_dashboard.cards.compile import GRID, _select, _Selection, compare_in, read_levels, windowed
 from matbodh_dashboard.cards.config import SEAT_DIMENSIONS, CardConfig, comparison_kind, scenario_kind
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
@@ -68,11 +70,13 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
     demographic = config.family == "demographic_ranking"
     fields = ([rank.level, *rank.partition_by, *(f.field for f in config.filters)]
               if demographic else [])
-    unavailable.extend((GRID, r) for r in
-                       template_blockers(config.requires.min_level, fields, ctx.level))
-    if not demographic and rank.level not in capabilities(ctx.level).seat_levels:
+    level = anchor_level(ctx, catalogue)
+    unavailable.extend((GRID, r) for r in [
+        *template_blockers(config.requires.min_level, fields, level),
+        *round_level_blockers(read_levels(config, ctx, rounds, anchor))])
+    if not demographic and rank.level not in capabilities(level).seat_levels:
         unavailable.append((GRID, f"{rank.level.upper()}-level ranking is not available for "
-                                  f"{ctx.level.upper()}-level surveys"))
+                                  f"{level.upper()}-level surveys"))
     if rank.party_id is not None and rank.party_id not in preset.keep:
         # Parties outside `keep` fold into Other, so the engine would rank this one at zero everywhere.
         unavailable.append((GRID, f"Party {rank.party_id!r} is not a party this preset keeps "

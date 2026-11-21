@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from matbodh_dashboard.capability import capabilities, resolve_anchor
+from matbodh_dashboard.capability import anchor_level, capabilities, resolve_anchor
 from matbodh_dashboard.cards.benchmark.compile import benchmark_endpoint_parties
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.config import (
@@ -143,9 +143,10 @@ def _pc_attributes() -> frozenset[str]:
 def _fields(params, draft, ctx, service) -> list[OptionItem]:
     use = params.get("use", "cut")
     read = rounds_read(draft, ctx, service.catalogue)
-    allowed_geo = capabilities(ctx.level).geo_slices
-    seat_level = (_get(draft, "rank.level") if draft.get("family") == "seat_ranking" else None) or ctx.level
-    seats = ctx.level in ("ac", "pc")
+    level = anchor_level(ctx, service.catalogue)
+    allowed_geo = capabilities(level).geo_slices
+    seat_level = (_get(draft, "rank.level") if draft.get("family") == "seat_ranking" else None) or level
+    seats = level in ("ac", "pc")
     out = []
     for name, spec in sorted(_engine_fields().items()):
         if name in SEGMENT_FIELDS or name == "state" or spec.cardinality != "single":

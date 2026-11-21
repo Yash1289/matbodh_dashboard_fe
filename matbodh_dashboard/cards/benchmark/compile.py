@@ -9,7 +9,7 @@ import logging
 
 from collections.abc import Mapping, Sequence
 
-from matbodh_dashboard.capability import resolve_anchor, template_blockers
+from matbodh_dashboard.capability import anchor_level, resolve_anchor, round_level_blockers, template_blockers
 from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, ElectionOption, MajorPartyProvider
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.compile import GRID, _by_base_name, _endpoint_round
@@ -75,13 +75,18 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
     ref = (reference if reference is not None
            else config.benchmark.reference if config.benchmark.reference is not None
            else default_reference(ctx))
-    unavailable.extend((GRID, r) for r in template_blockers(config.requires.min_level, [], ctx.level))
-    if ctx.level not in ("ac", "pc"):
+    level = anchor_level(ctx, catalogue)
+    read = [level]
+    if ref.kind == "compare" and ctx.compare_round:
+        read.append(catalogue.level_of(ctx.state, ctx.compare_round))
+    unavailable.extend((GRID, r) for r in [*template_blockers(config.requires.min_level, [], level),
+                                           *round_level_blockers(read)])
+    if level not in ("ac", "pc"):
         unavailable.append((GRID, "Benchmarks need an AC- or PC-level survey"))
     if parties is None:
         unavailable.append((GRID, "The alliance party lookup is not configured"))
-    if cohort is not None and ctx.level in ("ac", "pc"):
-        unavailable.extend((GRID, r) for r in level_mismatch(cohort, ctx.level, "compares"))
+    if cohort is not None and level in ("ac", "pc"):
+        unavailable.extend((GRID, r) for r in level_mismatch(cohort, level, "compares"))
     if unavailable:
         return plan()
 
@@ -154,7 +159,7 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
                             scenarios=[scenario], grouping_sets=[], preset=preset, keep=majors)
     benchmark = {
         # Not the card id: cards that differ only in their view must share one fingerprint.
-        "id": "benchmark", "seat_level": ctx.level,
+        "id": "benchmark", "seat_level": level,
         "target": {"source": "survey", "id": "target", "observation": target.obs_id,
                    "scenario": scenario},
         "reference": reference_endpoint,
