@@ -96,8 +96,8 @@ def _survey(label="Survey", *, show_when=None, seat=False) -> FieldDescriptor:
               tier="primary", help="Empty uses the context's anchor round")
 
 
-def _compare_survey(seat=False) -> FieldDescriptor:
-    return _f("compare_round", "Compared with survey", "choice", options=_options("surveys", seat=seat),
+def _compare_survey(seat=False, show_when=COMPARE) -> FieldDescriptor:
+    return _f("compare_round", "Compared with survey", "choice", show_when=show_when, options=_options("surveys", seat=seat),
               help="Empty uses the context's comparison round")
 
 
@@ -189,7 +189,7 @@ def _all() -> tuple[FamilyDescriptor, ...]:
         _family("seat_benchmark", "Seat benchmark",
                 "Seats won and vote share, against the comparison round or a past election.", [
                     _title(), _scenarios("party", multiple=False, show_when=None),
-                    _survey(seat=True), _compare_survey(seat=True),
+                    _survey(seat=True), _compare_survey(seat=True, show_when=None),
                     _f("benchmark.reference", "Compared with", "election_picker", tier="primary",
                        options=_options("elections"),
                        help="Nothing, the comparison round (when left empty), or a past election"),

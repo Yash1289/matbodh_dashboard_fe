@@ -441,3 +441,24 @@ def test_read_levels_includes_every_chosen_survey():
 def test_surveys_district_cut_never_uses_common_coverage():
     request = _request(_compile(_surveys(cuts=[["party_zone"]])))
     assert request["coverage_mode"] != "common"
+
+
+def test_compare_card_cannot_compare_a_round_with_itself():
+    config = _config(anchor_round=R1, comparison={
+        "mode": "compare", "target": {"round": "anchor", "scenario": VS},
+        "reference": {"round": "compare", "scenario": VS}})
+    plan = _compile(config)  # context compare round is R1
+    assert plan.unavailable and "is the anchor round" in plan.unavailable[0][1]
+
+
+def test_read_levels_leaves_the_context_anchor_out_when_several_surveys_are_chosen():
+    from matbodh_dashboard.cards.compile import read_levels
+    from matbodh_dashboard.compiler.rounds import resolve_rounds
+    ctx = _ctx(rounds=(R1, R2, R3))
+    rounds = resolve_rounds(ctx, _catalogue("ac", 3))
+    assert read_levels(_config(surveys=[R1, R2]), ctx, rounds, R3) == ["ac", "ac"]
+
+
+def test_all_party_scenarios_rejected_with_several_surveys():
+    with pytest.raises(Exception, match="all_party_scenarios|surveys"):
+        _config(all_party_scenarios=True, scenarios=[], surveys=[R1, R2])

@@ -54,7 +54,7 @@ export const useFamilies = () =>
 const roundsReadKey = (d: CardConfigJson) => ({
   family: d.family, scenarios: d.scenarios, comparison: d.comparison, pipe_rounds: d.pipe_rounds,
   reference: d.benchmark?.reference, origin: d.relationship?.origin, destination: d.relationship?.destination,
-  level: d.rank?.level,
+  level: d.rank?.level, anchor_round: d.anchor_round, compare_round: d.compare_round, surveys: d.surveys,
 });
 
 /** An option list for a field of the draft card; asked again only when the rounds read change. */

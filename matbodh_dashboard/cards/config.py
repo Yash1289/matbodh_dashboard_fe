@@ -400,6 +400,8 @@ class CardConfig(_Strict):
             _fail("surveys", "choose each survey once")
         if self.anchor_round is not None:
             _fail("surveys", "choose either one survey or several, not both")
+        if len(self.surveys) > 1 and self.all_party_scenarios:
+            _fail("surveys", "every-party-question cards read one survey; choose one or list the questions")
         if len(self.surveys) > 1 and len(self.scenarios) > 1 and any(cut for cut in self.cuts):
             _fail("cuts", "several questions across several surveys show overall only")
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from matbodh_dashboard.capability import card_blockers, resolve_anchor
+from matbodh_dashboard.capability import card_blockers, resolve_anchor, validate_context
 from matbodh_dashboard.cards.config import (
     party_scenarios_of,
     BENCHMARK_FAMILIES,
@@ -58,12 +58,11 @@ def compare_in(rounds: list[ResolvedRound], name: str | None) -> str | None:
 def read_levels(config: CardConfig, ctx: StateContext, rounds: list[ResolvedRound], anchor: str) -> list[str]:
     """Survey levels of the rounds this card actually reads: the anchor, the comparison round in
     compare mode, and the whole window in trend (and relationship) cards."""
-    names = {anchor}
+    names = set(config.surveys) if len(config.surveys) > 1 else {anchor}
     if config.comparison.mode == "compare" and ctx.compare_round:
         names.add(ctx.compare_round)
     if config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES:
         names.update(r.identity.base_name for r in rounds)
-    names.update(config.surveys)
     return [r.dataset.level for r in rounds if r.identity.base_name in names]
 
 
@@ -179,7 +178,12 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  preset: MethodPreset, *, reference=None, parties=None, elections=None,
                  cohort=None) -> RunPlan:
     try:
-        ctx = card_context(config, ctx)
+        overridden = card_context(config, ctx)
+        if overridden is not ctx:  # the context is valid; its overridden form must be too (e.g. compare != anchor)
+            errors = validate_context(overridden, catalogue)
+            if errors:
+                raise ValueError(errors[0])
+        ctx = overridden
     except ValueError as error:
         return RunPlan(card_id=config.id, state=ctx.state, rounds=(), anchor=ctx.anchor_round or "",
                        compare=ctx.compare_round, jobs=(), unavailable=((GRID, str(error)),))
@@ -245,7 +249,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         return plan()
 
     if cohort is not None:
-        blockers = cohort_blockers(cohort, selection.used[0].dataset.level)
+        blockers = list(dict.fromkeys(b for r in selection.used for b in cohort_blockers(cohort, r.dataset.level)))
         if blockers:
             unavailable.extend((GRID, reason) for reason in blockers)
             return plan()

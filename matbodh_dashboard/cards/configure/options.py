@@ -271,4 +271,5 @@ def options_for(source: str, params: Mapping[str, Any], draft: Mapping[str, Any]
     """One option list; KeyError for an unknown source."""
     if source not in SOURCES:
         raise KeyError(f"unknown option source {source!r}")
+    ctx = _card_ctx(draft, ctx)  # every list follows the card's own anchor / comparison survey
     return SOURCES[source](dict(params), dict(draft), ctx, service)

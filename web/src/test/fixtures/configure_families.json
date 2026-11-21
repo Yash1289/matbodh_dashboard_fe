@@ -103,6 +103,11 @@
     "widget": "choice",
     "required": false,
     "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
     "options": {
      "source": "surveys",
      "params": {
@@ -485,6 +490,11 @@
     "widget": "choice",
     "required": false,
     "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
     "options": {
      "source": "surveys",
      "params": {
@@ -1059,6 +1069,11 @@
     "widget": "choice",
     "required": false,
     "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
     "options": {
      "source": "surveys",
      "params": {
@@ -1352,6 +1367,11 @@
     "widget": "choice",
     "required": false,
     "tier": "more",
+    "show_when": {
+     "op": "equals",
+     "path": "comparison.mode",
+     "value": "compare"
+    },
     "options": {
      "source": "surveys",
      "params": {

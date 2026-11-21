@@ -6,6 +6,7 @@ import { useOptions } from "../../api/queries";
 import type { CardConfigJson, CardFilterConfig, FilterValues, StateContext } from "../../api/types";
 import { asParams, optionLabel, type WidgetProps } from "./types";
 import { Well } from "./Well";
+import { cardContext } from "../draft";
 import styles from "./wells.module.css";
 
 const POLL_MS = 1500;
@@ -28,7 +29,8 @@ function useSlow(waiting: boolean): boolean {
  * The values of one field. A lookup answers first (the reporting mapping, else distinct answers) for the rounds the card's
  * mode reads; only a field the lookup cannot list (it is not in the response table) falls back to an engine run, polled.
  */
-function useFilterValues(field: string, draft: CardConfigJson, ctx: StateContext) {
+function useFilterValues(field: string, draft: CardConfigJson, context: StateContext) {
+  const ctx = cardContext(draft, context); // the rounds this card reads, not the context's anchor
   const scenario = draft.scenarios?.[0] ?? draft.comparison?.target?.scenario ?? null;
   const pipeRounds = draft.pipe_rounds ?? null;
   const mode = draft.comparison?.mode ?? "standalone";

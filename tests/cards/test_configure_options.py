@@ -291,3 +291,12 @@ def test_rounds_read_follows_the_cards_own_survey_and_surveys():
     assert [r.identity.base_name for r in one] == [R2]
     several = rounds_read({"family": "distribution", "surveys": [R1, R3]}, ctx(), service().catalogue)
     assert [r.identity.base_name for r in several] == [R1, R3]
+
+
+def test_every_option_list_follows_the_cards_own_anchor_round():
+    cat = catalogue(missing={2: ("pm_satisfaction",)})  # R2 did not ask it
+    svc = service(cat)
+    on_anchor = items("scenarios", {"family": "opinion"}, svc, ctx(compare=R1), kind="opinion")
+    on_r2 = items("scenarios", {"family": "opinion", "anchor_round": R2}, svc, ctx(compare=R1), kind="opinion")
+    assert "pm_satisfaction" in [i.value for i in on_anchor]
+    assert "pm_satisfaction" not in [i.value for i in on_r2]
