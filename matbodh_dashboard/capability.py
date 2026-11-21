@@ -26,8 +26,10 @@ _CAPABILITIES = {
     "pc": Capabilities(
         frozenset({"pc_zone", "pc_num"}), frozenset({"pc"}), _BOTH_VERSIONS
     ),
-    "zone": Capabilities(frozenset(), frozenset(), frozenset({"extrapolated"})),
-    "state": Capabilities(frozenset(), frozenset(), frozenset({"extrapolated"})),
+    # Zone and state collections store AC numbers, so the AC master supplies zone and district
+    # (engine validation.CAPABILITIES); they support no seat identifier.
+    "zone": Capabilities(frozenset({"zone", "party_zone", "district"}), frozenset(), frozenset({"extrapolated"})),
+    "state": Capabilities(frozenset({"zone", "party_zone", "district"}), frozenset(), frozenset({"extrapolated"})),
 }
 
 
@@ -49,6 +51,31 @@ def template_blockers(min_level: str, slices: list[str], level: str) -> list[str
             reasons.append(f"Slice {slice_!r} is not available for {level.upper()}-level "
                            f"surveys")
     return reasons
+
+
+# Seat identifiers: an AC/PC estimate, so every survey read must share one level.
+SEAT_SLICES = frozenset({"ac_num", "pc_num"})
+
+
+def card_blockers(min_level: str, slices: Sequence[str], levels: Sequence[str], *,
+                  mixed_ok: bool) -> list[str]:
+    """Reasons a card cannot read surveys of these levels with these cuts; empty when it can.
+
+    Cards that are not `mixed_ok` read one level (the engine paths for them are unverified across
+    levels). `mixed_ok` cards may read several, but each geographic cut must be allowed at every one
+    of them and seat identifiers need a single level."""
+    distinct = sorted(set(levels), key=LEVEL_RANK.get, reverse=True)
+    if not distinct:
+        return []
+    if not mixed_ok:
+        return [*round_level_blockers(levels), *template_blockers(min_level, list(slices), distinct[0])]
+    reasons = []
+    for level in distinct:
+        reasons.extend(template_blockers(min_level, list(slices), level))
+    if len(distinct) > 1 and SEAT_SLICES & set(slices):
+        names = ", ".join(level.upper() for level in distinct)
+        reasons.append(f"Seat identifiers need surveys of one level; this card reads {names}")
+    return list(dict.fromkeys(reasons))
 
 
 def capabilities(level: str) -> Capabilities:
