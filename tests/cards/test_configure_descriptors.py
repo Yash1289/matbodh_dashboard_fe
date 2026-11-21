@@ -169,3 +169,12 @@ def test_web_fixture_matches_descriptors():
 
     fixture = Path(__file__).resolve().parents[2] / "web" / "src" / "test" / "fixtures" / "configure_families.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == [d.model_dump(exclude_none=True) for d in descriptors()]
+
+
+def test_surveys_field_survives_an_unset_mode():
+    """The panel prunes hidden fields before the mode default is written, so an unset mode must show Surveys."""
+    from matbodh_dashboard.cards.configure.descriptor import Condition  # noqa: F401
+    f = field("distribution", "surveys")
+    assert f.show_when.model_dump() == {"op": "all", "of": [
+        {"op": "not", "of": {"op": "equals", "path": "comparison.mode", "value": "compare"}},
+        {"op": "not", "of": {"op": "equals", "path": "comparison.mode", "value": "trend"}}]}

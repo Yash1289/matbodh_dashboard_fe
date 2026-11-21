@@ -9,7 +9,7 @@ from functools import lru_cache
 
 from matbodh_dashboard.cards.config import OPINION_MEASURES, PARTY_MEASURES, TOP_K_MAX
 from matbodh_dashboard.cards.configure.descriptor import (
-    All, Contains, Equals, FamilyDescriptor, FieldDescriptor, KindOf, Not, OptionSource,
+    All, Contains, Equals, FamilyDescriptor, FieldDescriptor, In, KindOf, Not, OptionSource,
 )
 from matbodh_dashboard.cards.families import family_meta, get_family
 
@@ -37,12 +37,15 @@ def _scenarios(kind: str, *, multiple: bool, show_when=NOT_COMPARE, label="Quest
               limits={"max_items": 12} if multiple else {})
 
 
-NOT_STANDALONE = Not(of=Equals(path="comparison.mode", value="standalone"))
+# An unset mode is standalone: conditions are evaluated before the mode default is written, so say it by what it is not.
+# (In, not Equals: the compare block of Configure is the fields that read the compare mode as two questions.)
+NOT_STANDALONE = In(path="comparison.mode", values=["compare", "trend"])
+IS_STANDALONE = All(of=[Not(of=COMPARE), Not(of=TREND)])
 
 
 def _surveys_field() -> FieldDescriptor:
     return _f("surveys", "Surveys", "choice", multiple=True, tier="primary",
-              show_when=Equals(path="comparison.mode", value="standalone"), options=_options("surveys"),
+              show_when=IS_STANDALONE, options=_options("surveys"),
               help="Empty uses the context's anchor round. One survey reads it; several are read side by side. "
                    "With several surveys or questions, a split shows one at a time")
 
@@ -96,7 +99,7 @@ def _survey(label="Survey", *, show_when=None, seat=False) -> FieldDescriptor:
               tier="primary", help="Empty uses the context's anchor round")
 
 
-def _compare_survey(seat=False, show_when=COMPARE) -> FieldDescriptor:
+def _compare_survey(seat=False, show_when=In(path="comparison.mode", values=["compare"])) -> FieldDescriptor:
     return _f("compare_round", "Compared with survey", "choice", show_when=show_when, options=_options("surveys", seat=seat),
               help="Empty uses the context's comparison round")
 
