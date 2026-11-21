@@ -366,6 +366,26 @@ class _Cut:
                           for (r, c, o), f in self.bases.items()])
 
 
+def merge_results(results: list[dict]) -> dict:
+    """One engine result from the per-survey jobs of a card: row lists are joined, objects are merged
+    (each survey's entries are keyed by its own observation), anything else keeps the first value."""
+    merged: dict = {}
+    for result in results:
+        for key, value in result.items():
+            if key not in merged:
+                merged[key] = list(value) if isinstance(value, list) else dict(value) if isinstance(value, dict) else value
+            elif isinstance(value, list):
+                merged[key] = [*merged[key], *value]
+            elif isinstance(value, dict) and isinstance(merged[key], dict):
+                merged[key] = {**value, **merged[key]} if key != "contract" else _merge_contract(merged[key], value)
+    return merged
+
+
+def _merge_contract(first: dict, other: dict) -> dict:
+    return {k: ({**other[k], **first[k]} if isinstance(first.get(k), dict) and isinstance(other.get(k), dict) else first.get(k, other.get(k)))
+            for k in {*first, *other}}
+
+
 def translate_grid(config: CardConfig, spec: FamilySpec, result: dict,
                    tc: TranslateContext) -> GridPayload:
     return _Translator(config, spec, result, tc).run()

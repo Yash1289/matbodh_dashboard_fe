@@ -35,7 +35,7 @@ from matbodh_dashboard.cards.config import (
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.ranking.translate import translate_ranked
-from matbodh_dashboard.cards.translate import TranslateContext, translate_grid
+from matbodh_dashboard.cards.translate import TranslateContext, merge_results, translate_grid
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.fingerprint import fingerprint
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, rounds_block
@@ -396,7 +396,8 @@ class CardRunService:
         if card.all_party_scenarios:  # the columns are the scenarios the compiled request asked for
             asked = next(iter(run.jobs.values())).job.config["request"]["scenarios"]
             card = card.model_copy(update={"scenarios": asked})
-        payload = translate_grid(card, get_family(card.family), done[0] if done else {}, context)
+        result = merge_results(done) if len(done) > 1 else (done[0] if done else {})
+        payload = translate_grid(card, get_family(card.family), result, context)
         return payload.model_dump()
 
 

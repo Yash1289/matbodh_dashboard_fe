@@ -114,7 +114,8 @@ def _select(config: CardConfig, ctx: StateContext, rounds, anchor: str,
                 unavailable.append((GRID, f"Round {name!r} is not among the selected rounds"))
         if unavailable:
             return None
-        asked = [r for r in chosen if all(s in r.dataset.scenarios for s in config.scenarios)]
+        # A survey that asked only some of the questions is kept for those; one that asked none is "not asked".
+        asked = [r for r in chosen if any(s in r.dataset.scenarios for s in config.scenarios)]
         dropped = [r for r in chosen if r not in asked]
         if dropped:
             not_asked.append((GRID, tuple(r.identity.base_name for r in dropped)))
@@ -268,6 +269,22 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     caste_reference = (selection.reference if selection.reference is not None
                        else anchor_round if anchor_round in selection.used
                        else selection.used[-1])
+    if len(config.surveys) > 1:
+        # One engine job per survey, each with the questions that survey asked (the engine requires every
+        # question of a request in every observation it reads); the run merges their results.
+        jobs = []
+        for r in selection.used:
+            request = build_request(
+                state=ctx.state, rounds=[r], scenarios=[s for s in config.scenarios if s in r.dataset.scenarios],
+                grouping_sets=config.cuts, preset=preset, comparisons=[], gender=spec.gender_differential,
+                coverage_mode="independent",
+                filters=[{"field": f.field, "operator": f.operator, "values": list(f.values)} for f in config.filters]
+                + ([respondent_filter(cohort)] if cohort is not None else []),
+                caste_clubbing=({"threshold_pct": preset.caste_threshold_pct, "reference_observation": r.obs_id}
+                                if config.caste_clubbing else None),
+                reference_observation=None, display_parties=config.display_parties)
+            jobs.append(EngineJob(f"{GRID}:{r.obs_id}", "analysis", GRID, view_config(request, preset)))
+        return plan(jobs)
     request = build_request(
         state=ctx.state,
         rounds=selection.used,

@@ -260,3 +260,14 @@ def test_several_chosen_surveys_each_keep_their_own_round():
     payload = _translate(result, config, anchor="o2", obs=["o1", "o2"])
     support = {(c.round, c.column): c.value for c in payload.cuts[0].cells if c.lens == "support_share"}
     assert support == {("o1", column_key(VS, "NDA")): 40.0, ("o2", column_key(VS, "NDA")): 43.5}
+
+
+def test_merge_results_joins_rows_and_merges_per_survey_objects():
+    from matbodh_dashboard.cards.translate import merge_results
+    a = {"rows": [1], "contract": {"resolved_datasets": {"o1": "a"}, "coverage": "x"}, "context_status": {"o1": 1}}
+    b = {"rows": [2], "contract": {"resolved_datasets": {"o2": "b"}, "coverage": "y"}, "context_status": {"o2": 2}}
+    out = merge_results([a, b])
+    assert out["rows"] == [1, 2]
+    assert out["contract"] == {"resolved_datasets": {"o1": "a", "o2": "b"}, "coverage": "x"}
+    assert out["context_status"] == {"o1": 1, "o2": 2}
+    assert a["rows"] == [1]  # inputs are not changed

@@ -412,9 +412,16 @@ def _surveys(**extra):
 
 
 def test_surveys_read_every_chosen_round_independently():
-    request = _request(_compile(_surveys()))
-    assert [o["survey_name"] for o in request["observations"]] == [R1, R3]
-    assert request["coverage_mode"] == "independent"
+    plan = _compile(_surveys())
+    assert [j.config["request"]["observations"][0]["survey_name"] for j in plan.jobs] == [R1, R3]
+    assert all(j.config["request"]["coverage_mode"] == "independent" for j in plan.jobs)
+
+
+def test_a_survey_that_asked_only_some_questions_keeps_those():
+    plan = _compile(_config(family="opinion", scenarios=[PM, "cm_satisfaction"], surveys=[R1, R2]))
+    assert plan.unavailable == () and plan.not_asked == ()
+    by_obs = {j.config["request"]["observations"][0]["survey_name"]: j.config["request"]["scenarios"] for j in plan.jobs}
+    assert by_obs == {R1: [PM], R2: [PM, "cm_satisfaction"]}  # R1 did not ask cm_satisfaction
 
 
 def test_surveys_need_a_scenario_every_survey_asked_else_not_asked():
@@ -422,7 +429,7 @@ def test_surveys_need_a_scenario_every_survey_asked_else_not_asked():
     plan = _compile(_config(family="opinion", scenarios=[cm], surveys=[R1, R2, R3]))
     assert plan.unavailable == ()
     assert plan.not_asked == (("grid", (R1,)),)
-    assert [o["survey_name"] for o in plan.jobs[0].config["request"]["observations"]] == [R2, R3]
+    assert [j.config["request"]["observations"][0]["survey_name"] for j in plan.jobs] == [R2, R3]
 
 
 def test_survey_not_in_context_is_unavailable_naming_it():
@@ -439,8 +446,8 @@ def test_read_levels_includes_every_chosen_survey():
 
 
 def test_surveys_district_cut_never_uses_common_coverage():
-    request = _request(_compile(_surveys(cuts=[["party_zone"]])))
-    assert request["coverage_mode"] != "common"
+    plan = _compile(_surveys(cuts=[["party_zone"]]))
+    assert plan.unavailable == () and all(j.config["request"]["coverage_mode"] != "common" for j in plan.jobs)
 
 
 def test_compare_card_cannot_compare_a_round_with_itself():
