@@ -172,3 +172,13 @@ describe("applyPresentationRules", () => {
     expect(reordered.rows.map(r => r.key)).toEqual(["GEN"]);
   });
 });
+
+describe("applyPresentationRules with the same party under two questions", () => {
+  it("keeps every column and puts both under the party's place in the order", () => {
+    const h = (key: string): { key: string; label: string; colour: null } => ({ key, label: key, colour: null });
+    const grid = { rows: [], columns: [h("q1:SP"), h("q1:NDA"), h("q2:SP"), h("q2:NDA")], cells: {}, rowDim: "", columnDim: "" };
+    const name = (c: { key: string }) => c.key.slice(c.key.lastIndexOf(":") + 1);
+    const out = applyPresentationRules(grid, { columnOrder: ["NDA", "SP"], entityColors: {} }, name);
+    expect(out.columns.map((c) => c.key)).toEqual(["q1:NDA", "q2:NDA", "q1:SP", "q2:SP"]);
+  });
+});

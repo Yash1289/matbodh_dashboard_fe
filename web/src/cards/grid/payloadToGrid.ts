@@ -107,7 +107,7 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
 
   const multiScenario = new Set(columns.map((c) => c.scenario)).size > 1;
   const headers: Header[] = columns.map((c) => {
-    const sub = [multiScenario ? c.scenario : null, mode === "trend" ? roundLabels.join(" | ") : null]
+    const sub = [multiScenario && c.scenario !== c.label ? c.scenario : null, mode === "trend" ? roundLabels.join(" | ") : null]
       .filter((s): s is string => s !== null).join(" · ");
     return { key: c.key, label: c.label, colour: c.colour, ...(sub ? { sub } : {}) };
   });

@@ -43,39 +43,29 @@ export function sortRows(g: CellGrid, by: SortSpec | null, apiOrder: string[]): 
   return { ...g, rows };
 }
 
-/** `keyOf` names the item a header stands for; the default is its own key. */
+/**
+ * `keyOf` names the item a header stands for; the default is its own key. Several headers can stand for one
+ * item (the same party under two questions): each is kept, in the item's place in the order.
+ */
 function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: string[], colors?: Record<string, string>,
   keyOf: (h: Header) => string = (h) => h.key): Header[] {
-  const byKey = new Map(headers.map((h) => [keyOf(h), h]));
+  const byItem = new Map<string, Header[]>();
+  for (const h of headers) byItem.set(keyOf(h), [...(byItem.get(keyOf(h)) ?? []), h]);
   const pinnedSet = new Set(pinLast ?? []);
   const specifiedSet = new Set(specifiedOrder ?? []);
   const seen = new Set<string>();
-
   const ordered: Header[] = [];
+  const take = (item: string) => { ordered.push(...(byItem.get(item) ?? [])); seen.add(item); };
 
-  // 1. Specified headers (excluding any explicitly pinned to end)
-  for (const k of (specifiedOrder ?? [])) {
-    if (byKey.has(k) && !pinnedSet.has(k) && !seen.has(k)) {
-      ordered.push(byKey.get(k)!);
-      seen.add(k);
-    }
-  }
-
-  // 2. Unlisted headers (not specified and not pinned)
+  // 1. Specified items (excluding any explicitly pinned to end)
+  for (const k of (specifiedOrder ?? [])) if (byItem.has(k) && !pinnedSet.has(k) && !seen.has(k)) take(k);
+  // 2. Unlisted items (not specified and not pinned), in their own order
   for (const h of headers) {
-    if (!specifiedSet.has(keyOf(h)) && !pinnedSet.has(keyOf(h)) && !seen.has(keyOf(h))) {
-      ordered.push(h);
-      seen.add(keyOf(h));
-    }
+    const k = keyOf(h);
+    if (!specifiedSet.has(k) && !pinnedSet.has(k) && !seen.has(k)) take(k);
   }
-
-  // 3. Pinned headers
-  for (const k of (pinLast ?? [])) {
-    if (byKey.has(k) && !seen.has(k)) {
-      ordered.push(byKey.get(k)!);
-      seen.add(k);
-    }
-  }
+  // 3. Pinned items
+  for (const k of (pinLast ?? [])) if (byItem.has(k) && !seen.has(k)) take(k);
 
   // Apply entity colors
   return ordered.map((h) => ({
