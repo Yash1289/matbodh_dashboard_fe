@@ -127,7 +127,7 @@ test("resizing from the corner snaps to the column grid", async ({ page }) => {
   const item = page.locator(".react-grid-item").filter({ has: page.getByTestId("card:c1") });
   await expect.poll(async () => (await box(item)).width).toBeLessThan(grid.width * 0.6); // the menu's resize has settled
   const before = await box(item);
-  const handle = await box(item.locator(".react-resizable-handle"));
+  const handle = await box(item.locator(".react-resizable-handle-se"));
   await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
   await page.mouse.down();
   await page.mouse.move(handle.x + handle.width / 2 + 60, handle.y + handle.height / 2, { steps: 10 });

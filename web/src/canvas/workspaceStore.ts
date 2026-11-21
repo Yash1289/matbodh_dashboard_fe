@@ -2,13 +2,13 @@ import { useMemo, useSyncExternalStore } from "react";
 import type { CardConfigJson, Family } from "../api/types";
 import { cardStore, useStoredCards, type StoredCard } from "../configure/cardStore";
 import { markFresh } from "./fresh";
-import { defaultSize, firstFreeSpot, normalise, settle, COLUMNS, type Item } from "./layout";
+import { defaultSize, firstFreeSpot, normalise, settle, COLUMNS, ROW_SCALE_V1, type Item } from "./layout";
 
 // The analyst's arrangement lives in this browser until the database phase (6c): one record per state in
 // localStorage, mirrored in memory. It references cards by id; their configs stay in `cardStore`.
 // Storage can throw (private windows, blocked data); memory still works, as in `cardStore`.
 export interface Tab { id: string; name: string; items: Item[] }
-export interface Workspace { version: 1; activeTab: string; tabs: Tab[] }
+export interface Workspace { version: 2; activeTab: string; tabs: Tab[] }
 
 const memory = new Map<string, unknown>();
 const listeners = new Set<() => void>();
@@ -22,12 +22,12 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 
 function freshTab(): Tab { return { id: "tab-1", name: "Tab 1", items: [] }; }
 
-function readItems(raw: unknown): Item[] {
+function readItems(raw: unknown, rowScale = 1): Item[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((r) => {
     if (!isObject(r) || typeof r.cardId !== "string") return [];
     const [x, y, w, h] = [r.x, r.y, r.w, r.h].map((n) => (typeof n === "number" ? n : Number.NaN));
-    return [normalise({ cardId: r.cardId, x, y, w, h, manual: r.manual === true })];
+    return [normalise({ cardId: r.cardId, x, y: Math.round(y * rowScale), w, h: Math.round(h * rowScale), manual: r.manual === true })];
   });
 }
 
@@ -38,11 +38,14 @@ function readItems(raw: unknown): Item[] {
  */
 export function reconcile(raw: unknown, cards: StoredCard[]): Workspace {
   const known = new Map(cards.map((c) => [c.id, c]));
-  const stored = isObject(raw) && raw.version === 1 && Array.isArray(raw.tabs) ? raw.tabs : [];
+  // Version 1 counted rows of 58px; version 2 rows of 16px: rows are scaled once, so each card keeps its place and size.
+  const version = isObject(raw) && (raw.version === 1 || raw.version === 2) ? raw.version : 0;
+  const stored = version !== 0 && isObject(raw) && Array.isArray(raw.tabs) ? raw.tabs : [];
+  const rowScale = version === 1 ? ROW_SCALE_V1 : 1;
   const seen = new Set<string>();
   const tabs: Tab[] = stored.flatMap((t) => {
     if (!isObject(t) || typeof t.id !== "string" || typeof t.name !== "string") return [];
-    const items = readItems(t.items).filter((i) => known.has(i.cardId) && !seen.has(i.cardId) && seen.add(i.cardId));
+    const items = readItems(t.items, rowScale).filter((i) => known.has(i.cardId) && !seen.has(i.cardId) && seen.add(i.cardId));
     return [{ id: t.id, name: t.name, items }];
   });
   if (tabs.length === 0) tabs.push(freshTab());
@@ -55,7 +58,7 @@ export function reconcile(raw: unknown, cards: StoredCard[]): Workspace {
     bottom += h;
   }
   const active = isObject(raw) && typeof raw.activeTab === "string" && tabs.some((t) => t.id === raw.activeTab) ? raw.activeTab : first.id;
-  return { version: 1, activeTab: active, tabs };
+  return { version: 2, activeTab: active, tabs };
 }
 
 function loadRaw(state: string): unknown {

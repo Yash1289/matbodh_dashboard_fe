@@ -1,6 +1,6 @@
 import { Button, Group, VisuallyHidden } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GridLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import type { ReactNode } from "react";
@@ -8,7 +8,7 @@ import { tokens } from "../theme";
 import { CanvasCell } from "./CanvasCell";
 import styles from "./canvas.module.css";
 import { CardMenu } from "./CardMenu";
-import { COLUMNS, ROW_HEIGHT, fitAllHeights, readingOrder, rowsFor, type Item } from "./layout";
+import { COLUMNS, ROW_GAP, ROW_HEIGHT, fitAllHeights, readingOrder, rowsFor, type Item } from "./layout";
 import { useWorkspace, workspaceStore, type Tab } from "./workspaceStore";
 
 /**
@@ -29,6 +29,13 @@ interface Props {
   onRemoved?(undo: () => void): void;
 }
 
+/** The corner is the obvious grip; the right and bottom edges resize too, with a hit area along the whole edge. */
+const RESIZE_HANDLES = ["se", "e", "s"] as const;
+const resizeHandle = (axis: string, ref: React.Ref<HTMLElement>) => (
+  <span ref={ref as React.Ref<HTMLSpanElement>} className={`react-resizable-handle react-resizable-handle-${axis} canvas-grip`} data-axis={axis}
+    title={axis === "se" ? "Drag to resize" : axis === "e" ? "Drag to change width" : "Drag to change height"} />
+);
+
 type GridItem = { i: string; x: number; y: number; w: number; h: number };
 /** Positions from the grid; a height is kept as set by hand only for the card just resized or one already manual. */
 const fromGrid = (layout: readonly GridItem[], before: Item[], resized?: string): Item[] =>
@@ -45,6 +52,10 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
   const [said, setSaid] = useState("");
   const save = (layout: readonly GridItem[], resized?: string) => workspaceStore.setItems(state, tab.id, fromGrid(layout, tab.items, resized));
   const gap = tokens.layout.gap;
+  /** The part of the card gap the grid does not keep between rows: padding at the foot of each cell. */
+  const cellPad = gap - ROW_GAP;
+  // While a card is being dragged or resized its neighbours must not change height under the pointer.
+  const interacting = useRef(false);
   const stacked = width !== 0 && width < NARROW_PAGE;
 
   /** The card's own height (its toolbar and its content, whatever the cell is now), in grid rows; null while it has nothing to measure. */
@@ -52,7 +63,7 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
     const body = ref.current?.querySelector(`[data-card-body="${CSS.escape(cardId)}"]`);
     const content = body?.firstElementChild?.getBoundingClientRect().height ?? 0;
     // A rendered card is never this short (its title row alone is taller): below it nothing has rendered yet, so keep the stored height.
-    return content < MIN_MEASURED ? null : rowsFor(content + (body?.previousElementSibling?.getBoundingClientRect().height ?? 0), gap);
+    return content < MIN_MEASURED ? null : rowsFor(content + (body?.previousElementSibling?.getBoundingClientRect().height ?? 0) + (stacked ? 0 : cellPad));
   };
   const measureRows = (cardId: string) => () => rowsOf(cardId) ?? tab.items.find((i) => i.cardId === cardId)?.h ?? 1;
 
@@ -64,6 +75,7 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
     const root: HTMLElement | null = ref.current;
     if (root === null || typeof ResizeObserver === "undefined") return undefined;
     const measure = () => {
+      if (interacting.current) return;
       const next: Record<string, number> = {};
       for (const id of ids === "" ? [] : ids.split("|")) {
         const r = rowsOf(id);
@@ -128,11 +140,13 @@ export function Canvas({ state, tab, renderCard, onConfigure, onRemoved }: Props
         <GridLayout
           width={width === 0 ? tokens.layout.content : width}
           layout={tab.items.map((i) => ({ i: i.cardId, x: i.x, y: i.y, w: i.w, h: heightOf(i) }))}
-          gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, gap], containerPadding: [0, 0] }}
+          gridConfig={{ cols: COLUMNS, rowHeight: ROW_HEIGHT, margin: [gap, ROW_GAP], containerPadding: [0, 0] }}
           dragConfig={{ enabled: true, handle: ".canvas-handle" }}
-          resizeConfig={{ enabled: true }}
-          onDragStop={(layout) => save(layout)}
-          onResizeStop={(layout, _old, now) => save(layout, now?.i)}
+          resizeConfig={{ enabled: true, handles: RESIZE_HANDLES, handleComponent: resizeHandle }}
+          onDragStart={() => { interacting.current = true; }}
+          onResizeStart={() => { interacting.current = true; }}
+          onDragStop={(layout) => { interacting.current = false; save(layout); }}
+          onResizeStop={(layout, _old, now) => { interacting.current = false; save(layout, now?.i); }}
         >
           {tab.items.map((i) => <div key={i.cardId}>{cell(i.cardId, true)}</div>)}
         </GridLayout>

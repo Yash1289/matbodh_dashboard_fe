@@ -3,6 +3,8 @@
   flex-direction: column;
   height: 100%;
   min-width: 0;
+  /* The grid keeps 6px between rows; the rest of the 18px card gap is padding here (see ROW_GAP). */
+  padding-bottom: calc(var(--mb-gap, 18px) - 6px);
 }
 
 .toolbar {
@@ -15,6 +17,8 @@
 }
 
 .handle {
+  /* The whole strip left of the menu moves the card, not just the label. */
+  flex: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -69,17 +73,153 @@
 
 .stack .cell {
   height: auto;
+  padding-bottom: 0;
 }
 
 .stack .body {
   overflow: visible;
 }
 
-/* The library's placeholder while a card is dragged or resized. */
+/* Where the card will land while it is dragged or resized: a soft outlined slot, not a block of colour. */
 :global(.react-grid-item.react-grid-placeholder) {
-  background: var(--mb-soft-line);
-  border-radius: var(--mantine-radius-default);
+  background: var(--mb-primary-soft);
+  border: 2px dashed var(--mb-primary);
+  border-radius: 12px;
+  opacity: 0.55;
+}
+
+/* Other cards glide out of the way and settle; the one in hand follows the pointer without delay. */
+:global(.react-grid-item.cssTransforms) {
+  transition-property: transform, width, height;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:global(.react-grid-item.react-draggable-dragging) > .cell,
+:global(.react-grid-item.resizing) > .cell {
+  /* The padding at the foot is spacing, not card: only the card is lifted. */
+  padding-bottom: calc(var(--mb-gap, 18px) - 6px);
+}
+
+:global(.react-grid-item.react-draggable-dragging) {
+  filter: drop-shadow(0 14px 22px rgba(22, 33, 58, 0.22));
+  cursor: grabbing;
+}
+
+:global(.react-grid-item.react-draggable-dragging) .handle {
+  cursor: grabbing;
+  background: var(--mb-header-bg);
+}
+
+:global(.react-grid-item.resizing) {
+  z-index: 3;
+  filter: drop-shadow(0 8px 16px rgba(22, 33, 58, 0.16));
+}
+
+/*
+ * Resize grips. The corner shows three slanted strokes at all times (stronger on card hover, primary when pointed at or in use);
+ * the right and bottom edges resize too, with a bar that appears along the edge when it is pointed at.
+ */
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle) {
+  opacity: 1;
+  transform: none;
+  margin: 0;
+  background: none;
+  z-index: 4;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle)::after {
+  content: "";
+  position: absolute;
+  border: 0;
+  width: auto;
+  height: auto;
+  transition: opacity 140ms ease-out, background-color 140ms ease-out, transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Corner */
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-se) {
+  right: 2px;
+  bottom: 14px;
+  width: 28px;
+  height: 28px;
+  cursor: nwse-resize;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-se)::after {
+  right: 6px;
+  bottom: 6px;
+  width: 14px;
+  height: 14px;
   opacity: 0.5;
+  background: linear-gradient(135deg, transparent 0 36%, var(--mb-muted) 36% 47%, transparent 47% 58%, var(--mb-muted) 58% 69%, transparent 69% 80%, var(--mb-muted) 80% 91%, transparent 91%);
+}
+
+:global(.react-grid-item:hover > .canvas-grip.react-resizable-handle-se)::after {
+  opacity: 0.85;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-se:hover)::after,
+:global(.react-grid-item.resizing > .canvas-grip.canvas-grip.react-resizable-handle-se)::after {
+  opacity: 1;
+  transform: scale(1.2);
+  background: linear-gradient(135deg, transparent 0 36%, var(--mb-primary) 36% 47%, transparent 47% 58%, var(--mb-primary) 58% 69%, transparent 69% 80%, var(--mb-primary) 80% 91%, transparent 91%);
+}
+
+/* Right and bottom edges */
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-e) {
+  top: 40px;
+  bottom: 42px;
+  right: -5px;
+  width: 12px;
+  height: auto;
+  cursor: ew-resize;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-s) {
+  left: 24px;
+  right: 40px;
+  bottom: 7px;
+  width: auto;
+  height: 12px;
+  cursor: ns-resize;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-e)::after {
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--mb-primary);
+  opacity: 0;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-s)::after {
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--mb-primary);
+  opacity: 0;
+}
+
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-e:hover)::after,
+:global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-s:hover)::after,
+:global(.react-grid-item.resizing > .canvas-grip.canvas-grip.react-resizable-handle-e)::after,
+:global(.react-grid-item.resizing > .canvas-grip.canvas-grip.react-resizable-handle-s)::after {
+  opacity: 0.85;
+}
+
+@media (hover: none) {
+  /* On touch there is no hover: the corner keeps its strokes and a larger target. */
+  :global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle-se) { width: 36px; height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(.react-grid-item.cssTransforms) { transition-duration: 1ms; }
+  :global(.react-grid-item > .canvas-grip.canvas-grip.react-resizable-handle)::after { transition: none; transform: none !important; }
 }
 
 /* Sidebar tabs: the active one is tinted like the old nav link, not a solid block. */

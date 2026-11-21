@@ -77,7 +77,7 @@ describe("Canvas", () => {
   it("a card that cannot be measured yet (nothing rendered) keeps its stored height instead of collapsing to one row", async () => {
     setup(1100);
     await screen.findByTestId("grid");
-    await waitFor(() => expect(grid!.layout.map((l) => l.h)).toEqual([8, 8]));
+    await waitFor(() => expect(grid!.layout.map((l) => l.h)).toEqual([29, 29]));
   });
 
   it("a card follows its measured content height until it was sized by hand, which keeps the stored height", async () => {
@@ -88,8 +88,8 @@ describe("Canvas", () => {
     pageWidth(1100);
     renderWithProviders(<Canvas state={STATE} tab={workspaceStore.get(STATE).tabs[0]} renderCard={(id) => <p>card {id}</p>} onConfigure={() => {}} />);
     await screen.findByTestId("grid");
-    // Every element measures 100px: card content plus toolbar is 200px, four rows. The hand-sized card stays at 8.
-    await waitFor(() => expect(grid!.layout.map((l) => l.h)).toEqual([8, 4]));
+    // Every element measures 100px: content, toolbar and the 12px foot padding are 212px, fourteen 16px rows. The hand-sized card stays at 8.
+    await waitFor(() => expect(grid!.layout.map((l) => l.h)).toEqual([8, 14]));
   });
 
   it("a card that was just added arrives marked once; a copy is marked too, and a redraw does not mark it again", async () => {
@@ -184,9 +184,9 @@ describe("Canvas: keyboard focus and announcements after a card leaves", () => {
     measuring(100);
     const { tab } = setup(1100);
     await screen.findByTestId("grid");
-    expect(tab.items.every((i) => i.h === 8)).toBe(true);
+    expect(tab.items.every((i) => i.h === 29)).toBe(true);
     await user.click(screen.getByRole("button", { name: "Fit all heights" }));
-    expect(workspaceStore.get(STATE).tabs[0].items.every((i) => i.h === 4)).toBe(true);
+    expect(workspaceStore.get(STATE).tabs[0].items.every((i) => i.h === 14)).toBe(true);
     expect(screen.getByRole("status")).toHaveTextContent("Fitted 2 cards to their content");
   });
 
