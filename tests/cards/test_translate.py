@@ -251,3 +251,12 @@ def test_a_hidden_value_hides_its_row_in_a_multi_dimension_cut(tmp_path):
     assert {r.key for r in cut.rows} == {"caste=Jat|gender=Female", "caste=Jat|gender=Male"}
     assert not [c for c in cut.cells if c.row.endswith("gender=Other")]
     assert payload.hidden_count >= 1
+
+
+def test_several_chosen_surveys_each_keep_their_own_round():
+    result = mini_result(rows=[mini_row(obs="o1", support_share=40.0), mini_row(obs="o2", support_share=43.5),
+                               mini_row(obs="o2", scenario="ls_past", support_share=9.0)])
+    config = _config(surveys=["R1", "R2"])
+    payload = _translate(result, config, anchor="o2", obs=["o1", "o2"])
+    support = {(c.round, c.column): c.value for c in payload.cuts[0].cells if c.lens == "support_share"}
+    assert support == {("o1", column_key(VS, "NDA")): 40.0, ("o2", column_key(VS, "NDA")): 43.5}

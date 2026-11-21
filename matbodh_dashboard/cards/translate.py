@@ -117,8 +117,9 @@ class _Translator:
         config, tc = self.config, self.tc
         if self.mode == "standalone":
             scenarios = set(config.scenarios)
-            self.used_obs = {tc.anchor}
-            self.keep = lambda i: (i.get("observation_id") == tc.anchor
+            # Several chosen surveys: every round the card read, each its own observation.
+            self.used_obs = set(tc.round_order) if len(config.surveys) > 1 else {tc.anchor}
+            self.keep = lambda i: (i.get("observation_id") in self.used_obs
                                    and i.get("scenario_id") in scenarios)
         elif self.mode == "trend":
             scenario = config.scenarios[0]
