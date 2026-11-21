@@ -46,6 +46,16 @@ def resolve_rounds(ctx: StateContext, catalogue: Catalogue) -> list[ResolvedRoun
     return resolved
 
 
+def trend_rounds(
+    rounds: Sequence[ResolvedRound], anchor: str, count: int | None, surveys: Sequence[str] = ()
+) -> tuple[list[ResolvedRound], str | None]:
+    """The rounds a trend reads: the surveys the card chose (in the context's order), else the pipe window."""
+    if surveys:
+        chosen = set(surveys)
+        return [r for r in rounds if r.identity.base_name in chosen], None
+    return pipe_window(rounds, anchor, count)
+
+
 def pipe_window(
     rounds: Sequence[ResolvedRound], anchor: str, count: int | None
 ) -> tuple[list[ResolvedRound], str | None]:

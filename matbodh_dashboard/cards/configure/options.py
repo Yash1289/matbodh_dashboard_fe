@@ -22,7 +22,7 @@ from matbodh_dashboard.cards.config import (
 from matbodh_dashboard.cards.relationship.compile import relationship_majors
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.plan import field_available, master_key_of
-from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds
+from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds, trend_rounds
 from matbodh_dashboard.context import StateContext
 
 METRIC_LABELS = {"support_share": "Support share", "net_score": "Net score",
@@ -89,7 +89,7 @@ def rounds_read(draft: Mapping[str, Any], ctx: StateContext, catalogue: Catalogu
         return [r for r in rounds if r is anchor_round or r is compare]
     mode = _get(draft, "comparison.mode") or "standalone"
     if mode == "trend":
-        window, _ = pipe_window(rounds, anchor, draft.get("pipe_rounds"))
+        window, _ = trend_rounds(rounds, anchor, draft.get("pipe_rounds"), draft.get("surveys") or ())
         scenario = _get(draft, "scenarios.0")
         return _asking(window, [scenario] if scenario else [])
     if mode == "compare":

@@ -9,7 +9,7 @@ from functools import lru_cache
 
 from matbodh_dashboard.cards.config import OPINION_MEASURES, PARTY_MEASURES, TOP_K_MAX
 from matbodh_dashboard.cards.configure.descriptor import (
-    All, Contains, Equals, FamilyDescriptor, FieldDescriptor, In, KindOf, Not, OptionSource,
+    All, Contains, Equals, FamilyDescriptor, FieldDescriptor, In, KindOf, Nonempty, Not, OptionSource,
 )
 from matbodh_dashboard.cards.families import family_meta, get_family
 
@@ -40,14 +40,16 @@ def _scenarios(kind: str, *, multiple: bool, show_when=NOT_COMPARE, label="Quest
 # An unset mode is standalone: conditions are evaluated before the mode default is written, so say it by what it is not.
 # (In, not Equals: the compare block of Configure is the fields that read the compare mode as two questions.)
 NOT_STANDALONE = In(path="comparison.mode", values=["compare", "trend"])
+NO_SURVEYS = Not(of=Nonempty(path="surveys"))
 IS_STANDALONE = All(of=[Not(of=COMPARE), Not(of=TREND)])
 
 
-def _surveys_field() -> FieldDescriptor:
+def _surveys_field(show_when=Not(of=In(path="comparison.mode", values=["compare"]))) -> FieldDescriptor:
     return _f("surveys", "Surveys", "choice", multiple=True, tier="primary",
-              show_when=IS_STANDALONE, options=_options("surveys"),
-              help="Empty uses the context's anchor round. One survey reads it; several are read side by side. "
-                   "With several surveys or questions, a split shows one at a time")
+              show_when=show_when, options=_options("surveys"),
+              help="Empty uses the context's rounds: the anchor for a table, the last rounds for a trend. "
+                   "A table reads one survey or several side by side (a split shows one at a time). "
+                   "A trend follows 2 to 4 surveys you choose, in the context's order")
 
 
 def _mode(choices=("standalone", "compare", "trend")) -> FieldDescriptor:
@@ -88,9 +90,13 @@ def _caste_clubbing() -> FieldDescriptor:
               show_when=Contains(path="cuts", value="caste"))
 
 
+# Last N rounds or a chosen set of surveys, never both: the number is hidden once surveys are chosen.
+TREND_BY_COUNT = All(of=[TREND, Not(of=Nonempty(path="surveys"))])
+
+
 def _pipe_rounds(show_when=TREND) -> FieldDescriptor:
     return _f("pipe_rounds", "Rounds to show", "number", show_when=show_when, limits={"min": 1},
-              help="The last N pipe rounds up to the anchor; empty = all of them")
+              help="The last N pipe rounds up to the anchor; empty = all of them. Or choose the surveys yourself")
 
 
 def _survey(label="Survey", *, show_when=None, seat=False) -> FieldDescriptor:
@@ -160,26 +166,27 @@ def _all() -> tuple[FamilyDescriptor, ...]:
                 "Vote share for one or more party questions, split by the cuts you choose.", [
                     _title(),
                     _scenarios("party", multiple=True, show_when=All(of=[NOT_COMPARE, Not(of=every_party)])),
-                    _surveys_field(), _survey(show_when=NOT_STANDALONE), _compare_survey(),
+                    _surveys_field(), _survey(show_when=All(of=[NOT_STANDALONE, NO_SURVEYS])), _compare_survey(),
                     _mode(),
                     *_compare("party", "any"),
                     _cuts(),
                     _f("all_party_scenarios", "Every party question of the anchor round", "toggle", default=False,
                        show_when=Equals(path="comparison.mode", value="standalone")),
                     party_delta,
-                    _filters(), _caste_clubbing(), _pipe_rounds(), _display_parties(),
+                    _filters(), _caste_clubbing(), _pipe_rounds(TREND_BY_COUNT), _display_parties(),
                 ]),
         _family("opinion", "Opinion",
                 "Ratings and yes/no questions: positive, negative and net shares.", [
                     _title(), _scenarios("opinion", multiple=True), _surveys_field(),
-                    _survey(show_when=NOT_STANDALONE), _compare_survey(),
+                    _survey(show_when=All(of=[NOT_STANDALONE, NO_SURVEYS])), _compare_survey(),
                     _mode(), *_compare("opinion", "opinion"),
-                    _cuts(), opinion_delta, _filters(), _caste_clubbing(), _pipe_rounds(),
+                    _cuts(), opinion_delta, _filters(), _caste_clubbing(), _pipe_rounds(TREND_BY_COUNT),
                 ]),
         _family("gender_differential", "Gender gap", "How women and men differ in party support.", [
-                    _title(), _scenarios("party", multiple=True, show_when=None), _survey(),
+                    _title(), _scenarios("party", multiple=True, show_when=None),
+                    _surveys_field(show_when=TREND), _survey(show_when=NO_SURVEYS),
                     _mode(("standalone", "trend")), _cuts(family="gender_differential"),
-                    _filters(), _caste_clubbing(), _pipe_rounds(), _display_parties(),
+                    _filters(), _caste_clubbing(), _pipe_rounds(TREND_BY_COUNT), _display_parties(),
                 ]),
         _family("seat_ranking", "Seat ranking",
                 "Rank ACs or PCs by a party's support or an opinion score.",

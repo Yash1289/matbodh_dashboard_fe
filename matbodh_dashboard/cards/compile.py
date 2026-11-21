@@ -26,7 +26,7 @@ from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available, master_key_of
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
-from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds
+from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds, trend_rounds
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import MethodPreset
 
@@ -43,10 +43,11 @@ class _Selection:
 
 def windowed(config: CardConfig, rounds: list[ResolvedRound], anchor: str) -> tuple[list[ResolvedRound], tuple[str, ...]]:
     """The rounds a card reads: its pipe-round window for trends and relationships, else all."""
-    if config.pipe_rounds is None or not (
-            config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES):
+    custom = config.comparison.mode == "trend" and len(config.surveys) > 1
+    if not custom and (config.pipe_rounds is None or not (
+            config.comparison.mode == "trend" or config.family in RELATIONSHIP_FAMILIES)):
         return list(rounds), ()
-    window, note = pipe_window(rounds, anchor, config.pipe_rounds)
+    window, note = trend_rounds(rounds, anchor, config.pipe_rounds, config.surveys if config.comparison.mode == "trend" else ())
     return window, ((note,) if note else ())
 
 
@@ -269,7 +270,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     caste_reference = (selection.reference if selection.reference is not None
                        else anchor_round if anchor_round in selection.used
                        else selection.used[-1])
-    if len(config.surveys) > 1:
+    if config.comparison.mode == "standalone" and len(config.surveys) > 1:
         # One engine job per survey, each with the questions that survey asked (the engine requires every
         # question of a request in every observation it reads); the run merges their results.
         jobs = []

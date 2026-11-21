@@ -68,3 +68,22 @@ test("a card reads two surveys as rows, and flipping the axis sends no request",
   await page.keyboard.press("Escape");
   expect(runs.length).toBe(sent);
 });
+
+test("a trend follows the surveys you choose, instead of the last N rounds", async ({ page }) => {
+  const runs = await serve(page);
+  await page.goto(CONTEXT);
+  await page.getByRole("button", { name: "Add card" }).click();
+  await page.getByRole("menuitem", { name: /Party vote share/ }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("checkbox", { name: "vs_voting_intention" }).check();
+  await dialog.getByRole("combobox", { name: "Show" }).selectOption("trend");
+  await dialog.getByRole("button", { name: "More options" }).click();
+  await expect(dialog.getByText("Rounds to show")).toBeVisible();
+  await dialog.getByRole("checkbox", { name: "R1" }).click();
+  await dialog.getByRole("checkbox", { name: "R2" }).click();
+  await expect(dialog.getByText("Rounds to show")).toHaveCount(0); // chosen surveys replace the last-N count
+  await dialog.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(runs[0]).toMatchObject({ surveys: ["R1", "R2"], comparison: { mode: "trend" } });
+  expect(runs[0].pipe_rounds ?? null).toBeNull();
+});

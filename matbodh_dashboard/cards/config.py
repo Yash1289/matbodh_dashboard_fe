@@ -394,8 +394,16 @@ class CardConfig(_Strict):
                                  f"for the {self.family} family")
 
     def _check_surveys(self, comparison: ComparisonConfig) -> None:
-        if self.family not in ("distribution", "opinion") or comparison.mode != "standalone":
-            _fail("surveys", "surveys apply to party vote share and opinion cards in standalone mode")
+        trend = comparison.mode == "trend"
+        if trend:
+            if self.family not in ("distribution", "opinion", "gender_differential"):
+                _fail("surveys", "a custom set of surveys applies to party vote share, opinion and gender gap trends")
+            if len(self.surveys) < 2:
+                _fail("surveys", "a trend follows at least two surveys")
+            if self.pipe_rounds is not None:
+                _fail("surveys", "choose either the surveys or the last N rounds, not both")
+        elif self.family not in ("distribution", "opinion") or comparison.mode != "standalone":
+            _fail("surveys", "surveys apply to party vote share and opinion cards in standalone or trend mode")
         if len(set(self.surveys)) != len(self.surveys):
             _fail("surveys", "choose each survey once")
         if self.anchor_round is not None:

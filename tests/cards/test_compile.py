@@ -469,3 +469,20 @@ def test_read_levels_leaves_the_context_anchor_out_when_several_surveys_are_chos
 def test_all_party_scenarios_rejected_with_several_surveys():
     with pytest.raises(Exception, match="all_party_scenarios|surveys"):
         _config(all_party_scenarios=True, scenarios=[], surveys=[R1, R2])
+
+
+def test_trend_follows_the_chosen_surveys_in_context_order_skipping_the_rest():
+    plan = _compile(_config(comparison={"mode": "trend"}, surveys=[R3, R1]))  # R2 is skipped
+    assert plan.unavailable == ()
+    assert [o["survey_name"] for o in plan.jobs[0].config["request"]["observations"]] == [R1, R3]
+
+
+def test_trend_with_chosen_surveys_ignores_the_context_window_size():
+    plan = _compile(_config(comparison={"mode": "trend"}, surveys=[R1, R2]), rounds=3)
+    assert [o["survey_name"] for o in plan.jobs[0].config["request"]["observations"]] == [R1, R2]
+
+
+def test_a_custom_trend_is_still_capped_at_four_rounds():
+    names = [f"2027 VS CAPI R{i}" for i in range(1, 6)]
+    plan = _compile(_config(comparison={"mode": "trend"}, surveys=names), ctx=_ctx(rounds=names, compare=None), rounds=5)
+    assert plan.unavailable and "at most 4 rounds" in plan.unavailable[0][1]

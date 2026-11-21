@@ -33,6 +33,11 @@ describe("describeDraft", () => {
       .toBe("Shows q in A, B, C and 2 more, overall.");
   });
 
+  it("a trend over chosen surveys names them", () => {
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], comparison: { mode: "trend" }, surveys: ["R1", "R3"] }), CTX))
+      .toBe("Shows q in R1 and R3, followed as a trend, overall.");
+  });
+
   it("a compare card names its own comparison survey", () => {
     expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], comparison: { mode: "compare" }, compare_round: "R2", anchor_round: "R1" }), CTX))
       .toBe("Shows q in R1 against R2, overall.");

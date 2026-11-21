@@ -25,7 +25,7 @@ EXPECTED = {
                      "cuts", "filters", "caste_clubbing", "pipe_rounds", "display_parties"},
     "opinion": {*SURVEY, "surveys", "title", "scenarios", *COMPARE, "comparison.delta_measures", "cuts", "filters",
                 "caste_clubbing", "pipe_rounds"},
-    "gender_differential": {"anchor_round", "title", "scenarios", "comparison.mode", "cuts", "filters", "caste_clubbing",
+    "gender_differential": {"anchor_round", "surveys", "title", "scenarios", "comparison.mode", "cuts", "filters", "caste_clubbing",
                             "pipe_rounds", "display_parties"},
     "seat_ranking": {*SURVEY, "title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
                      "rank.partition_by", "rank.filters", "rank.top_k", "pipe_rounds"},
@@ -129,8 +129,12 @@ def test_normative_conditions():
         "op": "equals", "path": "relationship.joint_weight.source", "value": "scenario"}
     for family in ("seat_ranking", "demographic_ranking"):
         assert dumped(family, "rank.party_id") == {"op": "equals", "path": "rank.metric", "value": "support_share"}
-    for family in ("distribution", "opinion", "gender_differential", "seat_ranking", "demographic_ranking"):
+    for family in ("seat_ranking", "demographic_ranking"):
         assert dumped(family, "pipe_rounds") == {"op": "equals", "path": "comparison.mode", "value": "trend"}
+    for family in ("distribution", "opinion", "gender_differential"):  # last N rounds, unless surveys are chosen
+        assert dumped(family, "pipe_rounds") == {"op": "all", "of": [
+            {"op": "equals", "path": "comparison.mode", "value": "trend"},
+            {"op": "not", "of": {"op": "nonempty", "path": "surveys"}}]}
     assert dumped("relationship", "pipe_rounds") is None  # every round is its own matrix
 
 
@@ -175,6 +179,5 @@ def test_surveys_field_survives_an_unset_mode():
     """The panel prunes hidden fields before the mode default is written, so an unset mode must show Surveys."""
     from matbodh_dashboard.cards.configure.descriptor import Condition  # noqa: F401
     f = field("distribution", "surveys")
-    assert f.show_when.model_dump() == {"op": "all", "of": [
-        {"op": "not", "of": {"op": "equals", "path": "comparison.mode", "value": "compare"}},
-        {"op": "not", "of": {"op": "equals", "path": "comparison.mode", "value": "trend"}}]}
+    # shown for every mode but compare, so an unset mode (standalone) shows it too
+    assert f.show_when.model_dump() == {"op": "not", "of": {"op": "in", "path": "comparison.mode", "values": ["compare"]}}

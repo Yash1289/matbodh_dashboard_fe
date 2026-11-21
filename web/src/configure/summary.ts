@@ -20,7 +20,8 @@ function whenText(draft: CardConfigJson, ctx: StateContext): string {
   if (surveys.length > 1) {
     const shown = surveys.slice(0, 3);
     const more = surveys.length - shown.length;
-    return `${more > 0 ? `${shown.join(", ")} and ${more} more` : shown.length === 2 ? shown.join(" and ") : `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`}`;
+    const list = more > 0 ? `${shown.join(", ")} and ${more} more` : shown.length === 2 ? shown.join(" and ") : `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`;
+    return draft.comparison?.mode === "trend" ? `${list}, followed as a trend` : list;
   }
   const anchor = surveys[0] ?? draft.anchor_round ?? ctx.anchor_round ?? ctx.rounds[ctx.rounds.length - 1];
   const mode = draft.comparison?.mode ?? "standalone";

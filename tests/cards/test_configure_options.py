@@ -300,3 +300,9 @@ def test_every_option_list_follows_the_cards_own_anchor_round():
     on_r2 = items("scenarios", {"family": "opinion", "anchor_round": R2}, svc, ctx(compare=R1), kind="opinion")
     assert "pm_satisfaction" in [i.value for i in on_anchor]
     assert "pm_satisfaction" not in [i.value for i in on_r2]
+
+
+def test_rounds_read_by_a_trend_follow_the_chosen_surveys():
+    read = rounds_read({"family": "distribution", "comparison": {"mode": "trend"}, "scenarios": ["vs_voting_intention"],
+                        "surveys": [R4, R2]}, ctx(), service().catalogue)
+    assert [r.identity.base_name for r in read] == [R2, R4]

@@ -207,7 +207,10 @@ def test_surveys_accepted_for_distribution_and_opinion():
 @pytest.mark.parametrize("bad", [
     {"family": "seat_ranking", "rank": {"level": "ac", "metric": "support_share", "party_id": "BJP"}},
     {"surveys": ["A", "A"]}, {"anchor_round": "A"},
-    {"comparison": {"mode": "trend"}},
+    {"comparison": {"mode": "trend"}, "pipe_rounds": 2},
+    {"comparison": {"mode": "trend"}, "surveys": ["A"]},
+    {"family": "seat_ranking", "comparison": {"mode": "trend"},
+     "rank": {"level": "ac", "metric": "support_share", "party_id": "BJP"}},
 ])
 def test_surveys_rejected_elsewhere(bad):
     with pytest.raises(Exception):
@@ -218,3 +221,9 @@ def test_several_questions_across_surveys_reject_cuts():
     with pytest.raises(Exception, match="cuts"):
         _surveys_card(scenarios=["vs_voting_intention", "ls_past"], cuts=[["age_group"]])
     assert _surveys_card(scenarios=["vs_voting_intention", "ls_past"]).cuts == [[]]
+
+
+def test_a_trend_may_follow_a_chosen_set_of_surveys():
+    card = _surveys_card(comparison={"mode": "trend"}, scenarios=["vs_voting_intention"], surveys=["A", "C"])
+    assert card.surveys == ["A", "C"]
+    assert _surveys_card(family="opinion", scenarios=["pm_satisfaction"], comparison={"mode": "trend"}).surveys == ["A", "B"]
