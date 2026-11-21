@@ -170,6 +170,8 @@ export interface GridPayload {
   meta: FamilyMeta;
   columns: GridColumn[];
   cuts: Cut[];
+  /** Frontend only: what a laid-out table shows when it is one measure (e.g. "NDA · Support %"), set by the layout. */
+  layoutLabel?: string;
   unavailable: PartReason[];
   not_asked: NotAsked[];
   coverage: { job: string; part: string; coverage: Record<string, unknown> | string }[];

@@ -64,7 +64,9 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const [chosen, setChosen] = useState<FamilyView | null>(null);
   const [methodOpen, setMethodOpen] = useState(false);
   const { ref, width } = useElementSize();
-  const view = useMemo(
+  // The view is settled twice: first against the payload (cut and lens), then against the columns the layout
+  // actually shows, so hidden columns and sorts refer to what the table has, not to the raw payload's columns.
+  const view1 = useMemo(
     () => (shown === null ? null : settled(chosen ?? initialView(shown), shown)),
     [chosen, shown],
   );
@@ -75,16 +77,22 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   // A crossed cut whose first field describes the seat is read one seat group at a time (display only).
   const crossed = shown?.cuts.some((c) => c.dimensions.length >= 2) ?? false;
   const scopes = useFieldScopes(info.family, crossed ? ctx : null);
-  const activeCut = shown !== null && view !== null ? shown.cuts.find((c) => c.id === view.cut) : undefined;
+  const activeCut = shown !== null && view1 !== null ? shown.cuts.find((c) => c.id === view1.cut) : undefined;
   const split = activeCut ? seatSplit(activeCut.dimensions, scopes) : null;
   const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
-  const seat = choices ? resolveSeat(choices, view?.seat) : null;
+  const seat = choices ? resolveSeat(choices, view1?.seat) : null;
   const withSeat = useCallback(
     (p: GridPayload): GridPayload => {
-      const seated = split && view && choices ? applySeat(p, view.cut, split.field, seat) : p;
-      return view ? layoutPayload(seated, view.cut, view) : seated;
+      const seated = split && view1 && choices ? applySeat(p, view1.cut, split.field, seat) : p;
+      return view1 ? layoutPayload(seated, view1.cut, view1) : seated;
     },
-    [split, view, choices, seat],
+    [split, view1, choices, seat],
+  );
+  const laid = useMemo(() => (shown !== null && view1 !== null ? withSeat(shown) : null), [shown, view1, withSeat]);
+  const view = useMemo(
+    () => (view1 === null || laid === null || shown === null ? view1
+      : settled({ ...(chosen ?? initialView(shown)), cut: view1.cut, lens: view1.lens }, laid)),
+    [view1, laid, chosen, shown],
   );
   const grid = useMemo(() => {
     if (shown === null || view === null || view.cut === "") return null;
@@ -150,7 +158,7 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
           </div>
           {shown && view && grid && (
             <ControlStrip
-              payload={shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
+              payload={laid ?? shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
               leading={(
                 <>
                   {split && choices && (

@@ -115,7 +115,7 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
 
   const grid: CellGrid = {
     rows, columns: headers, cells,
-    rowDim: cut.dimensions.length ? cut.dimensions.join(" · ") : "overall",
+    rowDim: p.layoutLabel ?? (cut.dimensions.length ? cut.dimensions.join(" · ") : "overall"),
     columnDim: columns[0]?.kind === "scale" ? "question" : (columns[0]?.kind ?? "series"),
     mode,
   };

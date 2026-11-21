@@ -13,8 +13,9 @@ interface Props {
 export function LayoutSelectors({ payload, cut, view, onView }: Props) {
   const need = layoutNeeds(payload, cut);
   if (!need.survey && !need.question && !need.party) return null;
+  // The label is part of each option, so the closed control reads "Party: NDA", never a bare value.
   const select = (label: string, data: { value: string; label: string }[], value: string | null | undefined, key: keyof LayoutView) => (
-    <NativeSelect size="xs" aria-label={label} data={data} value={value ?? data[0]?.value}
+    <NativeSelect size="xs" aria-label={label} data={data.map((d) => ({ ...d, label: `${label}: ${d.label}` }))} value={value ?? data[0]?.value}
       onChange={(e) => onView({ [key]: e.currentTarget.value })} />
   );
   return (
