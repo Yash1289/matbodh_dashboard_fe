@@ -53,12 +53,22 @@ describe("reconcile", () => {
 
   it("clamps out-of-range stored items and gives an item with a non-number the default size", () => {
     const raw = {
-      version: 1, activeTab: "t",
+      version: 2, activeTab: "t",
       tabs: [{ id: "t", name: "A", items: [{ cardId: "c1", x: -3, y: 2, w: 40, h: 5 }, { cardId: "c2", x: 0, y: 0, w: 4, h: "x" }] }],
     };
     const [a, b] = reconcile(raw, [card("c1"), card("c2")]).tabs[0].items;
     expect([a.x, a.w, a.h]).toEqual([0, COLUMNS, 5]);
     expect([b.x, b.y, Number.isFinite(b.w), Number.isFinite(b.h)]).toEqual([0, 0, true, true]);
+  });
+
+  it("rows of a version 1 workspace (58px) are scaled once to version 2 (16px), so each card keeps its place and size", () => {
+    const raw = { version: 1, activeTab: "t", tabs: [{ id: "t", name: "A", items: [{ cardId: "c1", x: 2, y: 4, w: 6, h: 8, manual: true }] }] };
+    const out = reconcile(raw, [card("c1")]);
+    expect(out.version).toBe(2);
+    const [a] = out.tabs[0].items;
+    expect([a.x, a.w, a.manual]).toEqual([2, 6, true]);
+    expect([a.y, a.h]).toEqual([Math.round(4 * 58 / 16), Math.round(8 * 58 / 16)]); // 15 and 29: the same pixels
+    expect(reconcile(out, [card("c1")]).tabs[0].items[0].h).toBe(a.h); // a version 2 workspace is left as it is
   });
 
   it("falls back to the first tab when the active tab does not exist", () => {

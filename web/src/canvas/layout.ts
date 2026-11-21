@@ -9,17 +9,21 @@ export interface Item {
 }
 
 export const COLUMNS = 12;
-/** Pixel height of one grid row; the gap between rows comes from the theme. */
-export const ROW_HEIGHT = 40;
+/** Pixel height of one grid row. */
+export const ROW_HEIGHT = 10;
+/** The vertical gap the grid keeps between rows; the rest of the card gap is padding inside each cell, so a card's height moves in 16px steps. */
+export const ROW_GAP = 6;
+/** A stored workspace of version 1 counted rows of 58px (40 + an 18px gap); version 2 counts rows of 16px. */
+export const ROW_SCALE_V1 = 58 / (ROW_HEIGHT + ROW_GAP);
 export const SIZE_PRESETS = { small: 4, medium: 6, wide: 8, full: 12 } as const;
 export type SizePreset = keyof typeof SIZE_PRESETS;
 export type Direction = "left" | "right" | "up" | "down";
 
 /** Wide tables get the full width; grid and ranking cards take half, so two sit side by side. */
 export function defaultSize(family: Family): { w: number; h: number } {
-  if (isBenchmarkFamily(family) || isRelationshipFamily(family)) return { w: 12, h: 10 };
-  if (isRankingFamily(family)) return { w: 6, h: 10 };
-  return { w: 6, h: 8 };
+  if (isBenchmarkFamily(family) || isRelationshipFamily(family)) return { w: 12, h: 36 };
+  if (isRankingFamily(family)) return { w: 6, h: 36 };
+  return { w: 6, h: 29 };
 }
 
 const FALLBACK = defaultSize("distribution");
@@ -101,7 +105,7 @@ export function readingOrder(items: Item[]): Item[] {
   return [...items].sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
-/** The fewest rows whose height (rows of ROW_HEIGHT with `gap` between them) holds `px` of content. */
-export function rowsFor(px: number, gap: number): number {
-  return Math.max(1, Math.ceil((px + gap) / (ROW_HEIGHT + gap)));
+/** The fewest rows whose height (rows of ROW_HEIGHT with ROW_GAP between them) holds `px`. */
+export function rowsFor(px: number): number {
+  return Math.max(1, Math.ceil((px + ROW_GAP) / (ROW_HEIGHT + ROW_GAP)));
 }
