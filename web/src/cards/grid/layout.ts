@@ -57,6 +57,28 @@ export function acrossSurveys(p: GridPayload, cutId: string): GridPayload {
   return { ...p, cuts };
 }
 
+/**
+ * Overall with several questions: a column per question and a row per answer (party or option), so the
+ * questions read side by side instead of as one long run of party columns.
+ */
+export function questionsAsColumns(p: GridPayload, cutId: string): GridPayload {
+  const questions = questionsOf(p);
+  const first = new Map<string, GridPayload["columns"][number]>();
+  for (const c of p.columns) if (!first.has(partyOf(c.key))) first.set(partyOf(c.key), c);
+  const columns = questions.map((q) => ({ key: q, label: q, scenario: q, kind: "scale" as const, colour: null, lenses: null }));
+  const cuts = p.cuts.map((cut) => {
+    if (cut.id !== cutId) return cut;
+    const rekey = <T extends { row: string; column: string }>(xs: T[]) =>
+      xs.map((x) => ({ ...x, row: partyOf(x.column), column: x.column.slice(0, x.column.lastIndexOf(":")) }));
+    return {
+      ...cut,
+      rows: [...first].map(([key, c]) => ({ key, labels: { answer: c.label }, subtotal: [] })),
+      cells: rekey(cut.cells), bases: rekey(cut.bases), deltas: [],
+    };
+  });
+  return { ...p, columns, cuts };
+}
+
 /** The payload the table shows for the chosen layout; unchanged for one survey and one question. */
 export function layoutPayload(p: GridPayload, cutId: string, view: LayoutView): GridPayload {
   if (!isStandalone(p)) return p;
@@ -68,6 +90,7 @@ export function layoutPayload(p: GridPayload, cutId: string, view: LayoutView): 
     if (need.survey) out = applySurvey(out, view.survey && surveys.some((s) => s.obs_id === view.survey) ? view.survey : surveys[0].obs_id);
     else out = acrossSurveys(out, cutId);
   }
+  if (surveys.length <= 1 && questions.length > 1 && isOverall(p, cutId)) out = questionsAsColumns(out, cutId);
   if (need.question) out = applyQuestion(out, view.question && questions.includes(view.question) ? view.question : questions[0]);
   if (need.party) {
     const parties = partiesOf(p);

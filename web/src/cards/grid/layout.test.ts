@@ -67,6 +67,14 @@ describe("layoutPayload", () => {
     expect(value(g, "B", "q2:SP")).toBe(213);
   });
 
+  it("several questions in one survey, overall: a column per question, a row per party", () => {
+    const g = grid(payload([], ["q1", "q2"], ["A"]));
+    expect(g.columns.map((c) => c.label)).toEqual(["q1", "q2"]);
+    expect(g.rows.map((r) => r.label)).toEqual(["NDA", "SP"]);
+    expect(value(g, "NDA", "q1")).toBe(110);
+    expect(value(g, "SP", "q2")).toBe(113);
+  });
+
   it("trend and compare payloads are never re-laid out", () => {
     const p = { ...payload([], ["q1"]), mode: "trend" } as GridPayload;
     expect(layoutPayload(p, "g0", {})).toBe(p);
