@@ -16,12 +16,14 @@ describe("LayoutSelectors", () => {
   it("offers a survey selector for a cut over several surveys and reports the choice without any request", async () => {
     const onView = vi.fn();
     render(<MantineProvider><LayoutSelectors payload={payload(["age"])} cut="g0" view={{}} onView={onView} /></MantineProvider>);
-    await userEvent.setup().selectOptions(screen.getByRole("combobox", { name: "Survey" }), "B");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /^Survey: Round A/ }));
+    await user.click(await screen.findByRole("radio", { name: "Round B" }));
     expect(onView).toHaveBeenCalledWith({ survey: "B" });
   });
 
   it("draws nothing for an overall table", () => {
     const { container } = render(<MantineProvider><LayoutSelectors payload={payload([])} cut="g0" view={{}} onView={vi.fn()} /></MantineProvider>);
-    expect(container.querySelector("select")).toBeNull();
+    expect(container.querySelector("button")).toBeNull();
   });
 });
