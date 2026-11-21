@@ -209,6 +209,9 @@ class CardConfig(_Strict):
     pipe_rounds: int | None = Field(default=None, ge=1)
     # Party rows to keep showing (distribution and gender differential); empty = all.
     display_parties: list[str] = Field(default_factory=list)
+    # This card's own survey instead of the context's anchor / comparison round (base names; None = the context's).
+    anchor_round: str | None = None
+    compare_round: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -222,6 +225,9 @@ class CardConfig(_Strict):
     @model_validator(mode="after")
     def _validate(self) -> "CardConfig":
         comparison = self.comparison
+        if (self.compare_round is not None and comparison.mode != "compare"
+                and self.family not in BENCHMARK_FAMILIES | RANKING_FAMILIES):
+            _fail("compare_round", "compare_round applies to compare mode only")
         if self.display_parties and self.family not in PARTY_ROW_FAMILIES:
             _fail("display_parties", "display_parties apply to distribution and gender differential cards")
         if self.all_party_scenarios:

@@ -19,6 +19,7 @@ from matbodh_dashboard.cards.config import (
     comparison_kind,
     scenario_kind,
 )
+from matbodh_dashboard.cards.context import card_context
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cohorts.restrict import cohort_blockers, respondent_filter
 from matbodh_dashboard.catalogue.store import Catalogue
@@ -161,6 +162,11 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  preset: MethodPreset, *, reference=None, parties=None, elections=None,
                  cohort=None) -> RunPlan:
+    try:
+        ctx = card_context(config, ctx)
+    except ValueError as error:
+        return RunPlan(card_id=config.id, state=ctx.state, rounds=(), anchor=ctx.anchor_round or "",
+                       compare=ctx.compare_round, jobs=(), unavailable=((GRID, str(error)),))
     if config.family in RELATIONSHIP_FAMILIES:
         # Lazy: the relationship compiler reuses this module's round helpers.
         from matbodh_dashboard.cards.relationship.compile import compile_relationship_card
