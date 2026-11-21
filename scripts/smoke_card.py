@@ -75,8 +75,8 @@ def parse_reference(text: str | None) -> BenchmarkReference | None:
 
 
 def build_context(state: str, rounds: Sequence[str]) -> StateContext:
-    """AC-level context; the first round is the compare round when there are two or more."""
-    return StateContext(state=state, level="ac", rounds=list(rounds),
+    """Context of the named rounds; the first round is the compare round when there are two or more."""
+    return StateContext(state=state, rounds=list(rounds),
                         compare_round=rounds[0] if len(rounds) > 1 else None)
 
 
