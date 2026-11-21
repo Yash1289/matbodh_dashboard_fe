@@ -36,37 +36,35 @@ describe("ContextStep", () => {
     renderStep();
     expect(screen.getByRole("heading", { level: 1, name: "Survey context" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    await screen.findByRole("checkbox", { name: R1 });
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/cards/run"))).toBe(false);
   });
 
-  it("offers Continue, not Apply or Cancel, and Continue waits for a level and a round", async () => {
+  it("offers Continue, not Apply or Cancel, and Continue waits for a round", async () => {
     stubApi();
     renderStep();
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Apply selection" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(/Choose a survey level and at least one round/);
+    expect(screen.getByRole("status")).toHaveTextContent(/Choose at least one round to continue/);
   });
 
   it("Continue writes the chosen context to the URL", async () => {
     stubApi();
     const user = userEvent.setup();
     renderStep();
-    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
-    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     await user.click(screen.getByRole("checkbox", { name: R2 }));
     expect(screen.getByTestId("search").textContent).toBe("");
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => {
       const ctx = parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""));
-      expect(ctx).toMatchObject({ state: "Uttar Pradesh", level: "ac", rounds: [R1, R2] });
+      expect(ctx).toMatchObject({ state: "Uttar Pradesh", rounds: [R1, R2] });
     });
   });
 
   const LAST = {
-    state: "Uttar Pradesh", level: "ac" as const, rounds: [R1, R2], compare_round: null, anchor_round: null,
+    state: "Uttar Pradesh", rounds: [R1, R2], compare_round: null, anchor_round: null,
     version_mode: "extrapolated" as const, geo_scope: "state" as const,
   };
 
@@ -79,7 +77,7 @@ describe("ContextStep", () => {
     await waitFor(() => expect(button).toHaveFocus());
     await user.click(button);
     await waitFor(() => {
-      expect(parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""))).toMatchObject({ state: "Uttar Pradesh", level: "ac", rounds: [R1, R2] });
+      expect(parseContext(new URLSearchParams(screen.getByTestId("search").textContent ?? ""))).toMatchObject({ state: "Uttar Pradesh", rounds: [R1, R2] });
     });
   });
 
@@ -87,14 +85,14 @@ describe("ContextStep", () => {
     stubApi();
     saveLastContext({ ...LAST, rounds: ["2027 VS CAPI R9"] });
     renderStep();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    await screen.findByRole("checkbox", { name: R1 });
     expect(screen.queryByRole("button", { name: /^Continue with/ })).not.toBeInTheDocument();
   });
 
   it("offers nothing to continue on a first visit", async () => {
     stubApi();
     renderStep();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Survey level" })).toBeEnabled());
+    await screen.findByRole("checkbox", { name: R1 });
     expect(screen.queryByRole("button", { name: /^Continue with/ })).not.toBeInTheDocument();
   });
 
@@ -105,13 +103,35 @@ describe("ContextStep", () => {
     expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
   });
 
+  it("lists the rounds of every level at once, with no level choice", async () => {
+    stubApi();
+    renderStep();
+    expect(await screen.findByRole("checkbox", { name: R1 })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Survey level" })).not.toBeInTheDocument();
+    expect(screen.getByText("Zone")).toBeInTheDocument();
+  });
+
+  it("Continue with rounds of two levels sends both and an explicit anchor, and no level", async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderStep();
+    await user.click(await screen.findByRole("checkbox", { name: R2 }));
+    await user.click(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => {
+      const params = new URLSearchParams(screen.getByTestId("search").textContent ?? "");
+      expect(params.getAll("rounds")).toEqual([R2, "2027 VS CAPI ST R1"]);
+      expect(params.get("anchor")).not.toBeNull();
+      expect(params.has("level")).toBe(false);
+    });
+  });
+
   it("Comparison appears once a round is chosen, not before", async () => {
     stubApi();
     const user = userEvent.setup();
     renderStep();
     expect(screen.queryByRole("heading", { name: "Comparison" })).toBeNull();
-    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
-    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     expect(await screen.findByRole("heading", { name: "Comparison" })).toBeInTheDocument();
   });
@@ -122,8 +142,6 @@ describe("ContextStep", () => {
     renderStep();
     const list = screen.getByRole("list", { name: "Progress" });
     expect(list.querySelectorAll("[data-done='true']")).toHaveLength(0);
-    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
-    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
     await waitFor(() => expect(list.querySelectorAll("[data-done='true']")).toHaveLength(1));
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     await waitFor(() => expect(list.querySelectorAll("[data-done='true']")).toHaveLength(3));
@@ -137,8 +155,6 @@ describe("ContextStep", () => {
     }));
     const user = userEvent.setup();
     renderStep();
-    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
-    await user.click(await screen.findByRole("option", { name: "Assembly constituency (AC)" }));
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByTestId("search").textContent).toContain("state=Uttar+Pradesh");

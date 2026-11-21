@@ -4,17 +4,18 @@ import { useStates, useSurveys } from "../api/queries";
 import type { Level, StateContext, SurveyRound } from "../api/types";
 import styles from "./ContextDialog.module.css";
 
-type Draft = Omit<StateContext, "level"> & { level: Level | null };
+type Draft = StateContext;
 type VersionMode = StateContext["version_mode"];
 
 const EMPTY: Draft = {
-  state: "", level: null, rounds: [], compare_round: null, anchor_round: null,
+  state: "", rounds: [], compare_round: null, anchor_round: null,
   version_mode: "extrapolated", geo_scope: "state",
 };
 
 const LEVEL_LABEL: Record<Level, string> = {
   ac: "Assembly constituency (AC)", pc: "Parliamentary constituency (PC)", zone: "Zone", state: "Statewide",
 };
+const LEVELS: readonly Level[] = ["ac", "pc", "zone", "state"];
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 function formatDate(value: string | null): string | null {
@@ -57,29 +58,36 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
     if (soleState) setDraft((current) => current.state ? current : { ...current, state: soleState });
   }, [soleState]);
 
-  const levels = (Object.keys(surveys.data?.levels ?? {}) as Level[])
-    .filter((level) => surveys.data?.levels[level]?.some((group) => group.rounds.length))
-    .map((level) => ({ value: level, label: LEVEL_LABEL[level] }));
-  const groups = (draft.level ? surveys.data?.levels[draft.level] : undefined) ?? [];
+  // Every level the state has rounds at, each with its series groups; a round's level is the section it is in.
+  const sections = LEVELS.map((level) => ({ level, groups: (surveys.data?.levels[level] ?? []).filter((group) => group.rounds.length) }))
+    .filter((section) => section.groups.length > 0);
+  const groups = sections.flatMap((section) => section.groups);
+  const levelOf = new Map(sections.flatMap((section) => section.groups.flatMap((group) => group.rounds.map((round) => [round.base_name, section.level] as const))));
   const selected = groups.flatMap((group) => group.rounds).filter((round) => draft.rounds.includes(round.base_name));
   const names = selected.map((round) => round.base_name);
-  const latest = names[names.length - 1] ?? null;
+  const mixedLevels = new Set(names.map((name) => levelOf.get(name))).size > 1;
+  // One level: the catalogue order. Several: order of fieldwork, since the groups are listed level by level.
+  const startOf = (round: SurveyRound) => (round.versions.normal ?? round.versions.extrapolated)?.start_date ?? "";
+  const byFieldwork = mixedLevels ? [...selected].sort((a, b) => startOf(a).localeCompare(startOf(b))) : selected;
+  const latest = byFieldwork.length > 0 ? byFieldwork[byFieldwork.length - 1].base_name : null;
   const explicitAnchor = draft.anchor_round && names.includes(draft.anchor_round) ? draft.anchor_round : null;
   const anchor = explicitAnchor ?? latest;
   const compare = draft.compare_round && names.includes(draft.compare_round) && draft.compare_round !== anchor
     ? draft.compare_round : null;
   const options = names.map((name) => ({ value: name, label: name }));
   const multipleSeries = groups.filter((group) => group.rounds.some((round) => names.includes(round.base_name))).length > 1;
-  const seatLevel = draft.level === "ac" || draft.level === "pc";
+  const isSeatLevel = (name: string) => levelOf.get(name) === "ac" || levelOf.get(name) === "pc";
+  const seatLevel = names.some(isSeatLevel);
   const missingNormal = selected.filter((round) => !round.versions.normal).map((round) => round.base_name);
+  // Zone and statewide rounds only have a Normal dataset and no matched mode.
+  const noMatched = names.filter((name) => !isSeatLevel(name));
   const matched = seatLevel && draft.version_mode === "matched";
-  const invalidCoverage = matched && missingNormal.length > 0;
-  const canApply = !states.isError && !surveys.isError && draft.level !== null && selected.length > 0 && !invalidCoverage;
+  const invalidCoverage = matched && (missingNormal.length > 0 || noMatched.length > 0);
+  const canApply = !states.isError && !surveys.isError && selected.length > 0 && !invalidCoverage;
   const selectionCount = `${selected.length} ${selected.length === 1 ? "round" : "rounds"} selected`;
-  const status = step && (draft.level === null || selected.length === 0)
-    ? "Choose a survey level and at least one round to continue." : selectionCount;
+  const status = step && selected.length === 0 ? "Choose at least one round to continue." : selectionCount;
 
-  const done = (draft.state && draft.level !== null ? 1 : 0) + (selected.length > 0 ? 1 : 0) + (canApply ? 1 : 0);
+  const done = (draft.state ? 1 : 0) + (selected.length > 0 ? 1 : 0) + (canApply ? 1 : 0);
   useEffect(() => { onProgress?.(done); }, [done, onProgress]);
   const Heading = step ? "h2" : "h3";
 
@@ -94,15 +102,15 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
   };
 
   const roundPrompt = !draft.state ? "Choose a state to see its surveys."
-    : levels.length === 0 ? "No survey rounds are available for this state."
-    : "Choose a survey level to see its rounds.";
+    : sections.length === 0 ? "No survey rounds are available for this state."
+    : "Choose a state to see its surveys.";
 
   return (
     <>
       <div className={styles.scrollBody}>
         {!step && (
           <Text className={styles.intro}>
-            {context ? "Choose the survey rounds the dashboard should show." : "Choose a state, survey level and rounds to begin."}
+            {context ? "Choose the survey rounds the dashboard should show." : "Choose a state and survey rounds to begin."}
           </Text>
         )}
         {planError && <Alert color="red" role="alert" mb="md">{planError}</Alert>}
@@ -115,12 +123,7 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
             {states.isError && <CatalogueError message="Could not load states." onRetry={() => void states.refetch()} />}
             {states.data?.length === 0 && <Text size="sm" c="var(--mb-muted)">No states are available.</Text>}
           </div>
-          <div>
-            <Select label="Survey level" placeholder={draft.state && surveys.isPending ? "Loading levels…" : "Choose a level"}
-              data={levels} value={draft.level} size="md" disabled={levels.length === 0} allowDeselect={false}
-              onChange={(level) => setDraft({ ...EMPTY, state: draft.state, level: level as Level | null })} />
-            {surveys.isError && <CatalogueError message="Could not load the survey catalogue." onRetry={() => void surveys.refetch()} />}
-          </div>
+          {surveys.isError && <CatalogueError message="Could not load the survey catalogue." onRetry={() => void surveys.refetch()} />}
         </div>
 
         <div className={styles.columns}>
@@ -131,9 +134,12 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
             {!surveys.isError && !(draft.state && surveys.isPending) && groups.length === 0 && (
               <p className={styles.empty}>{roundPrompt}</p>
             )}
-            {groups.map((group) => (
-              <fieldset className={styles.roundGroup} key={`${draft.level}:${group.group}`}>
-                <legend>{group.group}</legend>
+            {sections.map((section) => section.groups.map((group, index) => (
+              <fieldset className={styles.roundGroup} key={`${section.level}:${group.group}`}>
+                <legend>
+                  {index === 0 && <span className={styles.levelHeading}>{LEVEL_LABEL[section.level]}</span>}
+                  {group.group}
+                </legend>
                 {group.rounds.map((round) => {
                   const name = round.base_name;
                   const checked = names.includes(name);
@@ -147,14 +153,14 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
                         onChange={(event) => toggleRound(name, event.currentTarget.checked)} />
                       <span className={styles.roundDetails}>
                         <strong>{round.label}</strong>
-                        <span id={metadataId} className={styles.roundMetadata}>{roundMetadata(round, matched ? "matched" : "extrapolated", seatLevel)}</span>
+                        <span id={metadataId} className={styles.roundMetadata}>{roundMetadata(round, matched ? "matched" : "extrapolated", section.level === "ac" || section.level === "pc")}</span>
                       </span>
                       {role && <span id={roleId} className={styles.roundRole}>{role}</span>}
                     </label>
                   );
                 })}
               </fieldset>
-            ))}
+            )))}
             {multipleSeries && <p className={styles.notice}>Different survey series. Check the series names before comparing rounds.</p>}
           </section>
 
@@ -185,12 +191,15 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
                   onChange={(value) => setDraft({ ...draft, version_mode: value === "matched" ? "matched" : "extrapolated" })}>
                   <Stack gap="sm" mt="sm">
                     <Radio value="extrapolated" label="Extrapolated" description="Uses Extrapolated where available, otherwise Normal. A round may include seats carried from earlier rounds." />
-                    <Radio value="matched" label="Matched seats only" disabled={missingNormal.length > 0}
+                    <Radio value="matched" label="Matched seats only" disabled={missingNormal.length > 0 || noMatched.length > 0}
                       description="Uses Normal datasets. Geographic analyses use seats surveyed in every selected round." />
                   </Stack>
                 </Radio.Group>
                 {missingNormal.length > 0 && <p className={styles.notice} role={invalidCoverage ? "alert" : undefined}>
                   {missingNormal.length === 1 ? `${missingNormal[0]} has no Normal dataset.` : `No Normal datasets for ${missingNormal.join(", ")}.`}
+                </p>}
+                {noMatched.length > 0 && <p className={styles.notice} role={invalidCoverage ? "alert" : undefined}>
+                  {`Matched seats need AC or PC rounds; ${noMatched.join(", ")} ${noMatched.length === 1 ? "is" : "are"} not.`}
                 </p>}
               </details>
             )}
@@ -203,8 +212,9 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
         <div className={styles.actions}>
           {!step && <Button variant="default" onClick={onCancel}>Cancel</Button>}
           <Button className={canApply ? styles.ready : undefined} disabled={!canApply} onClick={() => {
-            if (canApply && draft.level) onApply({
-              ...draft, level: draft.level, rounds: names, anchor_round: explicitAnchor, compare_round: compare,
+            // With rounds of several levels the latest is chosen here, never left to a different server ordering.
+            if (canApply) onApply({
+              ...draft, rounds: names, anchor_round: explicitAnchor ?? (mixedLevels ? latest : null), compare_round: compare,
               version_mode: matched ? "matched" : "extrapolated",
             });
           }}>{step ? "Continue" : "Apply selection"}</Button>

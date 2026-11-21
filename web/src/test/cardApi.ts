@@ -137,4 +137,4 @@ export function stubCardApi({ payloads, unavailable = {}, runs = {}, runStatus =
   return mock;
 }
 
-export const CONTEXT_QUERY = "?state=Uttar+Pradesh&level=ac&rounds=R1&rounds=R2&compare=R1&anchor=R2&version=extrapolated";
+export const CONTEXT_QUERY = "?state=Uttar+Pradesh&rounds=2027%20VS%20CAPI%20R1&rounds=2027%20VS%20CAPI%20R2&compare=2027%20VS%20CAPI%20R1&anchor=2027%20VS%20CAPI%20R2&version=extrapolated";

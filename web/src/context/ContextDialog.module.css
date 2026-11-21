@@ -369,3 +369,13 @@
 @container stepPage (max-width: 520px) {
   .stepTitle { font-size: 28px; }
 }
+
+.levelHeading {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mb-muted);
+}

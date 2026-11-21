@@ -20,7 +20,7 @@ export function contextParts(ctx: StateContext, surveys: SurveysResponse): Summa
   const hasVersions = levels.some((level) => level === "ac" || level === "pc");
   const version = !hasVersions ? "Normal only" : ctx.version_mode === "matched" ? "Matched seats" : "Extrapolated";
   const all: SummaryPart[] = [
-    { kind: "state", text: ctx.state }, { kind: "level", text: `${levels.map((level) => level.toUpperCase()).join(" + ")} level` },
+    { kind: "state", text: ctx.state }, { kind: "level", text: levels.length > 0 ? `${levels.map((level) => level.toUpperCase()).join(" + ")} level` : "" },
     { kind: "rounds", text: parts.join(" + ") }, { kind: "compare", text: compare },
     { kind: "version", text: version }, { kind: "geo", text: "Geo: whole state" },
   ];
