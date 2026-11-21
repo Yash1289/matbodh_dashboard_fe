@@ -1,4 +1,4 @@
-import { Alert, Button, Radio, Select, Skeleton, Stack, Text } from "@mantine/core";
+import { Alert, Button, Radio, Select, Skeleton, Stack, Text, TextInput } from "@mantine/core";
 import { useEffect, useId, useState } from "react";
 import { useStates, useSurveys } from "../api/queries";
 import type { Level, StateContext, SurveyRound } from "../api/types";
@@ -16,6 +16,9 @@ const LEVEL_LABEL: Record<Level, string> = {
   ac: "Assembly constituency (AC)", pc: "Parliamentary constituency (PC)", zone: "Zone", state: "Statewide",
 };
 const LEVELS: readonly Level[] = ["ac", "pc", "zone", "state"];
+const LEVEL_TAG: Record<Level, string> = { ac: "AC", pc: "PC", zone: "Zone", state: "Statewide" };
+/** A list this long gets a search box. */
+const SEARCH_FROM = 8;
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 function formatDate(value: string | null): string | null {
@@ -50,6 +53,9 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
   const step = variant === "step";
   const [draft, setDraft] = useState<Draft>(context ?? EMPTY);
   const roundId = useId();
+  // The level is only a filter on the list: what is chosen at any level stays chosen.
+  const [levelPick, setLevelPick] = useState<Level | null>(null);
+  const [search, setSearch] = useState("");
   const states = useStates();
   const surveys = useSurveys(draft.state || null);
   const soleState = states.data?.length === 1 ? states.data[0] : null;
@@ -101,6 +107,23 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
     setDraft({ ...draft, rounds: ordered, anchor_round: keepAnchor, compare_round: keepCompare });
   };
 
+  const level = levelPick && sections.some((section) => section.level === levelPick) ? levelPick : sections[0]?.level ?? null;
+  const countAt = (at: Level) => (sections.find((section) => section.level === at)?.groups ?? [])
+    .flatMap((group) => group.rounds).filter((round) => names.includes(round.base_name)).length;
+  const levelData = sections.map((section) => {
+    const n = countAt(section.level);
+    return { value: section.level, label: n > 0 ? `${LEVEL_LABEL[section.level]} · ${n} selected` : LEVEL_LABEL[section.level] };
+  });
+  const needle = search.trim().toLowerCase();
+  const visible = sections.filter((section) => section.level === level).map((section) => ({
+    ...section,
+    groups: section.groups
+      .map((group) => ({ ...group, rounds: group.rounds.filter((round) => !needle
+        || round.label.toLowerCase().includes(needle) || round.base_name.toLowerCase().includes(needle)) }))
+      .filter((group) => group.rounds.length > 0),
+  }));
+  const levelRoundCount = (sections.find((section) => section.level === level)?.groups ?? [])
+    .reduce((total, group) => total + group.rounds.length, 0);
   const roundPrompt = !draft.state ? "Choose a state to see its surveys."
     : sections.length === 0 ? "No survey rounds are available for this state."
     : "Choose a state to see its surveys.";
@@ -119,27 +142,53 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
             <Select label="State" placeholder={states.isPending ? "Loading states…" : "Choose a state"}
               data={states.data ?? []} value={draft.state || null} size="md" allowDeselect={false}
               disabled={states.isPending || states.isError}
-              onChange={(state) => { if (state && state !== draft.state) setDraft({ ...EMPTY, state }); }} />
+              onChange={(state) => { if (state && state !== draft.state) { setDraft({ ...EMPTY, state }); setLevelPick(null); setSearch(""); } }} />
             {states.isError && <CatalogueError message="Could not load states." onRetry={() => void states.refetch()} />}
             {states.data?.length === 0 && <Text size="sm" c="var(--mb-muted)">No states are available.</Text>}
           </div>
+          <Select label="Survey level" placeholder={draft.state ? "Loading levels…" : "Choose a state first"}
+            data={levelData} value={level} size="md" allowDeselect={false}
+            disabled={!draft.state || levelData.length === 0}
+            onChange={(value) => { if (value) { setLevelPick(value as Level); setSearch(""); } }} />
           {surveys.isError && <CatalogueError message="Could not load the survey catalogue." onRetry={() => void surveys.refetch()} />}
         </div>
 
         <div className={styles.columns}>
           <section aria-label="Survey rounds">
             <Heading>Survey rounds</Heading>
-            <p className={styles.help}>Select the rounds you want to see in the dashboard.</p>
+            <p className={styles.help}>Select the rounds you want to see in the dashboard. The level only filters this list: rounds you pick at any level stay picked.</p>
             {draft.state && surveys.isPending && <Skeleton height={76} mt="md" aria-label="Loading survey rounds" />}
             {!surveys.isError && !(draft.state && surveys.isPending) && groups.length === 0 && (
               <p className={styles.empty}>{roundPrompt}</p>
             )}
-            {sections.map((section) => section.groups.map((group, index) => (
+            {selected.length > 0 && (
+              <ul className={styles.chips} aria-label="Selected rounds">
+                {byFieldwork.map((round) => {
+                  const name = round.base_name;
+                  const role = name === anchor ? "Current" : name === compare ? "Baseline" : null;
+                  return (
+                    <li className={styles.chip} key={name} data-role={role ?? undefined}>
+                      <span className={styles.chipLevel}>{LEVEL_TAG[levelOf.get(name) ?? "ac"]}</span>
+                      <span className={styles.chipName}>{round.label}</span>
+                      {role && <span className={styles.chipRole}>{role}</span>}
+                      <button type="button" className={styles.chipRemove} aria-label={`Remove ${name}`}
+                        onClick={() => toggleRound(name, false)}>×</button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {levelRoundCount >= SEARCH_FROM && (
+              <TextInput className={styles.search} size="sm" aria-label="Search rounds" placeholder="Search rounds"
+                value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
+            )}
+            {draft.state && !surveys.isPending && levelRoundCount > 0 && visible.every((section) => section.groups.length === 0) && (
+              <p className={styles.empty}>No round matches the search.</p>
+            )}
+            <div className={styles.list}>
+            {visible.map((section) => section.groups.map((group) => (
               <fieldset className={styles.roundGroup} key={`${section.level}:${group.group}`}>
-                <legend>
-                  {index === 0 && <span className={styles.levelHeading}>{LEVEL_LABEL[section.level]}</span>}
-                  {group.group}
-                </legend>
+                <legend>{group.group}</legend>
                 {group.rounds.map((round) => {
                   const name = round.base_name;
                   const checked = names.includes(name);
@@ -161,6 +210,7 @@ export function ContextDialog({ variant = "dialog", context, planError, onCancel
                 })}
               </fieldset>
             )))}
+            </div>
             {multipleSeries && <p className={styles.notice}>Different survey series. Check the series names before comparing rounds.</p>}
           </section>
 

@@ -37,6 +37,11 @@ const URL_CTX = `/?state=Uttar+Pradesh&level=ac&rounds=${encodeURIComponent(R1)}
 
 afterEach(() => vi.unstubAllGlobals());
 
+async function chooseLevel(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+  await user.click(await screen.findByRole("option", { name }));
+}
+
 describe("ContextBar", () => {
   it("with no context the bar shows no dialog and no Edit button; the step owns the choice", async () => {
     const fetchMock = stubApi();
@@ -63,10 +68,12 @@ describe("ContextBar", () => {
 
   it("every level the catalogue has is listed, none it lacks", async () => {
     stubApi();
+    const user = userEvent.setup();
     renderStep();
-    expect(await screen.findByText("Zone")).toBeInTheDocument();
-    expect(screen.getByText("Assembly constituency (AC)")).toBeInTheDocument();
-    expect(screen.queryByText("Parliamentary constituency (PC)")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+    expect(await screen.findByRole("option", { name: /^Zone/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /^Assembly constituency/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /^Parliamentary constituency/ })).not.toBeInTheDocument();
   });
 
   it("matched coverage is refused when a zone round is selected with an AC round", async () => {
@@ -74,7 +81,8 @@ describe("ContextBar", () => {
     const user = userEvent.setup();
     renderStep();
     await user.click(await screen.findByRole("checkbox", { name: R1 }));
-    await user.click(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
+    await chooseLevel(user, /^Zone/);
+    await user.click(await screen.findByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
     await user.click(screen.getByText("Seat coverage"));
     expect(screen.getByRole("radio", { name: /Matched seats only/ })).toBeDisabled();
     expect(screen.getByText(/Matched seats need AC or PC rounds; 2027 VS CAPI ST R1 is not/)).toBeInTheDocument();

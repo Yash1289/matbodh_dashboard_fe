@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import plan from "../test/fixtures/plan_scoreboard.json";
@@ -29,6 +29,11 @@ function stubApi() {
 const Probe = () => <div data-testid="search">{useLocation().search}</div>;
 const renderStep = () => renderWithProviders(<><ContextStep /><Probe /></>, { route: "/" });
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
+
+async function chooseLevel(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  await user.click(await screen.findByRole("textbox", { name: "Survey level" }));
+  await user.click(await screen.findByRole("option", { name }));
+}
 
 describe("ContextStep", () => {
   it("is a page of its own, not a dialog, and runs nothing", async () => {
@@ -103,13 +108,20 @@ describe("ContextStep", () => {
     expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
   });
 
-  it("lists the rounds of every level at once, with no level choice", async () => {
+  it("the level only filters the list: a round chosen at one level stays chosen at another", async () => {
     stubApi();
+    const user = userEvent.setup();
     renderStep();
-    expect(await screen.findByRole("checkbox", { name: R1 })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" })).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Survey level" })).not.toBeInTheDocument();
-    expect(screen.getByText("Zone")).toBeInTheDocument();
+    await user.click(await screen.findByRole("checkbox", { name: R1 }));
+    expect(screen.queryByRole("checkbox", { name: "2027 VS CAPI ST R1" })).not.toBeInTheDocument();
+    await chooseLevel(user, /^Zone/);
+    expect(screen.queryByRole("checkbox", { name: R1 })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
+    await chooseLevel(user, /^Assembly constituency/);
+    expect(await screen.findByRole("checkbox", { name: R1 })).toBeChecked();
+    const chips = within(screen.getByRole("list", { name: "Selected rounds" }));
+    expect(chips.getByRole("button", { name: `Remove ${R1}` })).toBeInTheDocument();
+    expect(chips.getByRole("button", { name: "Remove 2027 VS CAPI ST R1" })).toBeInTheDocument();
   });
 
   it("Continue with rounds of two levels sends both and an explicit anchor, and no level", async () => {
@@ -117,7 +129,8 @@ describe("ContextStep", () => {
     const user = userEvent.setup();
     renderStep();
     await user.click(await screen.findByRole("checkbox", { name: R2 }));
-    await user.click(screen.getByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
+    await chooseLevel(user, /^Zone/);
+    await user.click(await screen.findByRole("checkbox", { name: "2027 VS CAPI ST R1" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => {
       const params = new URLSearchParams(screen.getByTestId("search").textContent ?? "");

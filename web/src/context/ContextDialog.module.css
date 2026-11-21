@@ -116,11 +116,11 @@
 /* Short, useful movement only: what was just chosen settles in. */
 @keyframes settle-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes settle-pulse { 0% { transform: scale(0.96); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
-.roundGroup, .comparison { animation: settle-in 200ms ease-out both; }
+.comparison { animation: settle-in 200ms ease-out both; }
 .ready { animation: settle-pulse 220ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .step, .railStep, .roundGroup, .comparison, .ready { animation: none; transition: none; }
+  .step, .railStep, .chip, .comparison, .ready, .round { animation: none; transition: none; }
 }
 
 /* The sidebar is always present, so the step answers to its own width, not the viewport's. */
@@ -218,37 +218,94 @@
   border-radius: 8px;
 }
 
-.roundGroup {
-  min-width: 0;
-  margin: 18px 0 0;
-  padding: 0;
-  border: 0;
+/* The list is one bounded surface: it scrolls inside the dialog instead of growing it. */
+.list {
+  max-height: min(340px, 42dvh);
+  margin-top: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--mb-border);
+  border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mb-chip-border) transparent;
 }
+.list:empty { display: none; }
 
+.roundGroup { min-width: 0; margin: 0; padding: 0; border: 0; }
+.roundGroup + .roundGroup { border-top: 1px solid var(--mb-border); }
+
+/* A series name stays visible while its rounds scroll under it. */
 .roundGroup legend {
-  padding: 0;
-  margin-bottom: 8px;
-  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 12px;
+  background: color-mix(in srgb, var(--mb-page) 70%, var(--mb-surface));
+  border-bottom: 1px solid var(--mb-border);
+  color: var(--mb-muted);
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .round {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
-  margin-bottom: 8px;
-  padding: 9px 12px;
-  border: 1px solid var(--mb-border);
-  border-radius: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mb-border) 60%, transparent);
   cursor: pointer;
+  transition: background-color 120ms ease-out;
 }
+.roundGroup .round:last-child { border-bottom: 0; }
 
 .round:hover { background: var(--mb-page); }
-.round[data-selected="true"] {
-  background: color-mix(in srgb, var(--mb-primary-soft) 48%, var(--mb-surface));
-  border-color: color-mix(in srgb, var(--mb-primary) 27%, var(--mb-border));
+.round[data-selected="true"] { background: color-mix(in srgb, var(--mb-primary-soft) 52%, var(--mb-surface)); }
+
+.search { margin-top: 12px; }
+
+/* What is chosen, at every level, always in view; the x removes a round without finding it in the list. */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--mb-primary) 27%, var(--mb-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mb-primary-soft) 60%, var(--mb-surface));
+  font-size: 12px;
+  animation: settle-in 180ms ease-out both;
 }
+.chipLevel { color: var(--mb-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
+.chipName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chipRole {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--mb-primary);
+  color: var(--mb-surface);
+  font-size: 10px;
+  font-weight: 700;
+}
+.chipRemove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mb-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chipRemove:hover { background: color-mix(in srgb, var(--mb-text) 10%, transparent); color: var(--mb-text); }
+.chipRemove:focus-visible { outline: 2px solid var(--mb-primary); outline-offset: 1px; }
 
 .round:has(input:focus-visible),
 .coverage summary:focus-visible {
@@ -368,14 +425,4 @@
 }
 @container stepPage (max-width: 520px) {
   .stepTitle { font-size: 28px; }
-}
-
-.levelHeading {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--mb-muted);
 }
