@@ -236,13 +236,16 @@ def _fields_for(draft, cat, context, use="cut"):
 
 def test_state_survey_offers_zone_party_zone_district_but_not_seat_identifiers():
     found = _fields_for({"family": "distribution"}, _levelled(), _mixed_ctx((ST1,), ST1, None))
-    assert {"zone", "party_zone", "district", "gender", "caste"} <= found
-    assert not found & {"ac_num", "pc_num", "pc_zone"}
+    assert {"zone", "party_zone", "district", "pc_zone", "gender", "caste"} <= found
+    assert not found & {"ac_num", "pc_num"}
 
 
-def test_state_survey_offers_an_incumbent_party_cut_but_no_pc_keyed_attribute():
+def test_state_survey_offers_incumbent_cuts_and_pc_keyed_ones_only_with_pc_num():
     found = _fields_for({"family": "distribution"}, _levelled(), _mixed_ctx((ST1,), ST1, None))
-    assert "incumbent_mla_party" in found and "incumbent_mp_party" not in found
+    assert {"incumbent_mla_party", "incumbent_mp_party", "pc_zone"} <= found
+    no_pc = [f for f in FIELDS if f != "pc_num"]
+    found = _fields_for({"family": "distribution"}, _levelled(state_fields=no_pc), _mixed_ctx((ST1,), ST1, None))
+    assert "incumbent_mla_party" in found and not found & {"incumbent_mp_party", "pc_zone"}
 
 
 def test_ac_plus_state_offers_district_but_not_ac_num():
@@ -257,9 +260,10 @@ def test_a_state_survey_without_ac_num_offers_no_seat_attribute_cut():
     assert "district" not in found and "incumbent_mla_party" not in found and "gender" in found
 
 
-def test_ac_with_pc_offers_no_geographic_cut():
+def test_ac_with_pc_offers_the_pc_zone_and_no_ac_zone_cut():
     found = _fields_for(COMPARE_DRAFT, _levelled(state_level="pc"), _mixed_ctx())
-    assert not found & {"zone", "party_zone", "district", "ac_num"} and "gender" in found
+    assert "pc_zone" in found and "gender" in found
+    assert not found & {"zone", "party_zone", "district", "ac_num", "incumbent_mla_party"}
 
 
 def test_seat_ranking_filters_still_need_a_seat_level():

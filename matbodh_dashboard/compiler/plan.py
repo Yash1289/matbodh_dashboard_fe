@@ -51,6 +51,23 @@ def _engine_master_fields() -> frozenset[str]:
     return frozenset(k for k, f in default_fields().items() if f.source == "master")
 
 
+@lru_cache(maxsize=1)
+def _pc_keyed_fields() -> frozenset[str]:
+    """Master attributes the engine joins on the stored PC number (mysql_access.prepare's rule)."""
+    from matbodh_dash.catalog import default_fields
+    from matbodh_dash.mysql_access import PC_ATTRIBUTES
+
+    return frozenset(k for k, f in default_fields().items()
+                     if f.source == "master" and (f.master_key == "pc_num" or f.master_attribute in PC_ATTRIBUTES))
+
+
+def master_key_of(field: str) -> str | None:
+    """The stored respondent number a master attribute joins on, or None for a survey field."""
+    if field not in _engine_master_fields():
+        return None
+    return "pc_num" if field in _pc_keyed_fields() else "ac_num"
+
+
 def field_available(dataset: DatasetVersion, field: str) -> bool:
     return field in dataset.fields or field in _engine_master_fields()
 

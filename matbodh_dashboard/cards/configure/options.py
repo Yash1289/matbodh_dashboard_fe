@@ -21,7 +21,7 @@ from matbodh_dashboard.cards.config import (
 )
 from matbodh_dashboard.cards.relationship.compile import relationship_majors
 from matbodh_dashboard.catalogue.store import Catalogue
-from matbodh_dashboard.compiler.plan import field_available
+from matbodh_dashboard.compiler.plan import field_available, master_key_of
 from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds
 from matbodh_dashboard.context import StateContext
 
@@ -140,13 +140,6 @@ def _pc_attributes() -> frozenset[str]:
     return frozenset(PC_ATTRIBUTES) | {"zone"}
 
 
-@lru_cache(maxsize=1)
-def _pc_only_attributes() -> frozenset[str]:
-    from matbodh_dash.mysql_access import PC_ATTRIBUTES
-
-    return frozenset(PC_ATTRIBUTES)
-
-
 def _fields(params, draft, ctx, service) -> list[OptionItem]:
     use = params.get("use", "cut")
     read = rounds_read(draft, ctx, service.catalogue)
@@ -154,8 +147,9 @@ def _fields(params, draft, ctx, service) -> list[OptionItem]:
     levels = {r.dataset.level for r in read} or {level}
     seat_level = (_get(draft, "rank.level") if draft.get("family") == "seat_ranking" else None) or level
     seats = len(levels) == 1 and levels <= {"ac", "pc"}
-    # Zone and state collections reach the AC master through their stored AC number.
-    ac_keyed = all("ac_num" in r.dataset.fields for r in read if r.dataset.level in ("zone", "state"))
+    # Zone and state collections reach a master through their stored seat number.
+    has_key = {key: all(key in r.dataset.fields for r in read if r.dataset.level in ("zone", "state"))
+               for key in ("ac_num", "pc_num")}
     out = []
     for name, spec in sorted(_engine_fields().items()):
         if name in SEGMENT_FIELDS or name == "state" or spec.cardinality != "single":
@@ -164,9 +158,11 @@ def _fields(params, draft, ctx, service) -> list[OptionItem]:
         if geographic and use != "seat_attribute" and card_blockers("state", [name], sorted(levels), mixed_ok=True):
             continue  # respondent cuts follow the capability table, as the compiler does
         if spec.role == "seat_attribute":
-            if use in ("cut", "filter") and levels - {"ac", "pc"}:
-                # Read from the AC master through ac_num; PC-keyed attributes and PC surveys need a PC collection.
-                if "pc" in levels or not ac_keyed or spec.master_attribute in _pc_only_attributes():
+            if use in ("cut", "filter") and (levels - {"ac", "pc"} or len(levels) > 1):
+                # Several levels, or a zone or state-wide survey, are read: the attribute joins its master on the stored seat number,
+                # and a PC survey cannot resolve an AC-keyed attribute.
+                key = master_key_of(name)
+                if not has_key[key] or (key == "ac_num" and "pc" in levels):
                     continue
             elif not seats or (seat_level == "pc" and spec.master_attribute not in _pc_attributes()):
                 continue

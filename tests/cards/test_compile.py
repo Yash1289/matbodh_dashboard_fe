@@ -365,10 +365,26 @@ def test_overall_cut_needs_no_ac_num_on_a_state_survey():
     assert plan.unavailable == ()
 
 
-def test_ac_and_pc_with_a_zone_cut_is_unavailable():
+def test_ac_and_pc_with_an_ac_zone_cut_is_unavailable():
     plan = _mixed(_config(cuts=[["party_zone"]], comparison=_COMPARE), rounds=(R2, ST1), anchor=R2, compare=ST1,
                   catalogue=_mixed_catalogue(state_level="pc"))
     assert plan.jobs == () and any("PC" in reason for _, reason in plan.unavailable)
+
+
+def test_ac_pc_zone_and_state_rounds_are_cut_by_pc_zone_and_the_engine_accepts_it():
+    # pc_zone follows each respondent's stored PC number, so every level can be cut by it together.
+    plan = _mixed(_config(cuts=[[], ["pc_zone"]], family="gender_differential", comparison={"mode": "trend"}),
+                  rounds=(R1, R2, ST1), anchor=ST1, compare=None,
+                  catalogue=_mixed_catalogue())
+    request = _request(plan)
+    resolve_with_engine(request, list(plan.rounds))
+
+
+def test_state_round_without_pc_num_blocks_a_pc_zone_cut():
+    fields = [f for f in FIELDS if f != "pc_num"]
+    plan = _mixed(_config(cuts=[["pc_zone"]]), rounds=(ST1,), anchor=ST1, compare=None,
+                  catalogue=_mixed_catalogue(state_fields=fields))
+    assert plan.jobs == () and "needs pc_num" in plan.unavailable[0][1]
 
 
 def test_gender_differential_trend_over_ac_and_state_builds_and_the_engine_accepts_it():

@@ -9,10 +9,10 @@ import logging
 
 from matbodh_dashboard.capability import card_blockers, resolve_anchor
 from matbodh_dashboard.cards.benchmark.parties import AllianceUnavailable, MajorPartyProvider
-from matbodh_dashboard.cards.compile import GRID, _by_base_name, compare_in, read_levels, windowed, without_ac_key
+from matbodh_dashboard.cards.compile import GRID, _by_base_name, compare_in, read_levels, windowed, without_master_key
 from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.catalogue.store import Catalogue
-from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
+from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available, master_key_of
 from matbodh_dashboard.cohorts.models import CohortRef
 from matbodh_dashboard.cohorts.restrict import cohort_blockers, respondent_filter
 from matbodh_dashboard.compiler.requests import build_request, view_config
@@ -66,9 +66,9 @@ def compile_relationship_card(config: CardConfig, ctx: StateContext, catalogue: 
         if missing:
             unavailable.append((GRID, f"Field {field!r} needs to exist in every included round; "
                                       f"missing in: {', '.join(missing)}"))
-        no_key = without_ac_key(used, field)
+        no_key = without_master_key(used, field)
         if no_key:
-            unavailable.append((GRID, f"Field {field!r} needs ac_num in every zone or state-wide round; "
+            unavailable.append((GRID, f"Field {field!r} needs {master_key_of(field)} in every zone or state-wide round; "
                                       f"missing in: {', '.join(r.identity.base_name for r in no_key)}"))
     if unavailable:
         return plan()

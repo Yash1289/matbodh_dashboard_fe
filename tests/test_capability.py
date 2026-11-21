@@ -5,7 +5,7 @@ from matbodh_dashboard.capability import SEAT_SLICES, Capabilities, capabilities
 
 def test_ac_capabilities():
     caps = capabilities("ac")
-    assert caps.geo_slices == {"zone", "party_zone", "district", "pc_num", "ac_num"}
+    assert caps.geo_slices == {"zone", "party_zone", "district", "pc_zone", "pc_num", "ac_num"}
     assert caps.seat_levels == {"ac", "pc"}
     assert caps.version_modes == {"extrapolated", "matched"}
 
@@ -20,7 +20,7 @@ def test_pc_capabilities():
 @pytest.mark.parametrize("level", ["zone", "state"])
 def test_zone_and_state_allow_zone_party_zone_district(level):
     caps = capabilities(level)
-    assert caps == Capabilities(frozenset({"zone", "party_zone", "district"}), frozenset(),
+    assert caps == Capabilities(frozenset({"zone", "party_zone", "district", "pc_zone"}), frozenset(),
                                 frozenset({"extrapolated"}))
     assert not caps.geo_slices & SEAT_SLICES
 
@@ -65,3 +65,8 @@ def test_min_level_is_checked_for_every_level_read():
 def test_single_level_template_blockers_unchanged():
     assert any("district" in r for r in template_blockers("state", ["district"], "pc"))
     assert template_blockers("state", ["party_zone"], "ac") == []
+
+
+def test_pc_zone_cuts_every_level_together_but_zone_does_not():
+    assert card_blockers("state", ["pc_zone"], ["ac", "pc", "zone", "state"], mixed_ok=True) == []
+    assert any("'zone'" in r for r in card_blockers("state", ["zone"], ["ac", "pc"], mixed_ok=True))

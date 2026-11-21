@@ -23,7 +23,7 @@ from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cohorts.restrict import cohort_blockers, respondent_filter
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.coverage import choose_coverage
-from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available
+from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, field_available, master_key_of
 from matbodh_dashboard.compiler.requests import build_request, comparison, view_config
 from matbodh_dashboard.compiler.rounds import ResolvedRound, pipe_window, resolve_rounds
 from matbodh_dashboard.context import StateContext
@@ -65,12 +65,12 @@ def read_levels(config: CardConfig, ctx: StateContext, rounds: list[ResolvedRoun
     return [r.dataset.level for r in rounds if r.identity.base_name in names]
 
 
-def without_ac_key(rounds: list[ResolvedRound], field: str) -> list[ResolvedRound]:
-    """Zone and state rounds that would read `field` from the AC master but do not list ac_num
-    (their stored AC number is what joins the master)."""
-    return [r for r in rounds if r.dataset.level in ("zone", "state")
-            and field not in r.dataset.fields and field_available(r.dataset, field)
-            and "ac_num" not in r.dataset.fields]
+def without_master_key(rounds: list[ResolvedRound], field: str) -> list[ResolvedRound]:
+    """Zone and state rounds that would read `field` from a master but do not list the stored seat
+    number that joins it (ac_num for AC-master attributes, pc_num for PC-keyed ones such as pc_zone)."""
+    key = master_key_of(field)
+    return [r for r in rounds if key is not None and r.dataset.level in ("zone", "state")
+            and key not in r.dataset.fields]
 
 
 def _names(rounds) -> str:
@@ -215,10 +215,10 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         if missing:
             unavailable.append((GRID, f"Field {field!r} needs to exist in every included "
                                       f"round; missing in: {_names(missing)}"))
-        no_key = without_ac_key(selection.used, field)
+        no_key = without_master_key(selection.used, field)
         if no_key:
-            unavailable.append((GRID, f"Field {field!r} needs ac_num in every zone or state-wide "
-                                      f"round; missing in: {_names(no_key)}"))
+            unavailable.append((GRID, f"Field {field!r} needs {master_key_of(field)} in every zone or "
+                                      f"state-wide round; missing in: {_names(no_key)}"))
     if unavailable:
         return plan()
 

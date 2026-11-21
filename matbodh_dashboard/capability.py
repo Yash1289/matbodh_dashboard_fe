@@ -19,7 +19,7 @@ class Capabilities:
 _BOTH_VERSIONS = frozenset({"extrapolated", "matched"})
 _CAPABILITIES = {
     "ac": Capabilities(
-        frozenset({"zone", "party_zone", "district", "pc_num", "ac_num"}),
+        frozenset({"zone", "party_zone", "district", "pc_zone", "pc_num", "ac_num"}),
         frozenset({"ac", "pc"}),
         _BOTH_VERSIONS,
     ),
@@ -28,8 +28,9 @@ _CAPABILITIES = {
     ),
     # Zone and state collections store AC numbers, so the AC master supplies zone and district
     # (engine validation.CAPABILITIES); they support no seat identifier.
-    "zone": Capabilities(frozenset({"zone", "party_zone", "district"}), frozenset(), frozenset({"extrapolated"})),
-    "state": Capabilities(frozenset({"zone", "party_zone", "district"}), frozenset(), frozenset({"extrapolated"})),
+    # pc_zone is keyed by the stored PC number, so it also cuts these (when the survey lists pc_num).
+    "zone": Capabilities(frozenset({"zone", "party_zone", "district", "pc_zone"}), frozenset(), frozenset({"extrapolated"})),
+    "state": Capabilities(frozenset({"zone", "party_zone", "district", "pc_zone"}), frozenset(), frozenset({"extrapolated"})),
 }
 
 
