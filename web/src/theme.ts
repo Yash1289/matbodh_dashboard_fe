@@ -26,6 +26,10 @@ export const tokens = {
     deepInk: "#16213a",
     accent: "#b85c0a",
     accentSoft: "#fdf1e4",
+    /** The top bar sits on the deep ink: saffron leads (the state), mint marks change, sky marks the data version. */
+    saffron: "#f4a259",
+    mint: "#8fe3b5",
+    sky: "#a9c1ff",
   },
   font: {
     family: 'Inter, "Segoe UI", system-ui, sans-serif',
@@ -81,6 +85,9 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     "--mb-deep-ink": tokens.color.deepInk,
     "--mb-accent": tokens.color.accent,
     "--mb-accent-soft": tokens.color.accentSoft,
+    "--mb-saffron": tokens.color.saffron,
+    "--mb-mint": tokens.color.mint,
+    "--mb-sky": tokens.color.sky,
     // Mantine's default placeholder grey is 2:1 on white; the muted text colour reads at 5.9:1.
     "--input-placeholder-color": tokens.color.muted,
     "--mantine-color-dimmed": tokens.color.muted,

@@ -1,0 +1,165 @@
+/* The context bar sits on the deep-ink top bar: one button whose chips say what the whole canvas reads. */
+.bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--mb-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.bar:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.bar:active {
+  transform: translateY(1px);
+}
+
+.bar:focus-visible {
+  outline: 2px solid var(--mb-saffron);
+  outline-offset: 2px;
+}
+
+.chips {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* The " · " between parts is kept for readers and copy, and not drawn. */
+.sep {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--mb-surface);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  animation: chip-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+.chip[data-kind="state"] {
+  flex: 0 0 auto;
+  background: var(--mb-saffron);
+  color: var(--mb-deep-ink);
+  font-weight: 700;
+}
+
+.chip[data-kind="rounds"] {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.chip[data-kind="compare"] {
+  background: rgba(143, 227, 181, 0.18);
+  color: var(--mb-mint);
+  font-weight: 600;
+}
+
+.chip[data-kind="version"] {
+  background: rgba(169, 193, 255, 0.18);
+  color: var(--mb-sky);
+}
+
+.chip[data-kind="geo"] {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.edit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--mb-surface);
+  color: var(--mb-deep-ink);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.bar:hover .edit {
+  background: var(--mb-saffron);
+}
+
+.bar:hover .pencil {
+  transform: rotate(-12deg) translateY(-1px);
+}
+
+.pencil {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.loading {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.cohort {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cohortPill {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  color: var(--mb-surface);
+  font-size: 13px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip { animation-name: chip-fade; }
+  .bar:active { transform: none; }
+  .bar:hover .pencil { transform: none; }
+  @keyframes chip-fade { from { opacity: 0; } }
+}
+
+/* A narrow window keeps the state and the Edit button; the detail is in the tooltip and the dialog. */
+@media (max-width: 900px) {
+  .chip:not([data-kind="state"]):not([data-kind="rounds"]) { display: none; }
+}
+
+@media (max-width: 560px) {
+  .chip[data-kind="rounds"] { display: none; }
+}

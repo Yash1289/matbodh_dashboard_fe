@@ -4,6 +4,7 @@ import { useStates, useSurveys } from "../api/queries";
 import type { Level, StateContext, SurveysResponse } from "../api/types";
 import { ContextDialog } from "./ContextDialog";
 import styles from "./ContextDialog.module.css";
+import { Mark } from "../shell/Mark";
 import { readLastContext } from "./lastContext";
 import { contextSummary } from "./summary";
 import { useDashboardContext } from "./urlContext";
@@ -29,19 +30,6 @@ const LEVEL_NAME: Record<Level, string> = { ac: "AC", pc: "PC", zone: "Zone", st
 
 const STEPS = ["Where", "Which rounds", "Ready"] as const;
 
-/** The mark: a ballot tick over rising bars (a vote, then understanding it). Drawn from the theme's colours. */
-function Mark() {
-  return (
-    <svg className={styles.mark} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <rect width="32" height="32" rx="8" fill="var(--mb-deep-ink)" />
-      <rect x="6.5" y="17" width="4.5" height="8.5" rx="1.2" fill="var(--mb-surface)" />
-      <rect x="13.75" y="12.5" width="4.5" height="13" rx="1.2" fill="var(--mb-surface)" />
-      <rect x="21" y="8" width="4.5" height="17.5" rx="1.2" fill="var(--mb-surface)" />
-      <path d="M6 7.5l2.6 2.7L13.6 4.6" fill="none" stroke="var(--mb-accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 /** The first screen: choose the state, level and rounds once; Continue opens the canvas. The bar edits them later. */
 export function ContextStep() {
   const { setCtx } = useDashboardContext();
@@ -66,7 +54,7 @@ export function ContextStep() {
   return (
     <div className={styles.step} data-leaving={leaving || undefined}>
       <header className={styles.stepHeader}>
-        <Mark />
+        <Mark className={styles.mark} />
         <div>
           <Title order={1} className={styles.stepTitle}>Survey context</Title>
           <Text className={styles.stepLead}>
