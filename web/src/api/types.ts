@@ -420,6 +420,10 @@ export interface CardConfigJson {
   section?: string;
   scenarios?: string[];
   all_party_scenarios?: boolean;
+  /** This card's own survey instead of the context's anchor / comparison round, and several surveys read together. */
+  anchor_round?: string | null;
+  compare_round?: string | null;
+  surveys?: string[];
   cuts?: string[][];
   filters?: CardFilterConfig[];
   comparison?: { mode?: CardMode; target?: EndpointJson | null; reference?: EndpointJson | null; delta_measures?: string[] };

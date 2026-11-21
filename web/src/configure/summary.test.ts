@@ -20,6 +20,24 @@ describe("describeDraft", () => {
       .toBe("Shows vs_voting_intention, pm_satisfaction in R2, overall.");
   });
 
+  it("names the card's own survey instead of the anchor", () => {
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], anchor_round: "R1" }), CTX))
+      .toBe("Shows q in R1, overall.");
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], surveys: ["R1"] }), CTX)).toBe("Shows q in R1, overall.");
+  });
+
+  it("several surveys are listed, three at most", () => {
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], surveys: ["R1", "R2"] }), CTX))
+      .toBe("Shows q in R1 and R2, overall.");
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], surveys: ["A", "B", "C", "D", "E"] }), CTX))
+      .toBe("Shows q in A, B, C and 2 more, overall.");
+  });
+
+  it("a compare card names its own comparison survey", () => {
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[]], comparison: { mode: "compare" }, compare_round: "R2", anchor_round: "R1" }), CTX))
+      .toBe("Shows q in R1 against R2, overall.");
+  });
+
   it("crossed fields share a cut, separate cuts are listed apart", () => {
     expect(describeDraft(card({ scenarios: ["q"], cuts: [["age_group", "caste"], ["gender"], []] }), CTX))
       .toBe("Shows q in R2, split by age_group × caste; gender.");

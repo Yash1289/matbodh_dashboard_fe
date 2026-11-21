@@ -16,9 +16,16 @@ function filtersText(filters: CardFilterConfig[] | undefined): string {
 
 /** Which rounds the card reads, in the analyst's own terms: the context's names, nothing added. */
 function whenText(draft: CardConfigJson, ctx: StateContext): string {
-  const anchor = ctx.anchor_round ?? ctx.rounds[ctx.rounds.length - 1];
+  const surveys = draft.surveys ?? [];
+  if (surveys.length > 1) {
+    const shown = surveys.slice(0, 3);
+    const more = surveys.length - shown.length;
+    return `${more > 0 ? `${shown.join(", ")} and ${more} more` : shown.length === 2 ? shown.join(" and ") : `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`}`;
+  }
+  const anchor = surveys[0] ?? draft.anchor_round ?? ctx.anchor_round ?? ctx.rounds[ctx.rounds.length - 1];
   const mode = draft.comparison?.mode ?? "standalone";
-  if (mode === "compare") return ctx.compare_round ? `${anchor} against ${ctx.compare_round}` : anchor;
+  const compareTo = draft.compare_round ?? ctx.compare_round;
+  if (mode === "compare") return compareTo ? `${anchor} against ${compareTo}` : anchor;
   if (mode === "trend") return draft.pipe_rounds ? `the last ${draft.pipe_rounds} rounds up to ${anchor}` : "every selected round";
   return anchor;
 }
