@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
@@ -89,6 +89,14 @@ class Catalogue:
             return self._rounds[(state, base_name)]
         except KeyError:
             raise RoundNotFound(f"no round {base_name!r} for state {state!r}") from None
+
+    def level_of(self, state: str, base_name: str) -> str:
+        return self.find(state, base_name).level
+
+    def levels_of(self, state: str, names: Sequence[str]) -> tuple[str, ...]:
+        """The distinct survey levels of the named rounds, coarse order ac, pc, zone, state."""
+        found = {self.level_of(state, name) for name in names}
+        return tuple(level for level in ("ac", "pc", "zone", "state") if level in found)
 
 
 _LEVELS = ("ac", "pc", "zone", "state")

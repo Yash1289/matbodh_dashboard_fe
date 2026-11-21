@@ -3,12 +3,18 @@ from pydantic import ValidationError
 
 from matbodh_dashboard.catalogue.store import load_catalogue
 from matbodh_dashboard.context import Context, StateContext
-from matbodh_dashboard.capability import validate_context, resolve_anchor
-from tests.fixtures.catalogue_rows import make_query
+from matbodh_dashboard.capability import anchor_level, resolve_anchor, round_level_blockers, validate_context
+from tests.fixtures.catalogue_rows import DATASET_ROWS, LEVEL_ROWS, dataset_row, level_row, make_query
 
 R1 = "2027 VS CAPI R1"
 R2 = "2027 VS CAPI R2"
 ST = "2027 VS CAPI ST R1"
+PC = "2024 LS CAPI R1"
+
+
+def catalogue_with_pc():
+    rows = [*DATASET_ROWS, dataset_row(PC, level="pc", round_number=1, cycle_id="2024 LS")]
+    return load_catalogue(make_query(rows, [*LEVEL_ROWS, level_row(PC, range(1, 81))]))
 
 
 @pytest.fixture()
@@ -26,14 +32,40 @@ def test_valid_context(catalogue):
     assert validate_context(ctx(rounds=[R1, R2], compare_round=R1), catalogue) == []
 
 
-def test_rounds_must_share_level(catalogue):
-    errors = validate_context(ctx(rounds=[R1, ST]), catalogue)
-    assert errors
-    assert any(R1 in e and ST in e for e in errors)
+def test_context_without_level_validates(catalogue):
+    c = StateContext(state="Uttar Pradesh", rounds=[R1])
+    assert c.level is None
+    assert validate_context(c, catalogue) == []
 
 
-def test_level_must_match_rounds(catalogue):
-    assert validate_context(ctx(level="pc"), catalogue)
+def test_validate_context_allows_mixed_levels(catalogue):
+    assert validate_context(ctx(rounds=[R1, ST]), catalogue) == []
+    assert validate_context(ctx(rounds=[R1, PC, ST]), catalogue_with_pc()) == []
+
+
+def test_legacy_level_is_ignored(catalogue):
+    assert validate_context(ctx(level="pc"), catalogue) == []
+
+
+def test_matched_rejects_zone_round_in_mixed_context(catalogue):
+    errors = validate_context(ctx(rounds=[R1, ST], version_mode="matched"), catalogue)
+    assert len(errors) == 1 and ST in errors[0] and "matched" in errors[0]
+
+
+def test_unknown_round_still_reported(catalogue):
+    assert any("nope" in e for e in validate_context(ctx(rounds=[R1, "nope"]), catalogue))
+
+
+def test_anchor_level_is_level_of_resolved_anchor():
+    cat = catalogue_with_pc()
+    assert anchor_level(ctx(rounds=[R1, PC], anchor_round=PC), cat) == "pc"
+    assert anchor_level(ctx(rounds=[R1, ST], anchor_round=R1), cat) == "ac"
+
+
+def test_round_level_blockers():
+    assert round_level_blockers(["ac", "ac"]) == []
+    (reason,) = round_level_blockers(["ac", "state"])
+    assert "AC" in reason and "STATE" in reason and "different levels" in reason
 
 
 def test_compare_round_must_be_selected(catalogue):
@@ -42,9 +74,9 @@ def test_compare_round_must_be_selected(catalogue):
 
 
 def test_matched_rejected_for_state_level(catalogue):
-    c = ctx(level="zone", rounds=[ST], version_mode="matched")
+    c = ctx(rounds=[ST], version_mode="matched")
     assert any("matched" in e for e in validate_context(c, catalogue))
-    assert validate_context(ctx(level="zone", rounds=[ST]), catalogue) == []
+    assert validate_context(ctx(rounds=[ST]), catalogue) == []
 
 
 def test_anchor_defaults_to_latest(catalogue):

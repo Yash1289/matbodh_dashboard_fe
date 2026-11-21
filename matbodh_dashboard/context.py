@@ -15,7 +15,8 @@ class StateContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     state: str
-    level: Literal["ac", "pc", "zone", "state"]
+    # Legacy, ignored: each round's level comes from the catalogue (capability.anchor_level).
+    level: Literal["ac", "pc", "zone", "state"] | None = None
     rounds: list[str]
     compare_round: str | None = None
     anchor_round: str | None = None

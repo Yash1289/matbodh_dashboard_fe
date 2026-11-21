@@ -27,6 +27,13 @@ def test_rounds_filtered_by_level(catalogue):
     assert len(catalogue.rounds("Uttar Pradesh")) == 3
 
 
+def test_level_of_and_levels_of(catalogue):
+    assert catalogue.level_of("Uttar Pradesh", "2027 VS CAPI ST R1") == "zone"
+    assert catalogue.levels_of("Uttar Pradesh", ["2027 VS CAPI ST R1", "2027 VS CAPI R1"]) == ("ac", "zone")
+    with pytest.raises(KeyError):
+        catalogue.level_of("Uttar Pradesh", "nope")
+
+
 def test_missing_extrapolated_falls_back(catalogue):
     r1 = catalogue.find("Uttar Pradesh", "2027 VS CAPI R1")
     assert r1.version("extrapolated") == (r1.normal, True)

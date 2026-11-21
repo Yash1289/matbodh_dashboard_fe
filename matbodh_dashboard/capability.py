@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from matbodh_dashboard.catalogue.store import Catalogue
@@ -75,20 +76,6 @@ def validate_context(ctx: StateContext, catalogue: Catalogue) -> list[str]:
         except KeyError:
             errors.append(f"unknown round {name!r} for state {ctx.state!r}")
 
-    if found:
-        first_name, first = found[0]
-        mixed = next(((n, r) for n, r in found if r.level != first.level), None)
-        if mixed is not None:
-            errors.append(
-                f"rounds must share one level: {first_name!r} is {first.level!r} "
-                f"but {mixed[0]!r} is {mixed[1].level!r}"
-            )
-        elif first.level != ctx.level:
-            errors.append(
-                f"context level {ctx.level!r} does not match rounds' level "
-                f"{first.level!r}"
-            )
-
     for field in ("compare_round", "anchor_round"):
         value = getattr(ctx, field)
         if value is not None and value not in ctx.rounds:
@@ -102,12 +89,13 @@ def validate_context(ctx: StateContext, catalogue: Catalogue) -> list[str]:
             errors.append(f"compare_round {ctx.compare_round!r} is the anchor round; "
                           f"choose a different round to compare with")
 
-    if ctx.version_mode not in capabilities(ctx.level).version_modes:
-        errors.append(
-            f"version mode {ctx.version_mode!r} is not available at level "
-            f"{ctx.level!r}"
-        )
-    elif ctx.version_mode == "matched":
+    for name, round_ in found:
+        if ctx.version_mode not in capabilities(round_.level).version_modes:
+            errors.append(
+                f"version mode {ctx.version_mode!r} is not available for {name!r} "
+                f"({round_.level} level)"
+            )
+    if ctx.version_mode == "matched":
         for name, round_ in found:
             if round_.normal is None:
                 errors.append(f"matched mode needs a Normal dataset; round {name!r} "
@@ -123,3 +111,17 @@ def resolve_anchor(ctx: StateContext, catalogue: Catalogue) -> str:
         raise ValueError("cannot resolve anchor without selected rounds")
     rounds = [catalogue.find(ctx.state, name) for name in ctx.rounds]
     return max(rounds, key=lambda r: r.identity.sort_key).identity.base_name
+
+
+def anchor_level(ctx: StateContext, catalogue: Catalogue) -> str:
+    """The survey level of the context's anchor round."""
+    return catalogue.level_of(ctx.state, resolve_anchor(ctx, catalogue))
+
+
+def round_level_blockers(levels: Sequence[str]) -> list[str]:
+    """Reasons a card cannot read surveys of these levels together; empty for one level."""
+    distinct = sorted(set(levels), key=LEVEL_RANK.get, reverse=True)
+    if len(distinct) < 2:
+        return []
+    names = ", ".join(level.upper() for level in distinct)
+    return [f"This card reads surveys of different levels ({names}); choose surveys of one level"]
