@@ -4,7 +4,7 @@
 
 **Goal:** A distribution or opinion card can read several surveys of the context at once and lay questions, surveys and breakdowns out as rows, columns or filters by the spec's layout table.
 
-**Architecture:** The engine already returns one value per (row, column, round, lens) and `payloadToGrid` already pivots a round axis for trends, so layout is a frontend pivot of engine values; the backend only gains a `surveys` list on the card (standalone mode reads those rounds instead of the anchor only) plus the validation rules (several-by-several = overall only, one measure). The browser never computes a number: a cell is copied from the payload or shown empty with the engine's reason.
+**Architecture:** The engine already returns one value per (row, column, round, lens) and `payloadToGrid` already pivots a round axis for trends, so layout is a frontend pivot of engine values; the backend gains a fourth card mode, `side_by_side`, with a `surveys` list (Configure's "Side by side", confirmed by the owner 2026-11-21; standalone keeps meaning the anchor) plus the validation rules (several-by-several = overall only, one measure). The browser never computes a number: a cell is copied from the payload or shown empty with the engine's reason.
 
 **Tech Stack:** Python 3.11 / pydantic / pytest (`.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider`); React + TypeScript + vitest (`cd web; npm test`, `npx tsc --noEmit -p .`); Playwright.
 
@@ -17,13 +17,13 @@
 - Any cut with several questions or several surveys: the extra questions or surveys become one chosen filter (the table shows one at a time), never extra columns.
 - With no seat-level cut the card applies no common-coverage intersection; each survey keeps its own coverage (zone/state rounds already force `independent`).
 - No cap on the number of surveys (the 4-round cap belongs to trend's pipe view only); a value the engine did not return stays empty with its reason, never filled.
-- `surveys` empty or only the anchor behaves exactly as today; existing tests keep passing.
+- The three existing modes behave exactly as today; existing tests keep passing. Configure holds no level rules: unavailable combinations come from the backend's validation and the existing "This card cannot run yet" alert.
 - Commit explicit paths only; never touch `docs/specs/2026-11-08-dashboard-design.md`; commit messages end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
 ## Review Focus
 
 - A selected survey that did not ask one of the card's questions: that survey's cells are empty with "not asked" (as trend's `not_asked`), the card still runs.
-- `surveys` naming a round that is not in the context, or the anchor missing from it: card unavailable with the round named.
+- `surveys` naming a round that is not in the context: card unavailable with the round named. A context with one survey: Side by side is offered but unavailable with "Select more than one survey in the context".
 - Several-by-several with a cut: rejected by the backend with the rule, not an engine error.
 - Surveys of mixed levels with a seat-level cut (`ac_num`/`pc_num`): unavailable (rule from B), and coverage never `common` without a seat cut.
 - A Party vote share card shows support share and an Opinion card shows net score in several-by-several, with no measure control anywhere.
@@ -31,53 +31,54 @@
 
 ---
 
-### Task 1: `surveys` on the card
+### Task 1: The `side_by_side` mode and `surveys` on the card
 
 **Files:**
-- Modify: `matbodh_dashboard/cards/config.py` (`CardConfig`), `matbodh_dashboard/cards/compile.py` (`_select`, `read_levels`)
+- Modify: `matbodh_dashboard/cards/config.py` (`Mode`, `CardConfig`), `matbodh_dashboard/cards/compile.py` (`_select`, `read_levels`), `matbodh_dashboard/api/schemas.py` and `matbodh_dashboard/cards/configure/distinct_values.py` (their `Mode` literals; find every other mode use with `grep -rn "standalone" matbodh_dashboard`)
 - Test: `tests/cards/test_config.py`, `tests/cards/test_compile.py`
 
 **Interfaces:**
-- Produces: `CardConfig.surveys: list[str] = []` (round base names chosen from the context; empty = anchor only). No `measure` field: the measure follows the questions' kind (`scenario_kind`).
-- Rules in `_validate` (message prefix style of the existing `_fail`): `surveys` only for distribution/opinion in standalone mode; no duplicates; no length cap; when `len(surveys) > 1 and len(scenarios) > 1`: `cuts` must be `[[]]`.
-- `_select` standalone mode: `used = [rounds named in config.surveys]` (anchor alone when empty); a survey missing from the context -> `unavailable` naming it; surveys lacking a scenario go to `not_asked` like trend. `read_levels` adds every `config.surveys` round, so `card_blockers` sees all their levels.
+- Produces: `Mode = Literal["standalone", "compare", "trend", "side_by_side"]`; `CardConfig.surveys: list[str] = []` (round base names chosen from the context). No `measure` field: the measure follows the card's family (party vote share = support share, opinion = net score).
+- Rules in `_validate` (message prefix style of the existing `_fail`): `side_by_side` only for distribution and opinion; `surveys` required (at least 2, no duplicates, no upper cap) in that mode and rejected in the others; when `len(scenarios) > 1`: `cuts` must be `[[]]`.
+- `_select` for `side_by_side`: `used = [rounds named in config.surveys]`; a survey missing from the context -> `unavailable` naming it; a survey lacking a scenario goes to `not_asked` like trend. `read_levels` adds every `config.surveys` round, so `card_blockers` sees all their levels. The compiled job returns one observation per survey, so each cell carries its round.
 
-- [ ] **Step 1: Write failing tests**: `test_surveys_rejected_outside_standalone_distribution_opinion`, `test_several_by_several_rejects_cuts`, `test_single_survey_list_equals_anchor_only_request`, `test_survey_not_in_context_is_unavailable_naming_it`, `test_survey_without_the_scenario_is_not_asked_not_error`, `test_mixed_level_surveys_with_ac_num_cut_unavailable`, `test_no_common_coverage_without_a_seat_cut` (request `coverage_mode != "common"` for AC+AC surveys cut by `district`... assert the existing `choose_coverage` result and fix only if wrong).
+- [ ] **Step 1: Write failing tests**: `test_side_by_side_rejected_for_other_families`, `test_surveys_need_two_in_side_by_side_and_are_rejected_elsewhere`, `test_several_questions_side_by_side_rejects_cuts`, `test_survey_not_in_context_is_unavailable_naming_it`, `test_survey_without_the_scenario_is_not_asked_not_error`, `test_mixed_level_surveys_with_ac_num_cut_unavailable`, `test_no_common_coverage_without_a_seat_cut` (assert the existing `choose_coverage` result for AC+AC surveys cut by `district` and fix only if wrong), `test_existing_modes_unchanged` (a standalone, compare or trend request is identical before and after).
 - [ ] **Step 2: Run** `.venv\Scripts\python.exe -m pytest tests/cards/test_config.py tests/cards/test_compile.py -q`. Expected: new tests FAIL.
-- [ ] **Step 3: Implement** the fields, validation and `_select`/`read_levels` change above.
+- [ ] **Step 3: Implement** the mode, field, validation and `_select`/`read_levels` change above.
 - [ ] **Step 4: Run** the full suite. Expected: all pass (809+).
-- [ ] **Step 5: Commit** `git add matbodh_dashboard/cards/config.py matbodh_dashboard/cards/compile.py tests/cards/test_config.py tests/cards/test_compile.py`; message `feat: grid cards read several surveys`.
+- [ ] **Step 5: Commit** `git add` the modified files and tests; message `feat: side-by-side mode reads several surveys`.
 
-### Task 2: Configure offers a survey picker
+### Task 2: Configure offers "Side by side" and the survey picker
 
 **Files:**
-- Modify: `matbodh_dashboard/cards/configure/families.py` (descriptors), `matbodh_dashboard/cards/configure/options.py`, `web/src/api/types.ts` (draft type: `surveys?`), `web/src/configure/` (multi-select widget, summary text)
-- Test: `tests/cards/test_configure_options.py`, `web/src/configure/summary.test.ts`, widget test beside the widget
+- Modify: `matbodh_dashboard/cards/configure/families.py` (`_mode` choices for distribution and opinion; a `surveys` descriptor), `matbodh_dashboard/cards/configure/options.py` (a `surveys` option source), `matbodh_dashboard/cards/configure/descriptor.py` (a `disabled_when` condition plus `disabled_reason` on `FieldDescriptor`), `web/src/api/types.ts` (`mode` union, `surveys?`, descriptor fields), `web/src/configure/` (a surveys well widget, "Side by side" label, disabled cut builder, summary text)
+- Test: `tests/cards/test_configure_options.py`, the existing descriptor tests, `web/src/configure/summary.test.ts`, `ConfigurePanel.test.tsx`, a widget test beside the surveys widget
 
 **Interfaces:**
-- Produces: field descriptor `surveys` (kind multi-select, options = every survey of the context, any number, shown only in standalone mode: this is where a card chooses its surveys, since the context bar only sets the pool, anchor and compare); the `cuts` descriptor is disabled with the reason "Cuts are not available with several surveys and several questions" in that state; `describeDraft` appends "across <surveys>".
-- Consumes: `CardConfig.surveys` (Task 1).
+- Produces: the Show choice gains `side_by_side` (label "Side by side") for distribution and opinion only; descriptor `surveys` (multi-select well in the "What to show" group, shown only when `comparison.mode == side_by_side`, options = every survey of the context ordered by fieldwork start with its level tag, default all of them, minimum 2, no maximum); the `cuts` descriptor gets `disabled_when` (side_by_side with more than one question) and `disabled_reason` "Side by side with several questions shows overall only"; with a cut set in side_by_side, a one-line note under "Split by": "The table shows one survey at a time; choose it on the card" (and for several questions: "one question at a time"); `describeDraft` for side_by_side: `Shows <questions> across <first three surveys> and N more, <overall|split by ...>` plus `(support share)` or `(net score)` only when several questions are shown.
+- The widget holds no level rules; validation errors and the "cannot run yet" alert are unchanged. A survey that did not ask a question surfaces through the existing `notes` list as a muted line.
+- Consumes: `Mode`, `CardConfig.surveys` (Task 1).
 
-- [ ] **Step 1: Write failing tests**: backend `test_surveys_options_are_the_context_rounds`; frontend `describeDraft` sentence with surveys, cuts control disabled when several-by-several.
-- [ ] **Step 2: Run** `.venv\Scripts\python.exe -m pytest tests/cards/test_configure_options.py -q` and `cd web; npx vitest run src/configure`. Expected: FAIL.
-- [ ] **Step 3: Implement** descriptors, options and widgets.
+- [ ] **Step 1: Write failing tests**: backend `test_side_by_side_offered_for_distribution_and_opinion_only`, `test_surveys_options_are_the_context_rounds_in_fieldwork_order`, `test_cuts_disabled_for_several_questions_side_by_side`; frontend `describeDraft` sentences (two surveys, five surveys -> "and 2 more", several questions -> measure named), `ConfigurePanel` shows the surveys well only in Side by side and hides "Every party question of the anchor round" there, the cut builder is disabled with its reason.
+- [ ] **Step 2: Run** `.venv\Scripts\python.exe -m pytest tests/cards -q` and `cd web; npx vitest run src/configure`. Expected: FAIL.
+- [ ] **Step 3: Implement** descriptors, options, widget and summary.
 - [ ] **Step 4: Run** both suites and `npx tsc --noEmit -p .`. Expected: pass.
-- [ ] **Step 5: Commit** explicit paths; message `feat: Configure picks surveys`.
+- [ ] **Step 5: Commit** explicit paths; message `feat: Configure picks surveys side by side`.
 
 ### Task 3: The layout pivot
 
 **Files:**
 - Create: `web/src/cards/grid/layout.ts`
-- Modify: `web/src/cards/grid/payloadToGrid.ts` (call `layoutGrid` when more than one survey or question is in the payload), `web/src/cards/ControlStrip.tsx`, `web/src/cards/families/_grid/GridBody.tsx`
+- Modify: `web/src/cards/grid/payloadToGrid.ts` (use `layoutGrid` when `p.mode === "side_by_side"` or the payload has several questions), `web/src/cards/ControlStrip.tsx`, `web/src/cards/families/_grid/GridBody.tsx`
 - Test: `web/src/cards/grid/layout.test.ts`, `web/src/cards/ControlStrip.test.tsx`, `web/src/cards/families/_grid/GridBody.test.tsx`
 
 **Interfaces:**
-- Produces: `interface LayoutView { rowsAre: "surveys" | "breakdown" | "questions"; question: string | null; survey: string | null }` and `layoutGrid(p: GridPayload, view: GridView & LayoutView): CellGrid` returning the table for the spec's layout table: (several questions, one survey, overall) columns = questions, rows = breakdown (+ net score as the lens already offers); (any cut with several questions) rows = cut values x breakdown, one question chosen by `view.question`; (one question, several surveys, overall) rows = surveys or breakdown with `rowsAre` swapping the axes; (any cut, several surveys) one survey chosen by `view.survey`; (several x several) rows = surveys, columns = questions, the measure derived from the question kind (support share for party questions, the net-score lens for opinion questions). Cell values are copied from `p.cuts[].cells` (`row`, `column`, `round`, `lens`), never computed; absent cells are `{ cell: null }` with the payload's status flags.
-- ControlStrip gains: an axis swap (shown for one question x several surveys overall), a question selector and a survey selector (shown when the layout needs a filter); all are display state, no request is sent.
+- Produces: `interface LayoutView { rowsAre: "surveys" | "breakdown"; question: string | null; survey: string | null }` and `layoutGrid(p: GridPayload, view: GridView & LayoutView): CellGrid` returning the table for the spec's layout table: (several questions, one survey, overall) columns = questions, rows = breakdown; (any cut with several questions) rows = cut values x breakdown, one question chosen by `view.question`; (one question, side by side, overall) rows = surveys or breakdown with `rowsAre` swapping the axes; (any cut, side by side) one survey chosen by `view.survey`; (several questions side by side) rows = surveys, columns = questions, the measure derived from the family (support share for party vote share, the net-score lens for opinion). Cell values are copied from `p.cuts[].cells` (`row`, `column`, `round`, `lens`), never computed; absent cells are `{ cell: null }` with the payload's status flags.
+- ControlStrip gains: an axis swap (one question side by side, overall), a question selector and a survey selector (shown only when the layout needs a filter); all are display state, no request is sent.
 
-- [ ] **Step 1: Write failing tests** in `layout.test.ts` with a hand-built payload of 2 questions x 2 surveys x 3 breakdown values (distinct numbers per cell so a wrong pivot fails): `columns are questions for several questions overall`, `a cut makes the second question a chosen filter`, `surveys become rows and swap with the breakdown`, `a cut with several surveys shows only the chosen survey`, `several by several shows one measure per cell`, `a missing cell keeps the payload status`, plus a `GridBody` test that changing the question selector changes cells without a new request (assert the fetch mock call count).
+- [ ] **Step 1: Write failing tests** in `layout.test.ts` with a hand-built payload of 2 questions x 2 surveys x 3 breakdown values (distinct numbers per cell so a wrong pivot fails): `columns are questions for several questions overall`, `a cut makes the second question a chosen filter`, `surveys become rows and swap with the breakdown`, `a cut with several surveys shows only the chosen survey`, `several questions side by side show one measure per cell`, `a missing cell keeps the payload status`, plus a `GridBody` test that changing the question selector changes cells without a new request (assert the fetch mock call count).
 - [ ] **Step 2: Run** `cd web; npx vitest run src/cards`. Expected: FAIL.
-- [ ] **Step 3: Implement** `layoutGrid` (pure function over the payload) and the control wiring; `payloadToGrid` keeps its current output when the payload has one survey and one question.
+- [ ] **Step 3: Implement** `layoutGrid` (pure function over the payload) and the control wiring; `payloadToGrid` keeps its current output for the three existing modes with one question.
 - [ ] **Step 4: Run** `npx vitest run`, `npx tsc --noEmit -p .`. Expected: pass; the existing payloadToGrid and table tests are unchanged.
 - [ ] **Step 5: Commit** explicit paths; message `feat: lay out several questions and surveys`.
 
@@ -86,7 +87,7 @@
 **Files:**
 - Modify: `docs/open-items.md` (O-F10 row), `docs/testing.md` if it lists card rules; Playwright spec in `web/e2e/` following the existing card specs
 
-- [ ] **Step 1: Live check, read-only, Uttar Pradesh**: a distribution card, `surveys` = `2027 VS CAPI R2` + `2029 LS NT CATI R1`, one party question overall; then two party questions x two surveys. Expected: per survey the per-round base equals the single-survey run's base; a cut with several surveys returns one survey's rows for the chosen filter. Report what was not run.
+- [ ] **Step 1: Live check, read-only, Uttar Pradesh**: a distribution card, mode `side_by_side`, `surveys` = `2027 VS CAPI R2` + `2029 LS NT CATI R1`, one party question overall; then two party questions x two surveys. Expected: per survey the per-round base equals the single-survey run's base; a cut with several surveys returns one survey's rows for the chosen filter. Report what was not run.
 - [ ] **Step 2: Playwright**: build a several-surveys card in the browser, flip the axis, choose a question filter; expected no extra network request on a flip.
 - [ ] **Step 3: Record** in `docs/open-items.md`: C built or not, the live result, what is unverified.
 - [ ] **Step 4: Run** all suites (backend, vitest, tsc, Playwright). Expected: pass.
@@ -94,6 +95,6 @@
 
 ## Open questions for the owner (my calls, correctable)
 
-- **Where surveys are chosen in Configure:** pending the Configure design brief (a "Side by side" mode versus a Surveys field under standalone); Tasks 1 to 3 are adjusted once it is confirmed.
+- **Where surveys are chosen:** confirmed by the owner: a fourth Show mode "Side by side" with a Surveys picker (design brief from `/impeccable:impeccable` shape, 2026-11-21).
 - **Respondent filters** (the existing `filters` list) stay allowed with several-by-several; only cuts are disabled.
 - **Survey count:** no cap on the card; I will report if the engine rejects a large set.
