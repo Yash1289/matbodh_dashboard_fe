@@ -154,25 +154,24 @@ def test_plan_accepts_mixed_levels_when_the_card_reads_one(client, parts):
     assert parts[1].calls == []
 
 
-def test_plan_blocks_a_card_that_reads_two_levels(client, parts):
+def test_plan_lets_a_distribution_card_compare_an_ac_and_a_zone_survey(client, parts):
     response = client.post("/cards/plan", json=body(
         card=COMPARE.id, rounds=[R1, ZONE_R1], anchor_round=R1, compare_round=ZONE_R1))
     assert response.status_code == 200
     data = response.json()
-    assert data["valid"] is True
-    assert {u["part"] for u in data["unavailable"]} == {"grid"}
-    assert "different levels" in data["unavailable"][0]["reason"]
+    assert data["valid"] is True and data["unavailable"] == []
+    assert data["coverage_mode"] == {"grid": "independent"}
     assert parts[1].calls == []
 
 
-def test_plan_reports_geography_unavailable_for_zone_level(client, parts):
+def test_plan_reports_a_level_requirement_unavailable_for_zone_level(client, parts):
     response = client.post("/cards/plan", json=body(
-        level="zone", rounds=[ZONE_R1], compare_round=None))
+        card=ACLEVEL.id, rounds=[ZONE_R1], compare_round=None))
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True and data["errors"] == []
     assert {u["part"] for u in data["unavailable"]} == {"grid"}
-    assert "party_zone" in data["unavailable"][0]["reason"]
+    assert "AC-level" in data["unavailable"][0]["reason"]
     assert data["coverage_mode"] == {}
     assert parts[1].calls == []  # planning makes no engine calls
 

@@ -294,3 +294,88 @@ def test_display_parties_unknown_party_unavailable():
     plan = _compile(_config(display_parties=["NDA", "XYZ"]))  # not in preset.keep + Other
     assert plan.jobs == ()
     assert any("XYZ" in reason for _, reason in plan.unavailable)
+
+
+# -- mixed survey levels (per-card level rules) -------------------------------------------------
+
+ST1 = "2027 VS CAPI ST R1"
+
+
+def _mixed_catalogue(state_fields=FIELDS, state_level="state", ac_rounds=(R1, R2)):
+    rows, levels = [], []
+    for i, name in enumerate(ac_rounds, 1):
+        rows.append(dataset_row(name, round_number=i, available_fields=FIELDS, available_scenarios=[*SCENARIOS, LS]))
+        levels.append(level_row(name, range(1, 404)))
+    rows.append(dataset_row(ST1, level=state_level, round_number=1, available_fields=state_fields,
+                            available_scenarios=[*SCENARIOS, LS]))
+    levels.append(level_row(ST1, range(1, 402)))
+    return load_catalogue(make_query(rows, levels))
+
+
+def _mixed(config, rounds=(R2, ST1), anchor=R2, compare=ST1, catalogue=None):
+    ctx = StateContext(state=STATE, rounds=list(rounds), anchor_round=anchor, compare_round=compare)
+    return compile_card(config, ctx, catalogue or _mixed_catalogue(), PRESET)
+
+
+_COMPARE = {"mode": "compare", "target": {"scenario": VS}, "reference": {"round": "compare", "scenario": VS}}
+
+
+def test_mixed_ac_state_overall_distribution_builds_and_the_engine_accepts_it():
+    plan = _mixed(_config(cuts=[[], ["age_group"]], comparison=_COMPARE))
+    request = _request(plan)
+    assert request["coverage_mode"] == "independent"
+    resolve_with_engine(request, list(plan.rounds))
+
+
+def test_mixed_ac_state_district_cut_uses_independent_coverage():
+    plan = _mixed(_config(cuts=[["district"], ["party_zone"]], comparison=_COMPARE))
+    request = _request(plan)
+    assert request["coverage_mode"] == "independent"
+    resolve_with_engine(request, list(plan.rounds))
+
+
+def test_a_state_survey_alone_can_be_cut_by_zone_district_and_party_zone():
+    plan = _mixed(_config(cuts=[["zone"], ["district"], ["party_zone"]]), rounds=(ST1,), anchor=ST1, compare=None)
+    resolve_with_engine(_request(plan), list(plan.rounds))
+
+
+def test_ac_num_cut_over_ac_and_state_is_unavailable():
+    plan = _mixed(_config(cuts=[["ac_num"]], comparison=_COMPARE))
+    assert plan.jobs == ()
+    assert any("Seat identifiers need surveys of one level" in reason for _, reason in plan.unavailable)
+
+
+def test_ac_num_cut_on_a_state_survey_alone_is_unavailable():
+    plan = _mixed(_config(cuts=[["ac_num"]]), rounds=(ST1,), anchor=ST1, compare=None)
+    assert plan.jobs == () and "ac_num" in plan.unavailable[0][1]
+
+
+def test_state_round_without_ac_num_blocks_a_district_cut():
+    fields = [f for f in FIELDS if f not in ("ac_num", "pc_num")]
+    plan = _mixed(_config(cuts=[["district"]]), rounds=(ST1,), anchor=ST1, compare=None,
+                  catalogue=_mixed_catalogue(state_fields=fields))
+    assert plan.jobs == ()
+    assert "needs ac_num" in plan.unavailable[0][1] and ST1 in plan.unavailable[0][1]
+
+
+def test_overall_cut_needs_no_ac_num_on_a_state_survey():
+    fields = [f for f in FIELDS if f not in ("ac_num", "pc_num")]
+    plan = _mixed(_config(cuts=[[]]), rounds=(ST1,), anchor=ST1, compare=None,
+                  catalogue=_mixed_catalogue(state_fields=fields))
+    assert plan.unavailable == ()
+
+
+def test_ac_and_pc_with_a_zone_cut_is_unavailable():
+    plan = _mixed(_config(cuts=[["party_zone"]], comparison=_COMPARE), rounds=(R2, ST1), anchor=R2, compare=ST1,
+                  catalogue=_mixed_catalogue(state_level="pc"))
+    assert plan.jobs == () and any("PC" in reason for _, reason in plan.unavailable)
+
+
+def test_gender_differential_over_two_levels_stays_blocked():
+    plan = _mixed(_config(family="gender_differential", cuts=[[]], comparison={"mode": "trend"}), compare=None)
+    assert plan.jobs == () and "different levels" in plan.unavailable[0][1]
+
+
+def test_standalone_ac_card_in_a_mixed_context_is_unaffected():
+    plan = _mixed(_config(cuts=[["ac_num"]]), rounds=(R2, ST1), anchor=R2, compare=None)
+    assert plan.unavailable == ()

@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from matbodh_dashboard.capability import anchor_level, resolve_anchor, round_level_blockers, template_blockers
+from matbodh_dashboard.capability import card_blockers, resolve_anchor
 from matbodh_dashboard.cards.config import (
     party_scenarios_of,
     BENCHMARK_FAMILIES,
     RANKING_FAMILIES,
     RELATIONSHIP_FAMILIES,
+    MIXED_LEVEL_FAMILIES,
     SEAT_DIMENSIONS,
     CardConfig,
     comparison_kind,
@@ -192,8 +193,8 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                                   f"({', '.join(sorted(shown))})"))
         return plan()
     fields = _needed_fields(config, preset.gender.field if spec.gender_differential else None)
-    blockers = [*template_blockers(config.requires.min_level, fields, anchor_level(ctx, catalogue)),
-                *round_level_blockers(read_levels(config, ctx, rounds, anchor))]
+    blockers = card_blockers(config.requires.min_level, fields, read_levels(config, ctx, rounds, anchor),
+                             mixed_ok=config.family in MIXED_LEVEL_FAMILIES)
     if blockers:
         unavailable.extend((GRID, reason) for reason in blockers)
         return plan()
@@ -206,6 +207,13 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         if missing:
             unavailable.append((GRID, f"Field {field!r} needs to exist in every included "
                                       f"round; missing in: {_names(missing)}"))
+        # Zone and state collections reach the AC master through their stored AC number.
+        no_key = [r for r in selection.used if r.dataset.level in ("zone", "state")
+                  and field not in r.dataset.fields and field_available(r.dataset, field)
+                  and "ac_num" not in r.dataset.fields]
+        if no_key:
+            unavailable.append((GRID, f"Field {field!r} needs ac_num in every zone or state-wide "
+                                      f"round; missing in: {_names(no_key)}"))
     if unavailable:
         return plan()
 
@@ -219,6 +227,8 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
                                 version_mode=ctx.version_mode)
                 if mode == "compare" else "independent")
+    if any(r.dataset.level in ("zone", "state") for r in selection.used):
+        coverage = "independent"  # these collections have no verified AC/PC completion list
     if cohort is not None and len(selection.used) > 1:
         coverage = "common"  # rounds must be read on the same cohort seats
     reference_observation = (selection.reference.obs_id
