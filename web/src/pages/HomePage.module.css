@@ -2,8 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1320px;
-  margin: 0 auto;
+  /* End to end: the page is a container and the layout answers to its width, while type grows only a little. */
+  container: home / inline-size;
+  max-width: none;
+  margin: 0;
   padding-bottom: 32px;
 }
 
@@ -144,7 +146,7 @@
 
 .steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 14px;
   margin: 0;
   padding: 0;
@@ -197,7 +199,7 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 0;
   padding: 0;
@@ -294,3 +296,21 @@
 .sketch i:nth-child(2) { animation-delay: -1.6s; }
 .sketch i:nth-child(3) { animation-delay: -3.2s; }
 @media (prefers-reduced-motion: reduce) { .sketch i { animation: none; } }
+
+/* Eight tiles: one column on a phone, two, then four across, so every row is full. */
+@container home (max-width: 560px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
+@container home (min-width: 1000px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* The drawings take the room a wide tile gives them; their text stays the size it is. */
+@container home (min-width: 1000px) {
+  .hero { padding: 48px 56px 52px; min-height: 340px; justify-content: center; }
+  .title { font-size: clamp(40px, 2.4cqi, 52px); }
+  .lead { font-size: clamp(16px, 1cqi, 18px); max-width: 60ch; }
+  .sketch { right: 6cqi; top: 50%; translate: 0 -50%; grid-template-columns: repeat(2, clamp(150px, 11cqi, 210px)); }
+  .sketch i { height: clamp(108px, 8cqi, 150px); }
+  .sketch i:first-child { height: clamp(228px, 16.5cqi, 312px); }
+  .tileTitle { font-size: 17px; }
+}
+@container home (min-width: 1600px) {
+  .tile { padding: 18px 18px 22px; }
+}
