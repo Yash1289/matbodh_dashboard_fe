@@ -33,8 +33,9 @@ SEAT_DIMENSIONS = frozenset({"ac_num", "pc_num", "district"})
 # Seat type/score from a past election: not offered by Configure yet (owner, 2026-11-19).
 SEGMENT_FIELDS = frozenset({"ac_type", "ac_score", "pc_type", "pc_score"})
 PARTY_ROW_FAMILIES = frozenset({"distribution", "gender_differential"})
-# Families whose cards may read surveys of several levels (the engine paths of the others are unverified).
-MIXED_LEVEL_FAMILIES = frozenset({"distribution", "opinion"})
+# Families whose cards may read surveys of several levels. Seat ranking and benchmark are seat-based and
+# need one seat level; demographic ranking compares one collection level.
+MIXED_LEVEL_FAMILIES = frozenset({"distribution", "opinion", "gender_differential", "relationship"})
 OPINION_MEASURES = ("net_score", "positive_share", "negative_share")
 PARTY_MEASURES = ("support_share",)
 

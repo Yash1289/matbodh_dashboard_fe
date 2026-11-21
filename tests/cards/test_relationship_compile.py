@@ -10,6 +10,7 @@ from matbodh_dashboard.cards.config import CardConfig
 from matbodh_dashboard.catalogue.store import load_catalogue
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import load_preset
+from tests.compiler.engine_stub import validate_relationship_with_engine
 from tests.fixtures.catalogue_rows import dataset_row, level_row, make_query
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -163,3 +164,40 @@ def test_joint_weight_scenario_missing_in_a_read_round_is_unavailable():
     plan = _compile(_card(relationship=rel), catalogue=_catalogue(scenarios=(BOTH, only_two)))
     assert plan.jobs == ()
     assert any("mla_choice_party" in reason and R2 in reason for _, reason in plan.unavailable)
+
+
+# -- mixed survey levels -------------------------------------------------------------------------
+
+ST1 = "2027 VS CAPI ST R1"
+
+
+def _mixed_catalogue(state_fields=FIELDS):
+    rows = [dataset_row(R2, round_number=2, available_fields=list(FIELDS), available_scenarios=list(BOTH)),
+            dataset_row(ST1, level="state", round_number=1, available_fields=list(state_fields),
+                        available_scenarios=list(BOTH))]
+    levels = [level_row(R2, range(1, 404)), level_row(ST1, range(1, 402))]
+    return load_catalogue(make_query(rows, levels))
+
+
+def _mixed(card=None, state_fields=FIELDS, rounds=(R2, ST1)):
+    ctx = StateContext(state=STATE, rounds=list(rounds), anchor_round=R2, compare_round=None)
+    return compile_card(card or _card(), ctx, _mixed_catalogue(state_fields), PRESET, parties=FakeParties())
+
+
+def test_relationship_over_ac_and_state_builds_and_the_engine_accepts_it():
+    plan = _mixed(_card(cuts=[[], ["gender"], ["district"]]))
+    assert plan.unavailable == ()
+    (job,) = plan.jobs
+    assert job.config["request"]["coverage_mode"] == "independent"
+    validate_relationship_with_engine(job.config, list(plan.rounds))
+
+
+def test_relationship_seat_identifier_cut_over_two_levels_is_unavailable():
+    plan = _mixed(_card(cuts=[["ac_num"]]))
+    assert plan.jobs == () and any("Seat identifiers" in reason for _, reason in plan.unavailable)
+
+
+def test_relationship_district_cut_needs_ac_num_on_a_state_round():
+    fields = [f for f in FIELDS if f not in ("ac_num", "pc_num")]
+    plan = _mixed(_card(cuts=[["district"]]), state_fields=fields)
+    assert plan.jobs == () and "needs ac_num" in plan.unavailable[0][1] and ST1 in plan.unavailable[0][1]

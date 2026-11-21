@@ -371,8 +371,18 @@ def test_ac_and_pc_with_a_zone_cut_is_unavailable():
     assert plan.jobs == () and any("PC" in reason for _, reason in plan.unavailable)
 
 
-def test_gender_differential_over_two_levels_stays_blocked():
-    plan = _mixed(_config(family="gender_differential", cuts=[[]], comparison={"mode": "trend"}), compare=None)
+def test_gender_differential_trend_over_ac_and_state_builds_and_the_engine_accepts_it():
+    plan = _mixed(_config(family="gender_differential", cuts=[[], ["district"]], comparison={"mode": "trend"}),
+                  compare=None)
+    request = _request(plan)
+    assert request["coverage_mode"] == "independent"
+    resolve_with_engine(request, list(plan.rounds))
+
+
+def test_demographic_ranking_over_two_levels_stays_blocked():
+    plan = _mixed(_config(family="demographic_ranking", scenarios=[VS], cuts=[[]],
+                          rank={"metric": "support_share", "party_id": "NDA", "level": "caste", "top_k": 3},
+                          comparison=_COMPARE))
     assert plan.jobs == () and "different levels" in plan.unavailable[0][1]
 
 

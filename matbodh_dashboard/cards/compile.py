@@ -65,6 +65,14 @@ def read_levels(config: CardConfig, ctx: StateContext, rounds: list[ResolvedRoun
     return [r.dataset.level for r in rounds if r.identity.base_name in names]
 
 
+def without_ac_key(rounds: list[ResolvedRound], field: str) -> list[ResolvedRound]:
+    """Zone and state rounds that would read `field` from the AC master but do not list ac_num
+    (their stored AC number is what joins the master)."""
+    return [r for r in rounds if r.dataset.level in ("zone", "state")
+            and field not in r.dataset.fields and field_available(r.dataset, field)
+            and "ac_num" not in r.dataset.fields]
+
+
 def _names(rounds) -> str:
     return ", ".join(r.identity.base_name for r in rounds)
 
@@ -207,10 +215,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         if missing:
             unavailable.append((GRID, f"Field {field!r} needs to exist in every included "
                                       f"round; missing in: {_names(missing)}"))
-        # Zone and state collections reach the AC master through their stored AC number.
-        no_key = [r for r in selection.used if r.dataset.level in ("zone", "state")
-                  and field not in r.dataset.fields and field_available(r.dataset, field)
-                  and "ac_num" not in r.dataset.fields]
+        no_key = without_ac_key(selection.used, field)
         if no_key:
             unavailable.append((GRID, f"Field {field!r} needs ac_num in every zone or state-wide "
                                       f"round; missing in: {_names(no_key)}"))
