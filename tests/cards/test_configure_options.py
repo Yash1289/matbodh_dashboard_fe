@@ -206,3 +206,65 @@ def test_elections_offer_nothing_the_comparison_round_and_past_elections():
 def test_unknown_source_raises_key_error():
     with pytest.raises(KeyError):
         items("nope")
+
+
+# -- mixed survey levels --------------------------------------------------------------------------
+
+ST1 = "2027 VS CAPI ST R1"
+COMPARE_DRAFT = {"family": "distribution", "comparison": {
+    "mode": "compare", "target": {"round": "anchor"}, "reference": {"round": "compare"}}}
+
+
+def _levelled(state_level="state", state_fields=FIELDS):
+    rows, levels = [], []
+    for i, name in enumerate([R1, R2], 1):
+        rows.append(dataset_row(name, round_number=i, available_fields=FIELDS, available_scenarios=SCENARIOS))
+        levels.append(level_row(name, range(1, 404)))
+    rows.append(dataset_row(ST1, level=state_level, round_number=1, available_fields=state_fields,
+                            available_scenarios=SCENARIOS))
+    levels.append(level_row(ST1, range(1, 402)))
+    return load_catalogue(make_query(rows, levels))
+
+
+def _mixed_ctx(rounds=(R2, ST1), anchor=R2, compare=ST1):
+    return StateContext(state=STATE, rounds=list(rounds), anchor_round=anchor, compare_round=compare)
+
+
+def _fields_for(draft, cat, context, use="cut"):
+    return set(values(items("fields", draft, service(cat), context, use=use)))
+
+
+def test_state_survey_offers_zone_party_zone_district_but_not_seat_identifiers():
+    found = _fields_for({"family": "distribution"}, _levelled(), _mixed_ctx((ST1,), ST1, None))
+    assert {"zone", "party_zone", "district", "gender", "caste"} <= found
+    assert not found & {"ac_num", "pc_num", "pc_zone"}
+
+
+def test_state_survey_offers_an_incumbent_party_cut_but_no_pc_keyed_attribute():
+    found = _fields_for({"family": "distribution"}, _levelled(), _mixed_ctx((ST1,), ST1, None))
+    assert "incumbent_mla_party" in found and "incumbent_mp_party" not in found
+
+
+def test_ac_plus_state_offers_district_but_not_ac_num():
+    found = _fields_for(COMPARE_DRAFT, _levelled(), _mixed_ctx())
+    assert "district" in found and "party_zone" in found
+    assert not found & {"ac_num", "pc_num"}
+
+
+def test_a_state_survey_without_ac_num_offers_no_seat_attribute_cut():
+    fields = [f for f in FIELDS if f not in ("ac_num", "pc_num")]
+    found = _fields_for({"family": "distribution"}, _levelled(state_fields=fields), _mixed_ctx((ST1,), ST1, None))
+    assert "district" not in found and "incumbent_mla_party" not in found and "gender" in found
+
+
+def test_ac_with_pc_offers_no_geographic_cut():
+    found = _fields_for(COMPARE_DRAFT, _levelled(state_level="pc"), _mixed_ctx())
+    assert not found & {"zone", "party_zone", "district", "ac_num"} and "gender" in found
+
+
+def test_seat_ranking_filters_still_need_a_seat_level():
+    draft = {"family": "seat_ranking", "rank": {"level": "ac"}}
+    on_state = _fields_for(draft, _levelled(), _mixed_ctx((ST1,), ST1, None), use="seat_attribute")
+    assert on_state == set()
+    on_ac = _fields_for(draft, _levelled(), _mixed_ctx((R2,), R2, None), use="seat_attribute")
+    assert "party_zone" in on_ac

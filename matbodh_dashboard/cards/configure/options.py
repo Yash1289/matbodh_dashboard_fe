@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from matbodh_dashboard.capability import anchor_level, capabilities, resolve_anchor
+from matbodh_dashboard.capability import anchor_level, card_blockers, resolve_anchor
 from matbodh_dashboard.cards.benchmark.compile import benchmark_endpoint_parties
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
 from matbodh_dashboard.cards.config import (
@@ -140,22 +140,35 @@ def _pc_attributes() -> frozenset[str]:
     return frozenset(PC_ATTRIBUTES) | {"zone"}
 
 
+@lru_cache(maxsize=1)
+def _pc_only_attributes() -> frozenset[str]:
+    from matbodh_dash.mysql_access import PC_ATTRIBUTES
+
+    return frozenset(PC_ATTRIBUTES)
+
+
 def _fields(params, draft, ctx, service) -> list[OptionItem]:
     use = params.get("use", "cut")
     read = rounds_read(draft, ctx, service.catalogue)
     level = anchor_level(ctx, service.catalogue)
-    allowed_geo = capabilities(level).geo_slices
+    levels = {r.dataset.level for r in read} or {level}
     seat_level = (_get(draft, "rank.level") if draft.get("family") == "seat_ranking" else None) or level
-    seats = level in ("ac", "pc")
+    seats = len(levels) == 1 and levels <= {"ac", "pc"}
+    # Zone and state collections reach the AC master through their stored AC number.
+    ac_keyed = all("ac_num" in r.dataset.fields for r in read if r.dataset.level in ("zone", "state"))
     out = []
     for name, spec in sorted(_engine_fields().items()):
         if name in SEGMENT_FIELDS or name == "state" or spec.cardinality != "single":
             continue
         geographic = spec.role == "geographic_attribute" or (spec.role == "seat_attribute" and spec.geography)
-        if geographic and use != "seat_attribute" and name not in allowed_geo:
-            continue  # respondent cuts follow the capability table, as template_blockers does
+        if geographic and use != "seat_attribute" and card_blockers("state", [name], sorted(levels), mixed_ok=True):
+            continue  # respondent cuts follow the capability table, as the compiler does
         if spec.role == "seat_attribute":
-            if not seats or (seat_level == "pc" and spec.master_attribute not in _pc_attributes()):
+            if use in ("cut", "filter") and levels - {"ac", "pc"}:
+                # Read from the AC master through ac_num; PC-keyed attributes and PC surveys need a PC collection.
+                if "pc" in levels or not ac_keyed or spec.master_attribute in _pc_only_attributes():
+                    continue
+            elif not seats or (seat_level == "pc" and spec.master_attribute not in _pc_attributes()):
                 continue
         if use == "level" and spec.role != "profiling":
             continue
