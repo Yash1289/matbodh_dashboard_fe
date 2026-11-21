@@ -2,18 +2,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import { useFamilies, useSurveys } from "../api/queries";
 import type { StateContext, SurveysResponse } from "../api/types";
+import { isOffered } from "../context/levels";
 import { readLastContext } from "../context/lastContext";
 import { contextParts } from "../context/summary";
 import { serialiseContext, useDashboardContext } from "../context/urlContext";
 import barStyles from "../context/ContextBar.module.css";
 import { Mark } from "../shell/Mark";
 import styles from "./HomePage.module.css";
-
-/** A remembered context is only offered if every round it names is still in the catalogue at that level. */
-function stillValid(ctx: StateContext, surveys: SurveysResponse): boolean {
-  const known = new Set((surveys.levels[ctx.level] ?? []).flatMap((g) => g.rounds.map((r) => r.base_name)));
-  return ctx.rounds.length > 0 && ctx.rounds.every((r) => known.has(r));
-}
 
 function Chips({ ctx, surveys }: { ctx: StateContext; surveys: SurveysResponse }) {
   return (
@@ -40,7 +35,7 @@ export function HomePage() {
   const last = useMemo(readLastContext, []);
   const lastSurveys = useSurveys(ctx === null ? last?.state ?? null : null);
   const resume = ctx !== null && current.data !== undefined ? { ctx, surveys: current.data }
-    : last !== null && lastSurveys.data !== undefined && stillValid(last, lastSurveys.data) ? { ctx: last, surveys: lastSurveys.data } : null;
+    : last !== null && lastSurveys.data !== undefined && isOffered(last, lastSurveys.data) ? { ctx: last, surveys: lastSurveys.data } : null;
   const families = useFamilies();
 
   return (

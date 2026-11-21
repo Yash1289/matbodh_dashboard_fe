@@ -5,7 +5,8 @@ export type Density = "compact" | "standard" | "detailed";
 
 export interface StateContext {
   state: string;
-  level: Level;
+  /** Legacy and ignored by the server: each round's level comes from the catalogue. */
+  level?: Level;
   rounds: string[];
   compare_round: string | null;
   anchor_round: string | null;

@@ -3,7 +3,7 @@ import type { StateContext } from "../api/types";
 import { readLastContext, saveLastContext } from "./lastContext";
 
 const CTX: StateContext = {
-  state: "Uttar Pradesh", level: "ac", rounds: ["2027 VS CAPI R1", "2027 VS CAPI R2"], compare_round: "2027 VS CAPI R1",
+  state: "Uttar Pradesh", rounds: ["2027 VS CAPI R1", "2027 VS CAPI R2"], compare_round: "2027 VS CAPI R1",
   anchor_round: null, version_mode: "matched", geo_scope: "state",
 };
 

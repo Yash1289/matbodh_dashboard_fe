@@ -17,8 +17,16 @@ describe("contextSummary", () => {
     );
   });
 
+  it("a context over AC and zone rounds names both levels and still offers seat coverage", () => {
+    const ctx: StateContext = { ...base, rounds: ["2027 VS CAPI R2", "2027 VS CAPI ST R1"], compare_round: null };
+    const text = contextSummary(ctx, surveys);
+    expect(text).toContain("AC + ZONE level");
+    expect(text).toContain("Extrapolated");
+    expect(text).not.toContain("Normal only");
+  });
+
   it("summary for state level says Normal only", () => {
-    const ctx: StateContext = { ...base, level: "zone", rounds: ["2027 VS CAPI ST R1"], compare_round: null };
+    const ctx: StateContext = { ...base, rounds: ["2027 VS CAPI ST R1"], compare_round: null };
     const zoneGroup = surveys.levels.zone?.[0].group ?? "";
     expect(contextSummary(ctx, surveys)).toBe(
       `Uttar Pradesh · ZONE level · ${zoneGroup} R1 · No Δ · Normal only · Geo: whole state`,

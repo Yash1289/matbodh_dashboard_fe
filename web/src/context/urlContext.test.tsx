@@ -7,7 +7,6 @@ import { parseContext, serialiseContext, useDashboardContext } from "./urlContex
 
 const full: StateContext = {
   state: "Uttar Pradesh",
-  level: "ac",
   rounds: ["2027 VS CAPI REBEL R1", "2022 R2", "2022 R1"],
   compare_round: "2022 R2",
   anchor_round: "2022 R1",
@@ -24,13 +23,20 @@ describe("urlContext", () => {
     expect(parseContext(new URLSearchParams("state=UP&level=ac"))).toBeNull();
   });
 
-  it("missing state or level gives null", () => {
+  it("missing state gives null", () => {
     expect(parseContext(new URLSearchParams("level=ac&rounds=R1"))).toBeNull();
-    expect(parseContext(new URLSearchParams("state=UP&rounds=R1"))).toBeNull();
   });
 
-  it("invalid level gives null", () => {
-    expect(parseContext(new URLSearchParams("state=UP&level=bad&rounds=R1"))).toBeNull();
+  it("a legacy level param is ignored, whatever its value", () => {
+    const ctx = parseContext(new URLSearchParams("state=UP&level=ac&rounds=R1"));
+    expect(ctx?.rounds).toEqual(["R1"]);
+    expect(ctx).not.toHaveProperty("level");
+    expect(parseContext(new URLSearchParams("state=UP&level=bad&rounds=R1"))?.rounds).toEqual(["R1"]);
+    expect(parseContext(new URLSearchParams("state=UP&rounds=R1&rounds=R2"))?.rounds).toEqual(["R1", "R2"]);
+  });
+
+  it("serialising never writes level and drops a stale one", () => {
+    expect(serialiseContext(full, new URLSearchParams("level=ac")).has("level")).toBe(false);
   });
 
   it("unknown version falls back to extrapolated", () => {

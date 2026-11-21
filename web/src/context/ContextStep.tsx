@@ -5,6 +5,7 @@ import type { Level, StateContext, SurveysResponse } from "../api/types";
 import { ContextDialog } from "./ContextDialog";
 import styles from "./ContextDialog.module.css";
 import { Mark } from "../shell/Mark";
+import { isOffered } from "./levels";
 import { readLastContext } from "./lastContext";
 import { contextSummary } from "./summary";
 import { useDashboardContext } from "./urlContext";
@@ -12,12 +13,6 @@ import { useDashboardContext } from "./urlContext";
 /** How long the form takes to leave before the canvas opens. Skipped when the analyst asks for less motion. */
 const LEAVE_MS = 160;
 const reducedMotion = (): boolean => typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/** A remembered context is only offered if every round it names is still in the catalogue at that level. */
-function stillValid(ctx: StateContext, surveys: SurveysResponse): boolean {
-  const known = new Set((surveys.levels[ctx.level] ?? []).flatMap((g) => g.rounds.map((r) => r.base_name)));
-  return ctx.rounds.length > 0 && ctx.rounds.every((r) => known.has(r));
-}
 
 /** What the catalogue holds for one state, in the analyst's words; nothing is claimed that the catalogue does not say. */
 function catalogueFacts(state: string, surveys: SurveysResponse): string {
@@ -43,7 +38,7 @@ export function ContextStep() {
   const facts = useSurveys(soleState);
   const last = useMemo(readLastContext, []);
   const lastSurveys = useSurveys(last?.state ?? null);
-  const offer = last !== null && lastSurveys.data !== undefined && stillValid(last, lastSurveys.data) ? last : null;
+  const offer = last !== null && lastSurveys.data !== undefined && isOffered(last, lastSurveys.data) ? last : null;
 
   const apply = useCallback((ctx: StateContext) => {
     if (reducedMotion()) { setCtx(ctx); return; }
