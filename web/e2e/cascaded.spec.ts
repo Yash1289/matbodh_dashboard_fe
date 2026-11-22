@@ -75,7 +75,7 @@ test("nested cuts read as one tree with Pop % as the second column", async ({ pa
   await expect(rows.nth(1)).toContainText("Male");
   await expect(rows.nth(2)).toContainText("Female");
   await expect(rows.nth(3)).toContainText("24-35");
-  const indent = (i: number) => rows.nth(i).locator("th span").evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft));
-  expect(await indent(0)).toBe(0);
-  expect(await indent(1)).toBeGreaterThan(0);
+  // Retrying assertions: the table settles once the field scopes load.
+  await expect(rows.nth(0).locator("th span")).toHaveCSS("padding-left", "0px");
+  await expect(rows.nth(1).locator("th span")).toHaveCSS("padding-left", "16px");
 });
