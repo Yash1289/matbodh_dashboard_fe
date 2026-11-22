@@ -280,7 +280,8 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
             return plan()
     mode = config.comparison.mode
     geographic = any(f in SEAT_DIMENSIONS for f in fields)
-    coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
+    coverage = (choose_coverage(selection.used, uses_seat_ids=any(f in ("ac_num", "pc_num") for f in fields),
+                                geographic=geographic,
                                 version_mode=ctx.version_mode)
                 if mode == "compare" else "independent")
     if any(r.dataset.level in ("zone", "state") for r in selection.used):

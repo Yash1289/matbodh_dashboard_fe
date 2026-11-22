@@ -486,3 +486,12 @@ def test_a_custom_trend_is_still_capped_at_four_rounds():
     names = [f"2027 VS CAPI R{i}" for i in range(1, 6)]
     plan = _compile(_config(comparison={"mode": "trend"}, surveys=names), ctx=_ctx(rounds=names, compare=None), rounds=5)
     assert plan.unavailable and "at most 4 rounds" in plan.unavailable[0][1]
+
+
+def test_a_compare_that_groups_by_ac_number_is_aligned_even_when_both_rounds_cover_the_same_seats():
+    # R2 and R3 both have 404 seats; the engine still refuses round arithmetic on ac_num unless coverage is aligned.
+    compare = {"mode": "compare", "target": {"scenario": VS}, "reference": {"round": R2, "scenario": VS}}
+    seat = _request(_compile(_config(cuts=[["ac_num"]], comparison=compare)))
+    assert seat["coverage_mode"] == "common" and seat["reference_observation"] == "o2"
+    other = _request(_compile(_config(cuts=[["age_group"]], comparison=compare)))
+    assert other["coverage_mode"] == "independent" and other["reference_observation"] is None
