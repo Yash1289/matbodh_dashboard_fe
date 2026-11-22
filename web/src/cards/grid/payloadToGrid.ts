@@ -107,7 +107,8 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
   }
 
   const population = new Map((cut.population ?? []).map((x) => [x.row, x]));
-  const showPop = p.meta.capabilities.population === true;
+  // Only when the anchor gave a share to at least one row (a several-questions table of one survey may give none).
+  const showPop = p.meta.capabilities.population === true && [...population.values()].some((x) => x.value !== null);
   if (showPop) {
     for (const row of cut.rows) {
       const x = population.get(row.key);

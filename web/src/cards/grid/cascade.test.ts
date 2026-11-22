@@ -140,9 +140,18 @@ describe("payloadToGrid for a cascaded payload and the Pop % column", () => {
     expect(g.columns[0].label).toBe("Pop %");
     expect(g.cells["age_group=18-23"].__pop.cell?.value).toBe(14.2);
     expect(g.cells["age_group=18-23|gender=Male"].__pop.cell?.value).toBe(7.4);
-    const noPop = cut("g0", ["age_group"], [["age_group=18-23", { age_group: "18-23" }, 40]]);
-    const plain = payloadToGrid(payload([noPop]), { lens: "support_share", cut: "g0" });
-    expect(plain.cells["age_group=18-23"].__pop.cell).toBeNull();
+    const mixed = cut("g0", ["age_group"], [
+      ["age_group=18-23", { age_group: "18-23" }, 40, 14.2], ["age_group=24-35", { age_group: "24-35" }, 41],
+    ]);
+    const plain = payloadToGrid(payload([mixed]), { lens: "support_share", cut: "g0" });
+    expect(plain.cells["age_group=24-35"].__pop.cell).toBeNull();
+  });
+
+  it("has no Pop % column when no row of the table has one", () => {
+    const none = cut("g0", ["age_group"], [["age_group=18-23", { age_group: "18-23" }, 40], ["age_group=24-35", { age_group: "24-35" }, 41]]);
+    const g = payloadToGrid(payload([none]), { lens: "support_share", cut: "g0" });
+    expect(g.columns.map((c) => c.key)).toEqual(["p"]);
+    expect(g.cells["age_group=18-23"].__pop).toBeUndefined();
   });
 
   it("has no Pop % column for a family that returns no populations", () => {
