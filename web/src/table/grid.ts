@@ -1,8 +1,8 @@
 import type { Cell, Unit, PresentationRules } from "../api/types";
 
 export type { PresentationRules };
-/** `depth` indents a row header in a cascaded table. */
-export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number; depth?: number }
+/** `depth` indents a row header in a cascaded table; `path` is its full name with its parents, for exports. */
+export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number; depth?: number; path?: string }
 /** The fixed leading column of population shares; it is not a party or a lens column. */
 export const POP_KEY = "__pop";
 /** `roundFlags` (trend mode): one flag list per round, aligned with `Cell.trend`. */

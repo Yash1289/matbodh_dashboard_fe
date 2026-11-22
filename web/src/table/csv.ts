@@ -1,4 +1,4 @@
-import type { CellGrid } from "./grid";
+import { POP_KEY, type CellGrid } from "./grid";
 
 const field = (s: string): string => (/[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
 export { field as csvField };
@@ -14,19 +14,19 @@ export function toCsv(g: CellGrid): string {
   const withDelta = g.mode === "compare";
   const header = ["row"];
   for (const c of g.columns) {
-    if (rounds.length > 0) rounds.forEach((r) => header.push(`${c.key}_${slug(r)}`));
+    if (rounds.length > 0 && c.key !== POP_KEY) rounds.forEach((r) => header.push(`${c.key}_${slug(r)}`));
     else header.push(c.key);
-    if (withDelta) header.push(`delta_${c.key}`);
+    if (withDelta && c.key !== POP_KEY) header.push(`delta_${c.key}`);
     header.push(`base_${c.key}`, `flags_${c.key}`);
   }
   const lines = [header.map(field).join(",")];
   for (const r of g.rows) {
-    const out = [r.label];
+    const out = [r.path ?? r.label];
     for (const c of g.columns) {
       const cell = g.cells[r.key]?.[c.key]?.cell;
-      if (rounds.length > 0) rounds.forEach((_, i) => out.push(num(cell?.trend[i])));
+      if (rounds.length > 0 && c.key !== POP_KEY) rounds.forEach((_, i) => out.push(num(cell?.trend[i])));
       else out.push(num(cell?.value));
-      if (withDelta) out.push(num(cell?.delta));
+      if (withDelta && c.key !== POP_KEY) out.push(num(cell?.delta));
       out.push(num(cell?.base), (cell?.flags ?? []).join(";"));
     }
     lines.push(out.map(field).join(","));

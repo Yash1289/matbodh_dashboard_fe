@@ -88,6 +88,22 @@ describe("cascadePayload", () => {
     expect(p.cuts[0].cells.map((c) => c.row)).not.toContain("category=Yadav|caste=Yadav");
   });
 
+  it("keeps the grandchildren of a folded same-named child under its parent", () => {
+    const cat = cut("g0", ["category"], [["category=GEN", { category: "GEN" }, 1], ["category=Yadav", { category: "Yadav" }, 2]]);
+    const caste = cut("g1", ["category", "caste"], [
+      ["category=GEN|caste=Thakur", { category: "GEN", caste: "Thakur" }, 3],
+      ["category=Yadav|caste=Yadav", { category: "Yadav", caste: "Yadav" }, 2],
+    ]);
+    const kid = (c: string, s: string, g: string, v: number): Spec => [`category=${c}|caste=${s}|gender=${g}`, { category: c, caste: s, gender: g }, v];
+    const gender = cut("g2", ["category", "caste", "gender"], [kid("GEN", "Thakur", "Male", 4), kid("Yadav", "Yadav", "Male", 5), kid("Yadav", "Yadav", "Female", 6)]);
+    const { payload: p, depth } = cascadePayload(payload([cat, caste, gender]))!;
+    expect(keys(p)).toEqual([
+      "category=GEN", "category=GEN|caste=Thakur", "category=GEN|caste=Thakur|gender=Male",
+      "category=Yadav", "category=Yadav|caste=Yadav|gender=Male", "category=Yadav|caste=Yadav|gender=Female"]);
+    expect(keys(p).map((k) => depth[k])).toEqual([0, 1, 2, 0, 1, 1]);
+    expect(p.cuts[0].cells.map((c) => c.row)).not.toContain("category=Yadav|caste=Yadav");
+  });
+
   it("keeps a lone child whose name differs from its parent's", () => {
     const cat = cut("g0", ["category"], [["category=Muslim", { category: "Muslim" }, 1]]);
     const caste = cut("g1", ["category", "caste"], [["category=Muslim|caste=Sheikh", { category: "Muslim", caste: "Sheikh" }, 1]]);

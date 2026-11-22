@@ -131,7 +131,7 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
     // A child of a cascaded table is named by its own value; its parents are the rows above it.
     const own = Object.values(r.labels);
     const label = depth > 0 ? (own[own.length - 1] ?? "(no value)") : rowLabel(r.key, r.labels);
-    return { key: r.key, label, colour: null, ...(depthOf ? { depth } : {}) };
+    return { key: r.key, label, colour: null, ...(depthOf ? { depth } : {}), ...(depth > 0 ? { path: rowLabel(r.key, r.labels) } : {}) };
   });
 
   const grid: CellGrid = {

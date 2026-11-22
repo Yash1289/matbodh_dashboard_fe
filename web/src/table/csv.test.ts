@@ -49,4 +49,25 @@ describe("csv", () => {
     g.rows[0].label = 'NDA, "x"';
     expect(toCsv(g).split("\r\n")[1].startsWith('"NDA, ""x""",42.0712345,,a;b')).toBe(true);
   });
+
+  it("a cascaded child row is written with its parents, so rows stay apart", () => {
+    const g: CellGrid = {
+      rows: [{ key: "a", label: "18-23", colour: null, depth: 0 }, { key: "b", label: "Male", path: "18-23 · Male", colour: null, depth: 1 }],
+      columns: [{ key: "p", label: "NDA", colour: null }], cells: {}, rowDim: "age", columnDim: "party",
+    };
+    expect(toCsv(g).split("\r\n").slice(1).map((l) => l.split(",")[0])).toEqual(["18-23", "18-23 · Male"]);
+  });
+
+  it("the Pop % column is one value even in a trend table", () => {
+    const cell = (value: number, trend: number[]) => ({ cell: { value, delta: null, trend, secondary: null, flags: [], base: null }, unit: "pct" as const });
+    const g: CellGrid = {
+      rows: [{ key: "a", label: "18-23", colour: null }],
+      columns: [{ key: "__pop", label: "Pop %", colour: null }, { key: "p", label: "NDA", colour: null }],
+      cells: { a: { __pop: cell(14.2, []), p: cell(40, [38, 40]) } }, rowDim: "age", columnDim: "party",
+      mode: "trend", roundLabels: ["R1", "R2"],
+    };
+    const [header, row] = toCsv(g).split("\r\n").map((l) => l.split(","));
+    expect(header.slice(0, 4)).toEqual(["row", "__pop", "base___pop", "flags___pop"]);
+    expect(row[1]).toBe("14.2");
+  });
 });

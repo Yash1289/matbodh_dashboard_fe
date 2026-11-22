@@ -39,24 +39,27 @@ export function cascadePayload(p: GridPayload, seatFields?: ReadonlySet<string>)
   const rowsAt = (level: number) => chain[level].rows.filter((r) => partsOf(r.key) === level + 1);
   const rows: RowDef[] = [];
   const owner = new Map<string, number>();
+  const folded = new Set<string>(); // same-named only children shown as their parent's row
   const depth: Record<string, number> = {};
   const emit = (row: RowDef, level: number, at: number) => {
     rows.push(row);
     owner.set(row.key, level);
     depth[row.key] = at;
   };
-  const walk = (row: RowDef, level: number, at: number) => {
-    emit(row, level, at);
+  const walk = (row: RowDef, level: number, at: number, fold = false) => {
+    if (fold) folded.add(row.key); else emit(row, level, at);
     if (level + 1 >= chain.length) return;
     const children = rowsAt(level + 1).filter((r) => r.key.startsWith(`${row.key}|`));
-    if (children.length === 1 && lastLabel(children[0]) === lastLabel(row)) return;
+    // A same-named only child is this row; its own children hang under this row.
+    if (children.length === 1 && lastLabel(children[0]) === lastLabel(row)) return walk(children[0], level + 1, at, true);
     for (const child of children) walk(child, level + 1, at + 1);
   };
   for (const row of rowsAt(0)) walk(row, 0, 0);
   // A row whose parent row never appeared is not dropped: it starts a tree of its own at the top level.
   chain.forEach((_, level) => {
     for (const row of rowsAt(level)) {
-      if (level > 0 && !owner.has(row.key) && !owner.has(row.key.slice(0, row.key.lastIndexOf("|")))) walk(row, level, 0);
+      const parent = row.key.slice(0, row.key.lastIndexOf("|"));
+      if (level > 0 && !owner.has(row.key) && !folded.has(row.key) && !owner.has(parent) && !folded.has(parent)) walk(row, level, 0);
     }
   });
   const mine = <T extends { row: string }>(pick: (c: Cut) => T[]) => chain.flatMap((c, i) => pick(c).filter((x) => owner.get(x.row) === i));

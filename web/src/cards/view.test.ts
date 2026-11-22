@@ -82,4 +82,13 @@ describe("cascaded density", () => {
     expect(fixed.sort).toBeNull();
     expect(fixed.transposed).toBe(false);
   });
+
+  it("reads the tree from its first cut when the card also has an Overall cut", () => {
+    const p = nestedPayload();
+    const [age, ageGender] = p.cuts;
+    p.cuts = [{ ...age, id: "g0", dimensions: [] }, { ...age, id: "g1" }, { ...ageGender, id: "g2" }];
+    expect(initialView(p).cut).toBe("g1");
+    expect(settled({ ...initialView(p), cut: "g0" }, p).cut).toBe("g1");
+    expect(settled({ ...initialView(p), density: "standard", cut: "g0" }, p).cut).toBe("g0");
+  });
 });
