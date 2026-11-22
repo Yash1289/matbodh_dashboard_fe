@@ -15,15 +15,17 @@ const lastLabel = (r: RowDef): string => { const labels = Object.values(r.labels
  * parent cut present. The Overall cut is left out. A parent row is always a row the engine returned.
  */
 export function cascadable(cuts: Cut[], seatFields: ReadonlySet<string> = new Set()): Cascadability {
-  const chain = cuts.filter((c) => c.dimensions.length > 0).sort((a, b) => a.dimensions.length - b.dimensions.length);
+  // A seat field that starts every table is the View by: the card reads one value of it at a time, so the tables
+  // are judged as they are once it is removed.
+  const lead = cuts.find((c) => c.dimensions.length > 0)?.dimensions[0];
+  const viewBy = lead !== undefined && seatFields.has(lead) && cuts.every((c) => c.dimensions.length === 0 || c.dimensions[0] === lead);
+  const tables = viewBy ? cuts.map((c) => (c.dimensions[0] === lead ? { ...c, dimensions: c.dimensions.slice(1) } : c)) : cuts;
+  const chain = tables.filter((c) => c.dimensions.length > 0).sort((a, b) => a.dimensions.length - b.dimensions.length);
   const startsFrom = "Cascaded needs cuts that start from the previous one, such as age group, then age group by gender";
   if (chain.length < 2) return { ok: false, reason: startsFrom };
   const nested = chain.every((c, i) => c.dimensions.length === i + 1
     && (i === 0 || chain[i - 1].dimensions.every((d, j) => d === c.dimensions[j])));
   if (!nested) return { ok: false, reason: startsFrom };
-  if (seatFields.has(chain[0].dimensions[0])) {
-    return { ok: false, reason: "Cascaded is not available when the first field describes the seat; that field is a selector" };
-  }
   return { ok: true, chain };
 }
 

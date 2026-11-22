@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Cut, GridPayload } from "../api/types";
 import { PAYLOADS } from "../test/cardApi";
-import { applySeat, resolveSeat, seatChoices, seatSplit, type FieldScope } from "./seatScope";
+import { applySeat, narrowChain, resolveSeat, seatChain, seatChoices, seatSplit, type FieldScope } from "./seatScope";
 
 const scopes: Record<string, FieldScope> = {
   party_zone: "seat", incumbent_mla_party: "seat", ac_num: "seat", gender: "respondent", age_group: "respondent",
@@ -89,5 +89,37 @@ describe("applySeat", () => {
     applySeat(p, "g1", "party_zone", "A");
     expect(JSON.stringify(p)).toBe(before);
     expect(applySeat(p, "g2", "party_zone", "A").cuts.find((c) => c.id === "g2")).toBe(allZones);
+  });
+});
+
+describe("a View by seat chain", () => {
+  const row = (key: string, labels: Record<string, string>) => ({ key, labels, subtotal: [] });
+  const mk = (id: string, dimensions: string[], rows: ReturnType<typeof row>[], pop = 10): Cut => ({
+    id, dimensions, rows,
+    cells: rows.map((r, i) => ({ row: r.key, column: "c", round: "o1", lens: "l", value: i + 1, status: "available" })),
+    deltas: [], bases: [], population: rows.map((r) => ({ row: r.key, value: pop, status: "available" })),
+  });
+  const zone = mk("g0", ["party_zone"], [row("party_zone=A", { party_zone: "A" }), row("party_zone=B", { party_zone: "B" })]);
+  const age = mk("g1", ["party_zone", "age_group"], [
+    row("party_zone=A|age_group=18", { party_zone: "A", age_group: "18" }), row("party_zone=B|age_group=18", { party_zone: "B", age_group: "18" })]);
+  const ageGender = mk("g2", ["party_zone", "age_group", "gender"], [
+    row("party_zone=A|age_group=18|gender=M", { party_zone: "A", age_group: "18", gender: "M" }),
+    row("party_zone=B|age_group=18|gender=M", { party_zone: "B", age_group: "18", gender: "M" })]);
+
+  it("finds the seat field every table starts with, only when it is a seat field", () => {
+    expect(seatChain([zone, age, ageGender], scopes)).toBe("party_zone");
+    expect(seatChain([zone, age, ageGender], { ...scopes, party_zone: "respondent" })).toBeNull();
+    expect(seatChain([age, mk("g3", ["gender"], [])], scopes)).toBeNull();
+    expect(seatChain([mk("g0", [], []), age], scopes)).toBe("party_zone");
+  });
+
+  it("narrows every table to one seat value and drops the seat part from the row keys", () => {
+    const out = narrowChain(payloadOf(zone, age, ageGender), "party_zone", "A");
+    expect(out.cuts.map((c) => c.dimensions)).toEqual([[], ["age_group"], ["age_group", "gender"]]);
+    expect(out.cuts[0].rows.map((r) => r.key)).toEqual(["overall"]);
+    expect(out.cuts[1].rows.map((r) => r.key)).toEqual(["age_group=18"]);
+    expect(out.cuts[2].rows.map((r) => r.key)).toEqual(["age_group=18|gender=M"]);
+    expect(out.cuts[2].cells.map((c) => c.row)).toEqual(["age_group=18|gender=M"]);
+    expect(out.cuts[2].population.map((x) => x.row)).toEqual(["age_group=18|gender=M"]);
   });
 });

@@ -137,6 +137,31 @@ describe("CardShell", () => {
       expect(posts(f)).toBe(before); // choosing a seat group is display only
     });
 
+    it("reads a View by chain as one tree for the chosen seat value, and the selector switches it", async () => {
+      const p = PAYLOADS.distributionStandalone();
+      const column = p.columns[0].key;
+      const lens = p.meta.default_lens;
+      const cut = (id: string, dimensions: string[], keys: string[]) => ({
+        id, dimensions,
+        rows: keys.map((key) => ({ key, labels: Object.fromEntries(key.split("|").map((x) => x.split("="))), subtotal: [] })),
+        cells: keys.map((row, i) => ({ row, column, round: p.rounds.anchor, lens, value: 10 + i, status: "available" })),
+        deltas: [], bases: [], population: [],
+      });
+      p.cuts = [
+        cut("g0", ["category"], ["category=A", "category=B"]),
+        cut("g1", ["category", "gender"], ["category=A|gender=F", "category=A|gender=M", "category=B|gender=F"]),
+        cut("g2", ["category", "gender", "caste"], ["category=A|gender=F|caste=x", "category=B|gender=F|caste=y"]),
+      ];
+      stubCardApi({ payloads: [p], fieldScopes: SCOPES });
+      mount(p);
+      const user = userEvent.setup();
+      const names = () => screen.getAllByRole("rowheader").map((r) => r.textContent);
+      await waitFor(() => expect(names()).toEqual(["F", "x", "M"]));
+      const group = await screen.findByRole("group", { name: "category" });
+      await user.click(within(group).getByRole("button", { name: "Next category" }));
+      await waitFor(() => expect(names()).toEqual(["F", "y"]));
+    });
+
     it("shows no selector when the first field is a respondent field", async () => {
       const p = PAYLOADS.distributionStandalone();
       const crossed = p.cuts.find((c) => c.dimensions.join() === "category,gender")!;

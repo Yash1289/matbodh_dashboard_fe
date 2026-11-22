@@ -15,7 +15,7 @@ import { gridNotes } from "./notes";
 import { SeatSelector } from "./SeatSelector";
 import { LayoutSelectors } from "./LayoutSelectors";
 import { layoutPayload } from "./grid/layout";
-import { applySeat, resolveSeat, seatChoices, seatSplit } from "./seatScope";
+import { applySeat, narrowChain, resolveSeat, seatChain, seatChoices, seatSplit } from "./seatScope";
 import { sizeClass } from "./sizeClass";
 import { initialView, settled, type FamilyView } from "./view";
 
@@ -82,12 +82,18 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const split = activeCut ? seatSplit(activeCut.dimensions, scopes) : null;
   const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
   const seat = choices ? resolveSeat(choices, view1?.seat) : null;
+  // A View by seat: Cascaded reads every table of the chain for one value of the seat field at a time.
+  const chainField = shown !== null && view1?.density === "cascaded" ? seatChain(shown.cuts, scopes) : null;
+  const chainSource = chainField !== null && shown !== null ? shown.cuts.find((c) => c.dimensions[0] === chainField) : undefined;
+  const chainChoices = chainField !== null && shown !== null && chainSource ? { ...seatChoices(shown, chainSource, chainField), all: null } : null;
+  const chainSeat = chainChoices ? resolveSeat(chainChoices, view1?.seat) : null;
   const withSeat = useCallback(
     (p: GridPayload): GridPayload => {
-      const seated = split && view1 && choices ? applySeat(p, view1.cut, split.field, seat) : p;
+      const seated = chainField !== null && chainSeat !== null ? narrowChain(p, chainField, chainSeat)
+        : split && view1 && choices ? applySeat(p, view1.cut, split.field, seat) : p;
       return view1 ? layoutPayload(seated, view1.cut, view1) : seated;
     },
-    [split, view1, choices, seat],
+    [split, view1, choices, seat, chainField, chainSeat],
   );
   const laid = useMemo(() => (shown !== null && view1 !== null ? withSeat(shown) : null), [shown, view1, withSeat]);
   const view = useMemo(
@@ -162,7 +168,10 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
               payload={laid ?? shown} view={view} onView={onView} seatFields={seatFields} size={width === 0 ? "wide" : sizeClass(width)}
               leading={(
                 <>
-                  {split && choices && (
+                  {chainField !== null && chainChoices ? (
+                    <SeatSelector field={chainField} values={chainChoices.values} hasAll={false} value={chainSeat}
+                      onChange={(v) => onView({ seat: v })} />
+                  ) : split && choices && (
                     <SeatSelector field={split.field} values={choices.values} hasAll={choices.all !== null} value={seat}
                       onChange={(v) => onView({ seat: v })} />
                   )}

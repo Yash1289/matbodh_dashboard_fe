@@ -115,7 +115,7 @@ describe("ConfigurePanel", () => {
     mount();
     await userEvent.click(await screen.findByRole("button", { name: "More options" }));
     expect(screen.queryByRole("checkbox", { name: "Club small castes" })).not.toBeInTheDocument();
-    const addCut = await screen.findByRole("combobox", { name: "Add a cut" });
+    const addCut = await screen.findByRole("combobox", { name: "Add a split" });
     await waitFor(() => expect(within(addCut).getByRole("option", { name: "caste" })).toBeInTheDocument());
     await userEvent.selectOptions(addCut, "caste");
     expect(await screen.findByRole("checkbox", { name: "Club small castes" })).toBeInTheDocument();

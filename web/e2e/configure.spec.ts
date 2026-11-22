@@ -78,7 +78,7 @@ test("an analyst adds, configures, applies and copies a card", async ({ page }) 
   // Caste clubbing only matters once caste is in a cut.
   await dialog.getByRole("button", { name: "More options" }).click();
   await expect(dialog.getByRole("checkbox", { name: "Club small castes" })).toHaveCount(0);
-  await dialog.getByRole("combobox", { name: "Add a cut" }).selectOption("caste");
+  await dialog.getByRole("combobox", { name: "Add a split" }).selectOption("caste");
   await expect(dialog.getByRole("checkbox", { name: "Club small castes" })).toBeVisible();
 
   await expect(apply).toBeEnabled();

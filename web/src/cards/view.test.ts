@@ -64,8 +64,13 @@ describe("cascaded density", () => {
     expect(initialView(PAYLOADS.distributionStandalone()).density).toBe("standard");
   });
 
-  it("starts Standard when the first field describes the seat", () => {
-    expect(initialView(nestedPayload(), new Set(["age_group"])).density).toBe("standard");
+  it("starts Standard when a seat field is only a table of its own, Cascaded when it is a View by", () => {
+    const p = nestedPayload(); // [age_group], [age_group, gender]: with age_group as the View by only one table remains
+    expect(initialView(p, new Set(["age_group"])).density).toBe("standard");
+    const [age, ageGender] = p.cuts;
+    p.cuts = [{ ...age, id: "g0", dimensions: ["party_zone"] }, { ...age, id: "g1", dimensions: ["party_zone", "age_group"] },
+      { ...ageGender, id: "g2", dimensions: ["party_zone", "age_group", "gender"] }];
+    expect(initialView(p, new Set(["party_zone"])).density).toBe("cascaded");
   });
 
   it("falls back to Standard when the cuts stop nesting", () => {

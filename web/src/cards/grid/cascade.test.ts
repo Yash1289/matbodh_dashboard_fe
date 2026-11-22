@@ -50,11 +50,15 @@ describe("cascadable", () => {
     expect(cascadable([AGE, cut("g2", ["gender"], [])]).ok).toBe(false);
   });
 
-  it("refuses a cut whose first field describes the seat", () => {
-    const refused = cascadable([AGE, AGE_GENDER], new Set(["age_group"]));
-    expect(refused.ok).toBe(false);
-    expect(!refused.ok && refused.reason).toMatch(/seat/i);
+  it("accepts a chain every table starts with a seat field for (a View by), when a tree remains once it is removed", () => {
+    const tables = [cut("g0", ["zone"], []), cut("g1", ["zone", "age_group"], []), cut("g2", ["zone", "age_group", "gender"], [])];
+    expect(cascadable(tables, new Set(["zone"])).ok).toBe(true);
+    const short = cascadable([cut("g0", ["zone"], []), cut("g1", ["zone", "age_group"], [])], new Set(["zone"]));
+    expect(short.ok).toBe(false); // only one table is left after the seat field goes
+    expect(!short.ok && short.reason).toMatch(/start from the previous one/i);
   });
+
+
 });
 
 describe("cascadePayload", () => {

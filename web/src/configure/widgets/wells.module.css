@@ -207,3 +207,12 @@
 .toggle:last-child {
   border-bottom: 0;
 }
+
+/* The tables a nested split reads, named so the generated parent tables are never a surprise. */
+.tables {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--mb-muted);
+  font-variant-numeric: tabular-nums;
+}

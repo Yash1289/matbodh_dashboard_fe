@@ -69,3 +69,39 @@ export function applySeat(payload: GridPayload, cutId: string, field: string, se
   }
   return { ...payload, cuts: payload.cuts.map((c) => (c.id === cutId ? shown : c)) };
 }
+
+/**
+ * The seat field every table of the card starts with (a View by), or null. Only a seat-scope field counts, and a
+ * table that does not start with it (the Overall table) is left out of the check.
+ */
+export function seatChain(cuts: Cut[], scopes: Record<string, FieldScope>): string | null {
+  const tables = cuts.filter((c) => c.dimensions.length > 0);
+  const lead = tables[0]?.dimensions[0];
+  return lead !== undefined && scopes[lead] === "seat" && tables.every((c) => c.dimensions[0] === lead) ? lead : null;
+}
+
+const without = (key: string, field: string): string => {
+  const kept = key.split("|").filter((part) => !part.startsWith(`${field}=`)).join("|");
+  return kept === "" ? "overall" : kept;
+};
+
+/**
+ * Every table narrowed to one seat value, with the seat part removed from its row keys, so the tables read as a
+ * plain chain (a seat-only table becomes the Overall row). Shares and bases follow their rows.
+ */
+export function narrowChain(payload: GridPayload, field: string, seat: string): GridPayload {
+  const cuts = payload.cuts.map((cut) => {
+    if (cut.dimensions[0] !== field) return cut;
+    const keep = new Map<string, string>();
+    const rows = cut.rows.filter((r) => labelOf(field)(r) === seat).map((r) => {
+      const key = without(r.key, field);
+      keep.set(r.key, key);
+      const { [field]: _gone, ...labels } = r.labels;
+      return { ...r, key, labels, subtotal: r.subtotal.filter((s) => s !== field) };
+    });
+    const rekey = <T extends { row: string }>(xs: T[] | undefined): T[] =>
+      (xs ?? []).filter((x) => keep.has(x.row)).map((x) => ({ ...x, row: keep.get(x.row)! }));
+    return { ...cut, dimensions: cut.dimensions.slice(1), rows, cells: rekey(cut.cells), deltas: rekey(cut.deltas), bases: rekey(cut.bases), population: rekey(cut.population) };
+  });
+  return { ...payload, cuts };
+}
