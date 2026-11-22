@@ -109,7 +109,9 @@ def compile_ranking_card(config: CardConfig, ctx: StateContext, catalogue: Catal
         respondent_filters = [*respondent_filters, respondent_filter(cohort)]
     # Round arithmetic needs the same seats in both rounds, as for grid compare cards.
     geographic = not demographic or any(f in SEAT_DIMENSIONS for f in rank.partition_by)
-    coverage = (choose_coverage(selection.used, uses_seat_ids=False, geographic=geographic,
+    coverage = (choose_coverage(selection.used,
+                                uses_seat_ids=demographic and any(f in ("ac_num", "pc_num") for f in rank.partition_by),
+                                geographic=geographic,
                                 version_mode=ctx.version_mode)
                 if mode == "compare" else "independent")
     reference_observation = (selection.reference.obs_id

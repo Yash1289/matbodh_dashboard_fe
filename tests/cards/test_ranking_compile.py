@@ -158,3 +158,15 @@ def test_compare_over_rounds_with_different_seat_coverage_uses_common_coverage()
     (job,) = _compile(card).jobs
     request = job.config["request"]
     assert request["coverage_mode"] == "common" and request["reference_observation"] == "o1"
+
+
+def test_group_ranking_by_ac_number_is_aligned_even_when_both_rounds_cover_the_same_seats():
+    # R2 and R3 both cover 404 ACs; the engine still refuses round arithmetic on ac_num unless coverage is aligned.
+    compare = {"mode": "compare", "target": {"scenario": VS}, "reference": {"round": R2, "scenario": VS}}
+    (job,) = _compile(_demographic(comparison=compare)).jobs
+    request = job.config["request"]
+    assert request["coverage_mode"] == "common" and request["reference_observation"] == "o2"
+    by_age = _demographic(comparison=compare, rank={"metric": "support_share", "party_id": "NDA",
+                                                    "level": "caste", "partition_by": ["age_group"], "top_k": 3})
+    (other,) = _compile(by_age).jobs
+    assert other.config["request"]["coverage_mode"] == "independent"
