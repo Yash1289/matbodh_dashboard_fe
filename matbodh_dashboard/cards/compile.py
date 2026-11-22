@@ -176,6 +176,28 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
     ]
 
 
+def _clubbing_blockers(config: CardConfig, selection: _Selection, anchor_round, anchor: str) -> list[str]:
+    """Why the anchor round cannot be the caste reference of every round the card reads; empty when it can."""
+    lead = f"Club small castes uses the anchor survey {anchor}, which"
+    if anchor_round is None:  # a chosen set of surveys left it out
+        return [f"{lead} this card does not read; include it, or switch clubbing off"]
+    reasons = []
+    gone = [f for f in ("category", "caste") if not field_available(anchor_round.dataset, f)]
+    if gone:
+        reasons.append(f"{lead} has no {' or '.join(gone)}")
+    several = config.comparison.mode == "standalone" and len(config.surveys) > 1
+    if not several and anchor_round.obs_id not in {r.obs_id for r in selection.used}:
+        reasons.append(f"{lead} this card does not read; include it, or switch clubbing off")
+    if several:
+        for r in selection.used:
+            lacking = [s for s in config.scenarios
+                       if s in r.dataset.scenarios and s not in anchor_round.dataset.scenarios]
+            if lacking:
+                reasons.append(f"{lead} did not ask {', '.join(lacking)} (read in {r.identity.base_name}); "
+                               "change the anchor, or switch clubbing off")
+    return reasons
+
+
 def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  preset: MethodPreset, *, reference=None, parties=None, elections=None,
                  cohort=None) -> RunPlan:
@@ -267,21 +289,25 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     reference_observation = (selection.reference.obs_id
                              if coverage == "common" and selection.reference else None)
     anchor_round = _by_base_name(rounds, anchor)
-    caste_reference = (selection.reference if selection.reference is not None
-                       else anchor_round if anchor_round in selection.used
-                       else selection.used[-1])
+    # Caste clubbing is keyed to the anchor round for every round the card reads, so all columns share one
+    # set of separate and grouped-up castes.
+    clubbing_blockers = _clubbing_blockers(config, selection, anchor_round, anchor) if config.caste_clubbing else []
+    if clubbing_blockers:
+        unavailable.extend((GRID, reason) for reason in clubbing_blockers)
+        return plan()
     if config.comparison.mode == "standalone" and len(config.surveys) > 1:
         # One engine job per survey, each with the questions that survey asked (the engine requires every
         # question of a request in every observation it reads); the run merges their results.
         jobs = []
         for r in selection.used:
             request = build_request(
-                state=ctx.state, rounds=[r], scenarios=[s for s in config.scenarios if s in r.dataset.scenarios],
+                state=ctx.state, rounds=[r, anchor_round] if config.caste_clubbing and r.obs_id != anchor_round.obs_id else [r],
+                scenarios=[s for s in config.scenarios if s in r.dataset.scenarios],
                 grouping_sets=config.cuts, preset=preset, comparisons=[], gender=spec.gender_differential,
                 coverage_mode="independent",
                 filters=[{"field": f.field, "operator": f.operator, "values": list(f.values)} for f in config.filters]
                 + ([respondent_filter(cohort)] if cohort is not None else []),
-                caste_clubbing=({"threshold_pct": preset.caste_threshold_pct, "reference_observation": r.obs_id}
+                caste_clubbing=({"threshold_pct": preset.caste_threshold_pct, "reference_observation": anchor_round.obs_id}
                                 if config.caste_clubbing else None),
                 reference_observation=None, display_parties=config.display_parties)
             jobs.append(EngineJob(f"{GRID}:{r.obs_id}", "analysis", GRID, view_config(request, preset)))
@@ -298,7 +324,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
         filters=[{"field": f.field, "operator": f.operator, "values": list(f.values)}
                  for f in config.filters] + ([respondent_filter(cohort)] if cohort is not None else []),
         caste_clubbing=({"threshold_pct": preset.caste_threshold_pct,
-                         "reference_observation": caste_reference.obs_id}
+                         "reference_observation": anchor_round.obs_id}
                         if config.caste_clubbing else None),
         reference_observation=reference_observation,
         display_parties=config.display_parties,

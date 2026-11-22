@@ -35,7 +35,7 @@ from matbodh_dashboard.cards.config import (
 from matbodh_dashboard.cards.families import get_family
 from matbodh_dashboard.cards.ranking.labels import SeatLabelProvider
 from matbodh_dashboard.cards.ranking.translate import translate_ranked
-from matbodh_dashboard.cards.translate import TranslateContext, merge_results, translate_grid
+from matbodh_dashboard.cards.translate import TranslateContext, merge_results, only_observation, translate_grid
 from matbodh_dashboard.catalogue.store import Catalogue
 from matbodh_dashboard.compiler.fingerprint import fingerprint
 from matbodh_dashboard.compiler.plan import EngineJob, RunPlan, rounds_block
@@ -364,7 +364,7 @@ class CardRunService:
         if card.family in RANKING_FAMILIES:
             anchor = _ranking_anchor(run, anchor)
         compare = by_name[plan.compare] if plan.compare else None
-        done = [j.result for j in run.jobs.values() if j.status == "done"]
+        done = [_own_rows(j) for j in run.jobs.values() if j.status == "done"]
         context = TranslateContext(
             card_id=run.card_id,
             state=plan.state,
@@ -399,6 +399,12 @@ class CardRunService:
         result = merge_results(done) if len(done) > 1 else (done[0] if done else {})
         payload = translate_grid(card, get_family(card.family), result, context)
         return payload.model_dump()
+
+
+def _own_rows(job) -> dict:
+    """A per-survey grid job's result without the rows of the anchor it also read as the caste reference."""
+    key = job.job.key
+    return only_observation(job.result, key.split(":", 1)[1]) if key.startswith("grid:") else job.result
 
 
 def _job_obs(config: dict) -> str:

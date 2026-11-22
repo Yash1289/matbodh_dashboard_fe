@@ -327,7 +327,7 @@
      "path": "cuts",
      "value": "caste"
     },
-    "default": false,
+    "default": true,
     "limits": {},
     "multiple": false
    },
@@ -738,7 +738,7 @@
      "path": "cuts",
      "value": "caste"
     },
-    "default": false,
+    "default": true,
     "limits": {},
     "multiple": false
    },
@@ -973,7 +973,7 @@
      "path": "cuts",
      "value": "caste"
     },
-    "default": false,
+    "default": true,
     "limits": {},
     "multiple": false
    },

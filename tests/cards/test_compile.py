@@ -167,14 +167,14 @@ def test_geographic_cut_blocked_at_pc_level():
     assert plan.jobs == () and "party_zone" in plan.unavailable[0][1]
 
 
-def test_caste_clubbing_reference_is_anchor_in_standalone_and_reference_in_compare():
+def test_caste_clubbing_reference_is_the_anchor_in_standalone_and_in_compare():
     cuts = [[], ["category", "caste"]]
     standalone = _request(_compile(_config(cuts=cuts, caste_clubbing=True)))
     assert standalone["caste_clubbing"] == {"threshold_pct": 0.5, "reference_observation": "o3"}
     compare = _request(_compile(_config(cuts=cuts, caste_clubbing=True, comparison={
         "mode": "compare", "target": {"scenario": VS},
         "reference": {"round": "compare", "scenario": VS}})))
-    assert compare["caste_clubbing"] == {"threshold_pct": 0.5, "reference_observation": "o1"}
+    assert compare["caste_clubbing"] == {"threshold_pct": 0.5, "reference_observation": "o3"}
 
 
 def test_filters_are_passed_as_engine_filters():

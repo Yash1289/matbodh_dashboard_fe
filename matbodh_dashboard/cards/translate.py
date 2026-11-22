@@ -392,6 +392,13 @@ def merge_results(results: list[dict]) -> dict:
     return merged
 
 
+def only_observation(result: dict, obs: str) -> dict:
+    """A job's result without the rows of other observations (a clubbed survey job also reads the anchor
+    round as the caste reference, and the anchor's own job already supplies its rows)."""
+    return {key: ([i for i in value if not isinstance(i, dict) or i.get("observation_id", obs) == obs]
+                  if isinstance(value, list) else value) for key, value in result.items()}
+
+
 def _merge_contract(first: dict, other: dict) -> dict:
     return {k: ({**other[k], **first[k]} if isinstance(first.get(k), dict) and isinstance(other.get(k), dict) else first.get(k, other.get(k)))
             for k in {*first, *other}}

@@ -86,7 +86,7 @@ def _filters() -> FieldDescriptor:
 
 
 def _caste_clubbing() -> FieldDescriptor:
-    return _f("caste_clubbing", "Club small castes", "toggle", default=False,
+    return _f("caste_clubbing", "Club small castes", "toggle", default=True,
               show_when=Contains(path="cuts", value="caste"))
 
 
