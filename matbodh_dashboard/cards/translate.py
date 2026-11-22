@@ -280,22 +280,33 @@ class _Translator:
             cut.drop_columns(gone)
 
     def _apply_row_rules(self) -> None:
-        """Order each cut's rows level by level (a level's values are ordered inside their parent value, which
-        selects a rule's `within`), and drop a row when any of its values is hidden. Null values sort last."""
+        """Order each cut's rows level by level, each level inside its parent row, and drop a row when any of its
+        values is hidden. A value a rule lists keeps the rule's place; every other value goes by its population share,
+        largest first (no share: last, A to Z). Null values sort last."""
         rules, state = self.tc.rules, self.tc.state
+        share = {k: v.value for cut in self.cuts.values() for k, v in cut.population.items() if v.value is not None}
         for cut in self.cuts.values():
             parts = {key: [tuple(p.partition("=")[::2]) for p in key.split("|")] for key in cut.rows if "=" in key}
-            groups: dict[tuple[str, str | None], list[str]] = {}
-            for levels in parts.values():
+            parent_of = lambda key, i: "|".join(key.split("|")[:i])  # the row key of the level above
+            groups: dict[tuple[int, str], tuple[str, str | None, list[str]]] = {}
+            for key, levels in parts.items():
                 for i, (name, value) in enumerate(levels):
                     if value != _NULL:
-                        groups.setdefault((name, levels[i - 1][1] if i else None), []).append(value)
-            order = {g: rules.order(g[0], values, states=[state], within=g[1]) for g, values in groups.items()}
+                        groups.setdefault((i, parent_of(key, i)), (name, levels[i - 1][1] if i else None, []))[2].append(value)
+
+            def by_share(prefix: str, name: str):
+                def key(value: str):
+                    s = share.get(f"{prefix}|{name}={value}" if prefix else f"{name}={value}")
+                    return (1, 0.0, value.casefold()) if s is None else (0, -s, value.casefold())
+                return key
+
+            order = {g: rules.order(name, values, states=[state], within=within, rest_key=by_share(g[1], name))
+                     for g, (name, within, values) in groups.items()}
             rank: dict[str, tuple[int, ...]] = {}
             for key, levels in parts.items():
                 ranks = []
                 for i, (name, value) in enumerate(levels):
-                    visible = order.get((name, levels[i - 1][1] if i else None), [])
+                    visible = order.get((i, parent_of(key, i)), [])
                     if value == _NULL:
                         ranks.append(len(visible))
                     elif value in visible:

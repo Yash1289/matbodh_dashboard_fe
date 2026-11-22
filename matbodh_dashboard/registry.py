@@ -11,7 +11,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 import yaml
 
@@ -145,7 +145,9 @@ class RuleSet:
         *,
         states: Sequence[str] = (),
         within: str | None = None,
+        rest_key: Callable[[str], Any] | None = None,
     ) -> list[str]:
+        """`rest_key` orders the values no rule lists, unless a rule says how (`unknown:`); default is A to Z."""
         present = _dedupe(values)
         layers = self._layers(field, states, within)
         glob = self._select(field, None, within)
@@ -167,7 +169,8 @@ class RuleSet:
 
         pin_first = pick("pin_first") or ()
         pin_last = pick("pin_last") or ()
-        unknown = pick("unknown") or _DEFAULT_UNKNOWN
+        explicit_unknown = pick("unknown")
+        unknown = explicit_unknown or _DEFAULT_UNKNOWN
         hidden = self._hidden_patterns(field, states, within)
 
         visible = [v for v in present if not any(_matches(h, v) for h in hidden)]
@@ -184,7 +187,9 @@ class RuleSet:
         known = [v for v in base if v in body_set]
         known_set = set(known)
         rest = [v for v in body if v not in known_set]
-        if unknown == "append_alpha":
+        if rest_key is not None and explicit_unknown is None:
+            rest = sorted(rest, key=rest_key)
+        elif unknown == "append_alpha":
             rest = sorted(rest, key=_natural_key)
         return first + known + rest + last
 

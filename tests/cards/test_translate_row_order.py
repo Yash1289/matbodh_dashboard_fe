@@ -6,11 +6,11 @@ from matbodh_dashboard.registry import load_rules
 from tests.cards.translate_helpers import VS, context_for, dim, mini_result, mini_row
 
 
-def _translate(tmp_path, yaml_text, rows, cuts):
+def _translate(tmp_path, yaml_text, rows, cuts, populations=()):
     (tmp_path / "global.yaml").write_text(yaml_text, encoding="utf-8")
     config = CardConfig.model_validate({"id": "c1", "family": "distribution", "section": "cards",
                                         "title": "T", "scenarios": [VS], "cuts": cuts})
-    result = mini_result(rows=rows)
+    result = mini_result(rows=rows, populations=populations)
     return translate_grid(config, FAMILIES["distribution"], result,
                           context_for(result, rules=load_rules(tmp_path)))
 
@@ -84,3 +84,41 @@ def test_single_dimension_cut_unchanged(tmp_path):
     rows = [mini_row(dims={"age_group": dim(a)}) for a in ("60+", "18-25", "Unlisted", "26-35")]
     payload = _translate(tmp_path, AGE_GENDER, rows, [["age_group"]])
     assert _keys(payload, "g0") == ["age_group=18-25", "age_group=26-35", "age_group=60+", "age_group=Unlisted"]
+
+
+RULES_NONE = "rules: []\n"
+RULE_MID = "rules:\n  - field: occupation\n    order: [Mid]\n"
+
+
+def _share(gs, dims, value):
+    return {"observation_id": "o1", "grouping_set_id": gs, "dimensions": dims, "composition_share": value}
+
+
+def test_values_with_no_rule_sort_by_population_share_largest_first_and_unknown_share_last(tmp_path):
+    names = {"Alpha": 10.0, "Zeta": 50.0, "Mid": 30.0, "Unknown": None}
+    rows = [mini_row(dims={"occupation": dim(n)}) for n in names]
+    pops = [_share("g0", {"occupation": dim(n)}, v) for n, v in names.items() if v is not None]
+    payload = _translate(tmp_path, RULES_NONE, rows, [["occupation"]], pops)
+    assert _keys(payload, "g0") == ["occupation=Zeta", "occupation=Mid", "occupation=Alpha", "occupation=Unknown"]
+
+
+def test_a_listed_value_keeps_its_place_and_the_rest_follow_by_share(tmp_path):
+    names = {"Alpha": 10.0, "Zeta": 50.0, "Mid": 30.0}
+    rows = [mini_row(dims={"occupation": dim(n)}) for n in names]
+    pops = [_share("g0", {"occupation": dim(n)}, v) for n, v in names.items()]
+    rule = RULE_MID
+    payload = _translate(tmp_path, rule, rows, [["occupation"]], pops)
+    assert _keys(payload, "g0") == ["occupation=Mid", "occupation=Zeta", "occupation=Alpha"]
+
+
+def test_children_sort_by_their_own_share_inside_each_parent(tmp_path):
+    parents = {"A": 20.0, "B": 60.0}
+    kids = {("A", "M"): 5.0, ("A", "F"): 15.0, ("B", "M"): 40.0, ("B", "F"): 20.0}
+    rows = [mini_row(gs="g0", dims={"age_group": dim(a)}) for a in parents]
+    rows += [mini_row(gs="g1", dims={"age_group": dim(a), "gender": dim(g)}) for a, g in kids]
+    pops = [_share("g0", {"age_group": dim(a)}, v) for a, v in parents.items()]
+    pops += [_share("g1", {"age_group": dim(a), "gender": dim(g)}, v) for (a, g), v in kids.items()]
+    payload = _translate(tmp_path, RULES_NONE, rows, [["age_group"], ["age_group", "gender"]], pops)
+    assert _keys(payload, "g0") == ["age_group=B", "age_group=A"]
+    assert _keys(payload, "g1") == [
+        "age_group=B|gender=M", "age_group=B|gender=F", "age_group=A|gender=F", "age_group=A|gender=M"]
