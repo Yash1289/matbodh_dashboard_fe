@@ -49,7 +49,7 @@ test("Split by: a View by seat and a nested cut write the tables the card reads"
 
   await dialog.getByRole("combobox", { name: "Add a split" }).selectOption("age_group");
   await dialog.getByRole("combobox", { name: "Then split age_group by" }).selectOption("gender");
-  await expect(dialog.getByText("age_group › gender")).toBeVisible();
+  await expect(dialog.getByText("age_group › gender", { exact: true })).toBeVisible();
   await expect(dialog.getByText(/Reads age_group, age_group × gender/)).toBeVisible();
   await expect(dialog.getByText("3 tables")).toBeVisible();
 
