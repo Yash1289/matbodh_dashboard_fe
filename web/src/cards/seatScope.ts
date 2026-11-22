@@ -77,7 +77,9 @@ export function applySeat(payload: GridPayload, cutId: string, field: string, se
 export function seatChain(cuts: Cut[], scopes: Record<string, FieldScope>): string | null {
   const tables = cuts.filter((c) => c.dimensions.length > 0);
   const lead = tables[0]?.dimensions[0];
-  return lead !== undefined && scopes[lead] === "seat" && tables.every((c) => c.dimensions[0] === lead) ? lead : null;
+  // A seat table beside a bare Overall table is a table of its own; alone, or crossed, it is the View by.
+  const viewBy = tables.some((c) => c.dimensions.length >= 2) || tables.length === cuts.length;
+  return lead !== undefined && viewBy && scopes[lead] === "seat" && tables.every((c) => c.dimensions[0] === lead) ? lead : null;
 }
 
 const without = (key: string, field: string): string => {

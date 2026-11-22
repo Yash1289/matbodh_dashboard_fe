@@ -1,4 +1,5 @@
 import { Button, Checkbox, NativeSelect } from "@mantine/core";
+import { useState } from "react";
 import { useOptions } from "../../api/queries";
 import { readCuts, writeCuts, type CutItem, type CutModel } from "../cutModel";
 import { asParams, selectData, type WidgetProps } from "./types";
@@ -19,8 +20,12 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
   const fields = options.data ?? [];
   const pickable = fields.filter((o) => o.disabled_reason === null);
   const isSeat = (name: string) => fields.find((o) => o.value === name)?.scope === "seat";
-  const model = readCuts(Array.isArray(value) ? (value as string[][]) : [], isSeat);
-  const commit = (next: CutModel) => onChange(writeCuts(next));
+  const read = readCuts(Array.isArray(value) ? (value as string[][]) : [], isSeat);
+  // A View by with no table yet (Overall off, no split) leaves no cut to read it from: the dialog keeps the pick,
+  // and the card stays invalid ("needs at least one cut") until a table is chosen.
+  const [pending, setPending] = useState<string | null>(null);
+  const model = { ...read, seat: read.seat ?? (writeCuts(read).length === 0 ? pending : null) };
+  const commit = (next: CutModel) => { setPending(next.seat); onChange(writeCuts(next)); };
   const tables = writeCuts(model);
   const seatFields = pickable.filter((o) => o.scope === "seat");
   // A choice is offered only when it adds a table the card does not already read.

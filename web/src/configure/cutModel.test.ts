@@ -58,6 +58,11 @@ describe("readCuts", () => {
     expect(readCuts([["gender"], ["gender"]], isSeat)).toEqual({ seat: null, overall: false, items: [flat("gender")] });
   });
 
+  it("reads a lone seat table as the View by with Overall; a View by with no table at all writes none", () => {
+    expect(writeCuts({ seat: "ac_num", overall: false, items: [] })).toEqual([]);
+    expect(readCuts([["ac_num"]], isSeat)).toEqual({ seat: "ac_num", overall: true, items: [] });
+  });
+
   it("reads a seat field on its own as a table, not a View by", () => {
     const model = readCuts([[], ["party_zone"]], isSeat);
     expect(model).toEqual({ seat: null, overall: true, items: [flat("party_zone")] });

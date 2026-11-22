@@ -24,7 +24,9 @@ export function writeCuts(model: CutModel): string[][] {
 
 export function readCuts(cuts: string[][], isSeat: (field: string) => boolean): CutModel {
   const crossedSeat = cuts.find((c) => c.length >= 2 && isSeat(c[0]))?.[0];
-  const seat = crossedSeat !== undefined && cuts.every((c) => c[0] === crossedSeat) ? crossedSeat : null;
+  // A seat field that starts every table is the View by; so is a seat table standing alone (no Overall beside it).
+  const lone = cuts.length > 0 && cuts.every((c) => c.length === 1 && c[0] === cuts[0][0] && isSeat(c[0])) ? cuts[0][0] : undefined;
+  const seat = lone ?? (crossedSeat !== undefined && cuts.every((c) => c[0] === crossedSeat) ? crossedSeat : null);
   const tables = seat === null ? cuts : cuts.map((c) => c.slice(1));
   const overall = tables.some((c) => c.length === 0);
   const seenTables = new Set<string>();
