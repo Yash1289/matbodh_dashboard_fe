@@ -77,7 +77,7 @@ def _compare(target_kind: str, reference_kind: str) -> list[FieldDescriptor]:
 def _cuts(**params) -> FieldDescriptor:
     return _f("cuts", "Split by", "cut_builder", tier="primary", default=[[]], limits={"max_items": 8},
               options=_options("fields", use="cut", **params),
-              help="Each cut is its own table; fields in one cut are crossed. Empty = overall")
+              help="Each split is a table. Split one again to nest it; its parent tables come with it.")
 
 
 def _filters() -> FieldDescriptor:

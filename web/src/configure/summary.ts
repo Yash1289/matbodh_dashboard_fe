@@ -1,12 +1,13 @@
 import type { CardConfigJson, CardFilterConfig, StateContext } from "../api/types";
+import { readCuts } from "./cutModel";
 
 const list = (items: string[]): string => items.join(", ");
 const some = <T,>(items: T[] | undefined): items is T[] => items !== undefined && items.length > 0;
 
-/** "age_group × caste; gender": each cut is its own table, the fields of one cut are crossed. */
+/** "age_group › gender; caste": a split with its parent tables is one nested split, any other table stands alone. */
 function cutsText(cuts: string[][] | undefined): string {
-  const named = (cuts ?? []).filter((c) => c.length > 0);
-  return named.length === 0 ? "overall" : `split by ${named.map((c) => c.join(" × ")).join("; ")}`;
+  const items = readCuts(cuts ?? [], () => false).items;
+  return items.length === 0 ? "overall" : `split by ${items.map((i) => i.fields.join(i.nested ? " › " : " × ")).join("; ")}`;
 }
 
 function filtersText(filters: CardFilterConfig[] | undefined): string {

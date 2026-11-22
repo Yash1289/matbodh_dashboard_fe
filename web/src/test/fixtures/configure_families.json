@@ -235,7 +235,7 @@
    {
     "path": "cuts",
     "label": "Split by",
-    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "help": "Each split is a table. Split one again to nest it; its parent tables come with it.",
     "widget": "cut_builder",
     "required": false,
     "tier": "primary",
@@ -654,7 +654,7 @@
    {
     "path": "cuts",
     "label": "Split by",
-    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "help": "Each split is a table. Split one again to nest it; its parent tables come with it.",
     "widget": "cut_builder",
     "required": false,
     "tier": "primary",
@@ -925,7 +925,7 @@
    {
     "path": "cuts",
     "label": "Split by",
-    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "help": "Each split is a table. Split one again to nest it; its parent tables come with it.",
     "widget": "cut_builder",
     "required": false,
     "tier": "primary",
@@ -1860,7 +1860,7 @@
    {
     "path": "cuts",
     "label": "Split by",
-    "help": "Each cut is its own table; fields in one cut are crossed. Empty = overall",
+    "help": "Each split is a table. Split one again to nest it; its parent tables come with it.",
     "widget": "cut_builder",
     "required": false,
     "tier": "primary",

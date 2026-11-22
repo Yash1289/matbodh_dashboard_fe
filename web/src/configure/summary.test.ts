@@ -43,6 +43,11 @@ describe("describeDraft", () => {
       .toBe("Shows q in R1 against R2, overall.");
   });
 
+  it("a split with its parent tables reads as one nested split", () => {
+    expect(describeDraft(card({ scenarios: ["q"], cuts: [[], ["age_group"], ["age_group", "gender"]] }), CTX))
+      .toBe("Shows q in R2, split by age_group › gender.");
+  });
+
   it("crossed fields share a cut, separate cuts are listed apart", () => {
     expect(describeDraft(card({ scenarios: ["q"], cuts: [["age_group", "caste"], ["gender"], []] }), CTX))
       .toBe("Shows q in R2, split by age_group × caste; gender.");
