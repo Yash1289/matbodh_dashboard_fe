@@ -17,6 +17,8 @@ interface Props {
 }
 
 const col = createColumnHelper<Header>();
+/** Pop % is a share of the population: no delta, base or flags beside it, whatever the table shows. */
+const POP_PARTS: CellPart[] = ["value"];
 
 function nextSort(current: SortSpec | null, column: string): SortSpec | null {
   if (current?.column !== column || current.part !== "value") return { column, part: "value", dir: "desc" };
@@ -74,7 +76,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
               return <PipeCell values={gc.cell.trend} unit={gc.unit} labels={grid.roundLabels ?? []} flags={gc.roundFlags ?? []} />;
             }
             const deltaLabel = grid.mode === "compare" && grid.referenceLabel ? `Δ vs ${grid.referenceLabel}` : undefined;
-            return <CompositeCell cell={gc?.cell ?? null} unit={gc?.unit ?? "pct"} parts={parts} rounds={rounds} deltaLabel={deltaLabel} />;
+            return <CompositeCell cell={gc?.cell ?? null} unit={gc?.unit ?? "pct"} parts={c.key === POP_KEY ? POP_PARTS : parts} rounds={rounds} deltaLabel={deltaLabel} />;
           },
         }),
       ),

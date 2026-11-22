@@ -30,6 +30,16 @@ describe("CompositeTable", () => {
     expect(row.textContent).not.toMatch(/38\.\d/);
   });
 
+  it("the Pop % cell is its value alone in a compare table, with no empty delta beside it", () => {
+    const g = baseGrid();
+    g.columns = [{ key: "__pop", label: "Pop %", colour: null }, ...g.columns];
+    for (const row of g.rows) {
+      g.cells[row.key].__pop = { cell: { value: 14.2, delta: null, trend: [], secondary: null, flags: [], base: null }, unit: "pct" };
+    }
+    const { container } = show(["value", "delta"], {}, g);
+    expect(container.querySelector("tbody tr td")!.textContent).toBe("14%");
+  });
+
   it("a missing cell shows a dash with its reason", () => {
     const g = baseGrid();
     g.cells[g.rows[0].key][COLUMN.key] = { cell: null, unit: "pct" };
