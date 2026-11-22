@@ -93,7 +93,7 @@ const field = (path: string, show_when?: Condition): FieldDescriptor => ({
 const COMPARE: Condition = { op: "equals", path: "comparison.mode", value: "compare" };
 const FAMILY: FamilyDescriptor = {
   family: "distribution", label: "L", description: "D",
-  meta: { family: "distribution", lenses: [], default_lens: "", capabilities: { modes: [], transpose: false, sort: false, details: false } },
+  meta: { family: "distribution", lenses: [], default_lens: "", capabilities: { modes: [], transpose: false, sort: false, details: false, population: false } },
   fields: [
     field("title"),
     field("scenarios", { op: "not", of: COMPARE }),

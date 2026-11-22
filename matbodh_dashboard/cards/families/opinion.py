@@ -40,5 +40,5 @@ OPINION = FamilySpec(
         "option_support_share": LensSource("rows", "support_share", ("ordinal", "boolean")),
     },
     default_lens="net_score",
-    capabilities=Capabilities(modes=["standalone", "compare", "trend"]),
+    capabilities=Capabilities(modes=["standalone", "compare", "trend"], population=True),
 )

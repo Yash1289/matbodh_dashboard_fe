@@ -129,7 +129,7 @@ export type CardMode = "standalone" | "compare" | "trend";
 export type LensUnit = "percentage" | "percentage_points";
 
 export interface LensDef { id: string; label: string; unit: LensUnit; has_delta: boolean }
-export interface Capabilities { modes: CardMode[]; transpose: boolean; sort: boolean; details: boolean }
+export interface Capabilities { modes: CardMode[]; transpose: boolean; sort: boolean; details: boolean; population: boolean }
 export interface FamilyMeta { family: Family; lenses: LensDef[]; default_lens: string; capabilities: Capabilities }
 export interface GridColumn {
   key: string;
@@ -153,6 +153,8 @@ export interface DeltaValue {
   status: string;
 }
 export interface BaseDetail { row: string; column: string; round: string | null; fields: Record<string, unknown> }
+/** A row's share of the whole population in the anchor round; a row without an entry shows a dash. */
+export interface PopulationValue { row: string; value: number | null; status: string }
 export interface Cut {
   id: string;
   dimensions: string[];
@@ -160,6 +162,7 @@ export interface Cut {
   cells: CellValue[];
   deltas: DeltaValue[];
   bases: BaseDetail[];
+  population: PopulationValue[];
 }
 export interface GridPayload {
   family: Family;

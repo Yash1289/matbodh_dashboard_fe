@@ -19,6 +19,7 @@ from matbodh_dashboard.cards.payload import (
     DeltaValue,
     FamilyMeta,
     GridPayload,
+    PopulationValue,
     RowDef,
 )
 from matbodh_dashboard.registry import RuleSet
@@ -251,7 +252,12 @@ class _Translator:
     def _population_rows(self) -> None:
         for item in self.result.get("populations") or ():
             if item.get("observation_id") in self.used_obs and "grouping_set_id" in item:
-                self._row(self._cut(item), item)
+                cut = self._cut(item)
+                row = self._row(cut, item)
+                if item["observation_id"] == self.tc.anchor and row.key not in cut.population:
+                    value = item.get("composition_share")
+                    cut.population[row.key] = PopulationValue(
+                        row=row.key, value=value, status="available" if value is not None else "null_value")
 
     # -- presentation rules -------------------------------------------------------
 
@@ -346,6 +352,7 @@ class _Cut:
     cells: list[CellValue] = field(default_factory=list)
     deltas: list[DeltaValue] = field(default_factory=list)
     bases: dict[tuple, dict] = field(default_factory=dict)
+    population: dict[str, PopulationValue] = field(default_factory=dict)
 
     def drop_columns(self, gone: set[str]) -> None:
         if not gone:
@@ -360,12 +367,14 @@ class _Cut:
         self.cells = [c for c in self.cells if c.row not in gone]
         self.deltas = [d for d in self.deltas if d.row not in gone]
         self.bases = {k: v for k, v in self.bases.items() if k[0] not in gone}
+        self.population = {k: v for k, v in self.population.items() if k not in gone}
 
     def build(self) -> Cut:
         return Cut(id=self.id, dimensions=self.dimensions, rows=list(self.rows.values()),
                    cells=self.cells, deltas=self.deltas,
                    bases=[BaseDetail(row=r, column=c, round=o, fields=f)
-                          for (r, c, o), f in self.bases.items()])
+                          for (r, c, o), f in self.bases.items()],
+                   population=list(self.population.values()))
 
 
 def merge_results(results: list[dict]) -> dict:

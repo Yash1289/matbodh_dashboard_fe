@@ -32,6 +32,7 @@ class Capabilities(_Strict):
     transpose: bool = True
     sort: bool = True
     details: bool = True
+    population: bool = False  # the family returns `populations`, so tables lead with a Pop % column
 
 
 class FamilyMeta(_Strict):
@@ -84,6 +85,13 @@ class BaseDetail(_Strict):
     fields: dict[str, Any]
 
 
+class PopulationValue(_Strict):
+    """A row's share of the whole population, from the anchor round (the engine's composition_share)."""
+    row: str
+    value: float | None
+    status: str
+
+
 class Cut(_Strict):
     id: str
     dimensions: list[str]
@@ -91,6 +99,7 @@ class Cut(_Strict):
     cells: list[CellValue]
     deltas: list[DeltaValue]
     bases: list[BaseDetail]
+    population: list[PopulationValue] = []
 
 
 class GridPayload(_Strict):

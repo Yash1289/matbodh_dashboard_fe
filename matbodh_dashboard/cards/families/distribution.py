@@ -34,5 +34,5 @@ DISTRIBUTION = FamilySpec(
         "size_of_impact_pp": _source("size_of_impact_pp", "size_of_impact_pp"),
     },
     default_lens="support_share",
-    capabilities=Capabilities(modes=["standalone", "compare", "trend"]),
+    capabilities=Capabilities(modes=["standalone", "compare", "trend"], population=True),
 )

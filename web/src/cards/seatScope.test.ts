@@ -35,7 +35,7 @@ const cut = (id: string, dimensions: string[], rows: [string, Record<string, str
   id, dimensions,
   rows: rows.map(([key, labels]) => ({ key, labels, subtotal: [] })),
   cells: rows.map(([key], i) => ({ row: key, column: "c", round: null, lens: "l", value: i + 1, status: "available" })),
-  deltas: [], bases: [],
+  deltas: [], bases: [], population: [],
 });
 
 const crossed = cut("g1", ["party_zone", "gender"], [

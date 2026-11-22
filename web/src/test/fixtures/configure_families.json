@@ -426,7 +426,8 @@
     ],
     "transpose": true,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": true
    }
   }
  },
@@ -826,7 +827,8 @@
     ],
     "transpose": true,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": true
    }
   }
  },
@@ -1057,7 +1059,8 @@
     ],
     "transpose": true,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": true
    }
   }
  },
@@ -1355,7 +1358,8 @@
     ],
     "transpose": false,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": false
    }
   }
  },
@@ -1657,7 +1661,8 @@
     ],
     "transpose": false,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": false
    }
   }
  },
@@ -1801,7 +1806,8 @@
     ],
     "transpose": false,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": false
    }
   }
  },
@@ -1980,7 +1986,8 @@
     ],
     "transpose": false,
     "sort": true,
-    "details": true
+    "details": true,
+    "population": false
    }
   }
  }

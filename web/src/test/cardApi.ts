@@ -50,7 +50,7 @@ export const RELATIONSHIP = { transition: () => relationshipOf(relationshipTrans
 // Ranking, benchmark and relationship payloads carry no lenses; the card list sends an empty family meta for them.
 const lenslessMeta = (p: RankedPayload | BenchmarkPayload | RelationshipPayload): FamilyMeta => ({
   family: p.family, lenses: [], default_lens: "",
-  capabilities: { modes: ["standalone", "compare", "trend"], transpose: false, sort: true, details: true },
+  capabilities: { modes: ["standalone", "compare", "trend"], transpose: false, sort: true, details: true, population: false },
 });
 
 export const infoFor = (p: CardPayload, over: Partial<CardInfo> = {}): CardInfo => ({

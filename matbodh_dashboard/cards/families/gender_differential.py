@@ -27,5 +27,5 @@ GENDER_DIFFERENTIAL = FamilySpec(
         "size_of_impact_pp": _source("size_of_impact_pp"),
     },
     default_lens="gender_differential_pp",
-    capabilities=Capabilities(modes=["standalone", "trend"]),
+    capabilities=Capabilities(modes=["standalone", "trend"], population=True),
 )
