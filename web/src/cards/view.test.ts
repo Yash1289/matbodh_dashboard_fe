@@ -59,8 +59,11 @@ describe("cascaded density", () => {
     return p;
   };
 
-  it("starts Cascaded when the cuts nest, Standard otherwise", () => {
-    expect(initialView(nestedPayload()).density).toBe("cascaded");
+  it("starts Cascaded only when the first table is split by two fields and its parent table exists", () => {
+    const p = nestedPayload(); // [age_group], [age_group, gender]
+    expect(initialView(p).density).toBe("standard"); // the first table is age_group alone
+    p.cuts.reverse();
+    expect(initialView(p).density).toBe("cascaded");
     expect(initialView(PAYLOADS.distributionStandalone()).density).toBe("standard");
   });
 
@@ -68,32 +71,30 @@ describe("cascaded density", () => {
     const p = nestedPayload(); // [age_group], [age_group, gender]: with age_group as the View by only one table remains
     expect(initialView(p, new Set(["age_group"])).density).toBe("standard");
     const [age, ageGender] = p.cuts;
-    p.cuts = [{ ...age, id: "g0", dimensions: ["party_zone"] }, { ...age, id: "g1", dimensions: ["party_zone", "age_group"] },
-      { ...ageGender, id: "g2", dimensions: ["party_zone", "age_group", "gender"] }];
+    p.cuts = [{ ...ageGender, id: "g2", dimensions: ["party_zone", "age_group", "gender"] }, { ...age, id: "g0", dimensions: ["party_zone"] },
+      { ...age, id: "g1", dimensions: ["party_zone", "age_group"] }];
     expect(initialView(p, new Set(["party_zone"])).density).toBe("cascaded");
   });
 
   it("falls back to Standard when the cuts stop nesting", () => {
     const p = nestedPayload();
-    const view = initialView(p);
+    const view = { ...initialView(p), density: "cascaded" as const, cut: "g1" };
+    expect(settled(view, p).density).toBe("cascaded");
     p.cuts[1].dimensions = ["gender"];
     expect(settled(view, p).density).toBe("standard");
+    expect(settled({ ...view, cut: "g0" }, nestedPayload()).density).toBe("standard"); // age_group alone
   });
 
   it("drops a sort and a transpose while Cascaded, since both would flatten the tree", () => {
     const p = nestedPayload();
     const sort = { column: p.columns[0].key, part: "value" as const, dir: "asc" as const };
-    const fixed = settled({ ...initialView(p), sort, transposed: true }, p);
+    const fixed = settled({ ...initialView(p), density: "cascaded", cut: "g1", sort, transposed: true }, p);
     expect(fixed.sort).toBeNull();
     expect(fixed.transposed).toBe(false);
   });
 
-  it("reads the tree from its first cut when the card also has an Overall cut", () => {
+  it("keeps the table the analyst chose when Cascaded is on", () => {
     const p = nestedPayload();
-    const [age, ageGender] = p.cuts;
-    p.cuts = [{ ...age, id: "g0", dimensions: [] }, { ...age, id: "g1" }, { ...ageGender, id: "g2" }];
-    expect(initialView(p).cut).toBe("g1");
-    expect(settled({ ...initialView(p), cut: "g0" }, p).cut).toBe("g1");
-    expect(settled({ ...initialView(p), density: "standard", cut: "g0" }, p).cut).toBe("g0");
+    expect(settled({ ...initialView(p), density: "cascaded", cut: "g1" }, p).cut).toBe("g1");
   });
 });

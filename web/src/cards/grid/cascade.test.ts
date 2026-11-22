@@ -52,7 +52,7 @@ describe("cascadable", () => {
   it("refuses a finer cut without its parent cut, and unrelated cuts, with a reason", () => {
     const missing = cascadable([AGE_GENDER]);
     expect(missing.ok).toBe(false);
-    expect(!missing.ok && missing.reason).toMatch(/starts? from/i);
+    expect(!missing.ok && missing.reason).toMatch(/two or more fields/i);
     expect(cascadable([AGE, cut("g2", ["gender"], [])]).ok).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe("cascadable", () => {
     expect(cascadable(tables, new Set(["zone"])).ok).toBe(true);
     const short = cascadable([cut("g0", ["zone"], []), cut("g1", ["zone", "age_group"], [])], new Set(["zone"]));
     expect(short.ok).toBe(false); // only one table is left after the seat field goes
-    expect(!short.ok && short.reason).toMatch(/start from the previous one/i);
+    expect(!short.ok && short.reason).toMatch(/two or more fields/i);
   });
 
 
@@ -80,14 +80,13 @@ describe("cascadePayload", () => {
     expect(p.cuts[0].id).toBe(CASCADE_CUT);
   });
 
-  it("starts with the Overall row when the card has an Overall table, and keeps its own value", () => {
-    const overall = cut("g0", [], [["overall", {}, 55, 100]]);
-    const { payload: p, depth } = cascadePayload(payload([overall, AGE, AGE_GENDER]))!;
-    expect(keys(p)[0]).toBe("overall");
-    expect(depth.overall).toBe(0);
-    expect(p.cuts[0].cells.find((c) => c.row === "overall")!.value).toBe(55);
-    expect(p.cuts[0].population.find((x) => x.row === "overall")!.value).toBe(100);
-    expect(keys(p).slice(1, 3)).toEqual(["age_group=18-23", "age_group=18-23|gender=Male"]);
+  it("is the selected table only: a table of one field cannot cascade, a table of two can, and Overall is not a row", () => {
+    const overall = cut("g2", [], [["overall", {}, 55, 100]]);
+    const all = [AGE, AGE_GENDER, overall];
+    expect(cascadable(all, undefined, "g0").ok).toBe(false); // age_group alone
+    expect(cascadable(all, undefined, "g2").ok).toBe(false); // Overall
+    expect(cascadable(all, undefined, "g1").ok).toBe(true); // age_group x gender
+    expect(keys(cascadePayload(payload(all), "g1")!.payload)).not.toContain("overall");
   });
 
   it("copies the parent's value from the coarser cut, never a sum of its children", () => {

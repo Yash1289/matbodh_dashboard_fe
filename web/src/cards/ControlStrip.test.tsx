@@ -202,7 +202,7 @@ describe("Cascaded density", () => {
   };
 
   it("offers Standard, Detailed and Cascaded, and no Compact", async () => {
-    mount(nested(), {}, "narrow");
+    mount(nested(), { cut: "g1" }, "narrow");
     await userEvent.click(screen.getByRole("button", { name: /^View/ }));
     for (const name of ["Standard", "Detailed", "Cascaded"]) expect(screen.getByRole("radio", { name })).toBeEnabled();
     expect(screen.queryByRole("radio", { name: "Compact" })).not.toBeInTheDocument();
@@ -214,12 +214,12 @@ describe("Cascaded density", () => {
     mount(p, {}, "narrow");
     await userEvent.click(screen.getByRole("button", { name: /^View/ }));
     expect(screen.getByRole("radio", { name: "Cascaded" })).toBeDisabled();
-    expect(screen.getByText(/start from the previous one/i)).toBeInTheDocument();
+    expect(screen.getByText(/two or more fields/i)).toBeInTheDocument();
   });
 
-  it("hides the cut and Transpose chips while Cascaded, since the whole chain is one table", () => {
-    mount(nested(), { density: "cascaded" });
-    expect(screen.queryByText(/Cut:/)).not.toBeInTheDocument();
+  it("keeps the table chips but hides Transpose and Sort while Cascaded, since both would flatten the tree", () => {
+    mount(nested(), { density: "cascaded", cut: "g1" });
+    expect(screen.getAllByRole("radio", { name: /age_group/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Transpose/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Sort/)).not.toBeInTheDocument();
   });

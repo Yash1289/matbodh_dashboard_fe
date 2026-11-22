@@ -148,19 +148,19 @@ describe("CardShell", () => {
         cells: keys.map((row, i) => ({ row, column, round: p.rounds.anchor, lens, value: 10 + i, status: "available" })),
         deltas: [], bases: [], population: [],
       });
-      p.cuts = [
+      p.cuts = [ // the first table is the one shown: gender by caste, once the seat field is taken away
+        cut("g2", ["category", "gender", "caste"], ["category=A|gender=F|caste=x", "category=B|gender=F|caste=y"]),
         cut("g0", ["category"], ["category=A", "category=B"]),
         cut("g1", ["category", "gender"], ["category=A|gender=F", "category=A|gender=M", "category=B|gender=F"]),
-        cut("g2", ["category", "gender", "caste"], ["category=A|gender=F|caste=x", "category=B|gender=F|caste=y"]),
       ];
       stubCardApi({ payloads: [p], fieldScopes: SCOPES });
       mount(p);
       const user = userEvent.setup();
       const names = () => screen.getAllByRole("rowheader").map((r) => r.textContent);
-      await waitFor(() => expect(names()).toEqual(["Overall", "F", "x", "M"]));
+      await waitFor(() => expect(names()).toEqual(["F", "x", "M"]));
       const group = await screen.findByRole("group", { name: "category" });
       await user.click(within(group).getByRole("button", { name: "Next category" }));
-      await waitFor(() => expect(names()).toEqual(["Overall", "F", "y"]));
+      await waitFor(() => expect(names()).toEqual(["F", "y"]));
     });
 
     it("narrows every table to the chosen seat value in Standard too, so Overall is one row", async () => {

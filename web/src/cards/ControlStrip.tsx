@@ -66,7 +66,7 @@ const labelOf = <T extends { value: string; label: string }>(options: T[], value
 /** Display-only controls: none of them triggers a request. Which ones show comes from the payload. */
 export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size, leading, seatFields }: Props) {
   const initial = initialView(payload, seatFields);
-  const cascade = cascadable(payload.cuts, seatFields);
+  const cascade = cascadable(payload.cuts, seatFields, view.cut);
   const tree = view.density === "cascaded";
   const { meta, mode } = payload;
   const caps = meta.capabilities;
@@ -197,7 +197,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
     id: c.id, label: c.name, value: c.value, selected: c.selected,
     node: c.toggle ? undefined : c.content, toggle: c.toggle,
   }));
-  const cutChip = payload.cuts.length > 1 && !tree && (
+  const cutChip = payload.cuts.length > 1 && (
     size === "narrow" ? (
       <PopoverChip label={`Cut: ${cutLabel(payload.cuts.find((c) => c.id === view.cut)?.dimensions ?? [])} ▾`} selected={false}>
         <SegmentedControl size="xs" aria-label="Cut" orientation="vertical" value={view.cut}

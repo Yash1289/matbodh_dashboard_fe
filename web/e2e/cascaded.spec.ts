@@ -33,6 +33,7 @@ const PAYLOAD = (() => {
     ],
   };
 })();
+PAYLOAD.cuts.reverse(); // the table shown first is age group by gender, the one Cascaded applies to
 
 const CONFIG = {
   id: ID, family: "distribution", section: "cards", title: "Cascaded", scenarios: ["vs_voting_intention"],
