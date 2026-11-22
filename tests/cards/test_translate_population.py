@@ -54,3 +54,17 @@ def test_population_capability_matches_field_map():
         except Exception:  # families whose payload is not a grid have no field map
             has = False
         assert spec.capabilities.population == has, family
+
+
+def test_payload_names_the_seat_fields_its_tables_use():
+    from tests.cards.translate_helpers import mini_row
+
+    def seat_fields(cuts):
+        config = CardConfig.model_validate({"id": "c1", "family": "distribution", "section": "cards", "title": "T",
+                                            "scenarios": [VS], "cuts": cuts})
+        result = mini_result(rows=[mini_row(obs="o2")])
+        return translate_grid(config, FAMILIES["distribution"], result, context_for(result, anchor="o2", obs=["o2"])).seat_fields
+
+    assert seat_fields([["ac_num"], ["ac_num", "gender"]]) == ["ac_num"]
+    assert seat_fields([["party_zone", "age_group"], ["gender"]]) == ["party_zone"]
+    assert seat_fields([["gender"], ["age_group", "gender"]]) == []

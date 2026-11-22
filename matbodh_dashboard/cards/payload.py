@@ -116,6 +116,7 @@ class GridPayload(_Strict):
     coverage: list[dict]
     provenance: dict
     hidden_count: int
+    seat_fields: list[str] = []  # the seat-level fields among the cuts, so a card need not ask for them
     rules_version: str | int
     engine_version: str
     metadata_revision: int

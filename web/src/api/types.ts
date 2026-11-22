@@ -182,6 +182,8 @@ export interface GridPayload {
   coverage: { job: string; part: string; coverage: Record<string, unknown> | string }[];
   provenance: { contract: Record<string, unknown>; resolved_datasets: unknown };
   hidden_count: number;
+  /** The seat-level fields among the cuts, stated by the backend; absent in older payloads. */
+  seat_fields?: string[];
   rules_version: string | number;
   engine_version: string;
   metadata_revision: number;

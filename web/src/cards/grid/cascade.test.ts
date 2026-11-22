@@ -74,6 +74,16 @@ describe("cascadePayload", () => {
     expect(p.cuts[0].id).toBe(CASCADE_CUT);
   });
 
+  it("starts with the Overall row when the card has an Overall table, and keeps its own value", () => {
+    const overall = cut("g0", [], [["overall", {}, 55, 100]]);
+    const { payload: p, depth } = cascadePayload(payload([overall, AGE, AGE_GENDER]))!;
+    expect(keys(p)[0]).toBe("overall");
+    expect(depth.overall).toBe(0);
+    expect(p.cuts[0].cells.find((c) => c.row === "overall")!.value).toBe(55);
+    expect(p.cuts[0].population.find((x) => x.row === "overall")!.value).toBe(100);
+    expect(keys(p).slice(1, 3)).toEqual(["age_group=18-23", "age_group=18-23|gender=Male"]);
+  });
+
   it("copies the parent's value from the coarser cut, never a sum of its children", () => {
     const { payload: p } = cascadePayload(payload([AGE, AGE_GENDER]))!;
     const value = (row: string) => p.cuts[0].cells.find((c) => c.row === row)!.value;

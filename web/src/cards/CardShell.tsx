@@ -68,7 +68,13 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   // actually shows, so hidden columns and sorts refer to what the table has, not to the raw payload's columns.
   // A crossed cut whose first field describes the seat is read one seat group at a time (display only).
   const crossed = shown?.cuts.some((c) => c.dimensions.length >= 2) ?? false;
-  const scopes = useFieldScopes(info.family, crossed ? ctx : null);
+  // The payload names its own seat fields; only an older payload sends the card to the (slow) field list.
+  const stated = shown?.seat_fields;
+  const fetched = useFieldScopes(info.family, crossed && stated === undefined ? ctx : null);
+  const scopes = useMemo(
+    () => ({ ...fetched, ...Object.fromEntries((stated ?? []).map((f) => [f, "seat" as const])) }),
+    [fetched, stated],
+  );
   const seatFields = useMemo(() => new Set(Object.entries(scopes).filter(([, s]) => s === "seat").map(([f]) => f)), [scopes]);
   const view1 = useMemo(
     () => (shown === null ? null : settled(chosen ?? initialView(shown, seatFields), shown, seatFields)),
@@ -82,8 +88,9 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const split = activeCut ? seatSplit(activeCut.dimensions, scopes) : null;
   const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
   const seat = choices ? resolveSeat(choices, view1?.seat) : null;
-  // A View by seat: Cascaded reads every table of the chain for one value of the seat field at a time.
-  const chainField = shown !== null && view1?.density === "cascaded" ? seatChain(shown.cuts, scopes) : null;
+  // A View by seat: when every table starts with a seat field, every table (Overall included) is read for one value
+  // of it at a time, in every density.
+  const chainField = shown !== null ? seatChain(shown.cuts, scopes) : null;
   const chainSource = chainField !== null && shown !== null ? shown.cuts.find((c) => c.dimensions[0] === chainField) : undefined;
   const chainChoices = chainField !== null && shown !== null && chainSource ? { ...seatChoices(shown, chainSource, chainField), all: null } : null;
   const chainSeat = chainChoices ? resolveSeat(chainChoices, view1?.seat) : null;

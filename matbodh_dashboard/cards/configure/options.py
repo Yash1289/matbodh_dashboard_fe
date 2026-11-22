@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict
 from matbodh_dashboard.capability import anchor_level, card_blockers, resolve_anchor
 from matbodh_dashboard.cards.benchmark.compile import benchmark_endpoint_parties
 from matbodh_dashboard.cards.benchmark.reference import BenchmarkReference
+from matbodh_dashboard.cards.field_scope import is_seat_field
 from matbodh_dashboard.cards.config import (
     OPINION_MEASURES, PARTY_MEASURES, SEGMENT_FIELDS, _scenario_catalogue, party_scenarios_of, scenario_kind,
 )
@@ -200,7 +201,7 @@ def _fields(params, draft, ctx, service) -> list[OptionItem]:
         if spec.source != "master" and not any(name in r.dataset.fields for r in read):
             continue  # a survey field none of the read rounds has
         reason = _missing(read, lambda r: field_available(r.dataset, name), "This field")
-        scope = "seat" if spec.role in ("seat_attribute", "geographic_attribute") else "respondent"
+        scope = "seat" if is_seat_field(name) else "respondent"
         out.append(OptionItem(value=name, label=name, disabled_reason=reason, scope=scope))
     return out
 

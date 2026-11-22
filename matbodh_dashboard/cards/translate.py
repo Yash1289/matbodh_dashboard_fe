@@ -22,6 +22,7 @@ from matbodh_dashboard.cards.payload import (
     PopulationValue,
     RowDef,
 )
+from matbodh_dashboard.cards.field_scope import is_seat_field
 from matbodh_dashboard.registry import RuleSet
 
 _PARTY = "party"
@@ -336,6 +337,7 @@ class _Translator:
             unavailable=tc.unavailable, not_asked=tc.not_asked, coverage=coverage,
             provenance={"contract": contract, "resolved_datasets": contract.get("resolved_datasets")},
             hidden_count=self.hidden, rules_version=tc.rules_version,
+            seat_fields=sorted({f for cut in self.config.cuts for f in cut if is_seat_field(f)}),
             engine_version=tc.engine_version, metadata_revision=tc.metadata_revision,
             alliance_epoch=tc.alliance_epoch)
 

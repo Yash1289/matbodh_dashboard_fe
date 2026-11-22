@@ -125,8 +125,9 @@ describe("CardShell", () => {
       mount(p);
       const user = userEvent.setup();
       await screen.findByRole("table");
-      await user.click(screen.getByRole("radio", { name: cutLabel(crossed.dimensions) }));
+      // Once category is known to be a seat field, every table is named without it.
       const group = await screen.findByRole("group", { name: "category" });
+      await user.click(screen.getByRole("radio", { name: cutLabel(crossed.dimensions.slice(1)) }));
       const genders = new Set(crossed.rows.map((r) => r.labels.gender));
       await waitFor(() => expect(screen.getAllByRole("rowheader")).toHaveLength(genders.size));
       const before = posts(f);
@@ -156,10 +157,58 @@ describe("CardShell", () => {
       mount(p);
       const user = userEvent.setup();
       const names = () => screen.getAllByRole("rowheader").map((r) => r.textContent);
-      await waitFor(() => expect(names()).toEqual(["F", "x", "M"]));
+      await waitFor(() => expect(names()).toEqual(["Overall", "F", "x", "M"]));
       const group = await screen.findByRole("group", { name: "category" });
       await user.click(within(group).getByRole("button", { name: "Next category" }));
-      await waitFor(() => expect(names()).toEqual(["F", "y"]));
+      await waitFor(() => expect(names()).toEqual(["Overall", "F", "y"]));
+    });
+
+    it("narrows every table to the chosen seat value in Standard too, so Overall is one row", async () => {
+      const p = PAYLOADS.distributionStandalone();
+      const column = p.columns[0].key;
+      const lens = p.meta.default_lens;
+      const cut = (id: string, dimensions: string[], keys: string[]) => ({
+        id, dimensions,
+        rows: keys.map((key) => ({ key, labels: Object.fromEntries(key.split("|").map((x) => x.split("="))), subtotal: [] })),
+        cells: keys.map((row, i) => ({ row, column, round: p.rounds.anchor, lens, value: 10 + i, status: "available" })),
+        deltas: [], bases: [], population: [],
+      });
+      p.cuts = [
+        cut("g0", ["category"], ["category=A", "category=B"]),
+        cut("g1", ["category", "gender"], ["category=A|gender=F", "category=A|gender=M", "category=B|gender=F"]),
+      ];
+      stubCardApi({ payloads: [p], fieldScopes: SCOPES });
+      mount(p);
+      const user = userEvent.setup();
+      const names = () => screen.getAllByRole("rowheader").map((r) => r.textContent);
+      await waitFor(() => expect(screen.getByRole("radio", { name: "Overall" })).toBeInTheDocument());
+      await waitFor(() => expect(names()).toEqual(["Overall"]));
+      await user.click(screen.getByRole("radio", { name: "gender" }));
+      await waitFor(() => expect(names()).toEqual(["F", "M"]));
+      await user.click(within(screen.getByRole("group", { name: "category" })).getByRole("button", { name: "Next category" }));
+      await waitFor(() => expect(names()).toEqual(["F"]));
+    });
+
+    it("takes the seat fields from the payload, and never asks the field list for them", async () => {
+      const p = PAYLOADS.distributionStandalone();
+      const column = p.columns[0].key;
+      const lens = p.meta.default_lens;
+      const cut = (id: string, dimensions: string[], keys: string[]) => ({
+        id, dimensions,
+        rows: keys.map((key) => ({ key, labels: Object.fromEntries(key.split("|").map((x) => x.split("="))), subtotal: [] })),
+        cells: keys.map((row, i) => ({ row, column, round: p.rounds.anchor, lens, value: 10 + i, status: "available" })),
+        deltas: [], bases: [], population: [],
+      });
+      p.cuts = [
+        cut("g0", ["category"], ["category=A", "category=B"]),
+        cut("g1", ["category", "gender"], ["category=A|gender=F", "category=A|gender=M", "category=B|gender=F"]),
+      ];
+      p.seat_fields = ["category"];
+      const f = stubCardApi({ payloads: [p] }); // no field scopes are served at all
+      mount(p);
+      await waitFor(() => expect(screen.getAllByRole("rowheader").map((r) => r.textContent)).toEqual(["Overall"]));
+      expect(screen.getByRole("group", { name: "category" })).toBeInTheDocument();
+      expect(f.mock.calls.some(([url]) => String(url).includes("/configure/options"))).toBe(false);
     });
 
     it("shows no selector when the first field is a respondent field", async () => {
