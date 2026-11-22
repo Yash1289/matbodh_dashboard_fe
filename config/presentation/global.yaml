@@ -7,3 +7,6 @@ rules:
   # Universal rule (owner, 2026-11-12): the gender value "Other" is never shown in any table.
   - field: gender
     hidden: [Other]
+  # In any category, the grouped-up castes ("Other GEN", "Other NY-OBC", ...) come last under it.
+  - field: caste
+    pin_last: ["Other *"]

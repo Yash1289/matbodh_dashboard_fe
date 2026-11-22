@@ -18,3 +18,16 @@ rules:
       - Rohilkhand
       - Urban Belt of Western UP
       - Yadav-Kurmi-Rajbhar Belt
+
+  # Row order for demographic cuts, at every level of a cascaded table. Values not listed follow, A to Z.
+  - field: gender
+    scope: {state: Uttar Pradesh}
+    order: [Male, Female]            # `Other` is hidden by global.yaml
+
+  - field: age_group
+    scope: {state: Uttar Pradesh}
+    order: ["18-23", "24-35", "36-50", "51-60", "60+"]   # youngest first (labels as the UP surveys carry them)
+
+  - field: category
+    scope: {state: Uttar Pradesh}
+    order: [GEN, Yadav, NY-OBC, Jatav, NJ-SC/ST, Muslim]

@@ -32,5 +32,5 @@ def test_both_starter_cards_compile_and_differ_only_in_the_origin():
 
 def test_gender_other_is_hidden_by_the_global_presentation_rules():
     rules = load_rules(ROOT / "config" / "presentation")
-    assert rules.order("gender", ["Female", "Male", "Other"], states=["Uttar Pradesh"]) == ["Female", "Male"]
+    assert rules.order("gender", ["Female", "Male", "Other"], states=["Uttar Pradesh"]) == ["Male", "Female"]
     assert rules.order("age_group", ["18-25", "26-35"], states=["Uttar Pradesh"]) == ["18-25", "26-35"]

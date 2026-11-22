@@ -26,6 +26,7 @@ from matbodh_dashboard.registry import RuleSet
 _PARTY = "party"
 _SCENARIO = "scenario"
 _OK = {"available", "aligned"}
+_NULL = "~null"
 
 
 @dataclass(frozen=True)
@@ -272,34 +273,35 @@ class _Translator:
             cut.drop_columns(gone)
 
     def _apply_row_rules(self) -> None:
+        """Order each cut's rows level by level (a level's values are ordered inside their parent value, which
+        selects a rule's `within`), and drop a row when any of its values is hidden. Null values sort last."""
         rules, state = self.tc.rules, self.tc.state
         for cut in self.cuts.values():
-            if len(cut.dimensions) != 1:
-                self._hide_multi_dimension_rows(cut)
-                continue
-            name = cut.dimensions[0]
-            values = {key: row for key, row in cut.rows.items()}
-            raw = [k.split("=", 1)[1] for k in values if not k.endswith("=~null")]
-            visible = rules.order(name, raw, states=[state])
-            self.hidden += rules.hidden_count(name, raw, states=[state])
-            keep = [f"{name}={v}" for v in visible] + [k for k in values if k.endswith("=~null")]
-            cut.drop_rows(set(values) - set(keep))
-            cut.rows = {k: cut.rows[k] for k in keep if k in cut.rows}
-
-    def _hide_multi_dimension_rows(self, cut: "_Cut") -> None:
-        """A row goes when any of its member values is hidden for its field (order is left as the engine's)."""
-        rules, state = self.tc.rules, self.tc.state
-        gone = set()
-        for key in cut.rows:
-            for part in key.split("|"):
-                name, _, value = part.partition("=")
-                if value != "~null" and rules.order(name, [value], states=[state]) != [value]:
-                    gone.add(key)
-                    break
-        if gone:
+            parts = {key: [tuple(p.partition("=")[::2]) for p in key.split("|")] for key in cut.rows if "=" in key}
+            groups: dict[tuple[str, str | None], list[str]] = {}
+            for levels in parts.values():
+                for i, (name, value) in enumerate(levels):
+                    if value != _NULL:
+                        groups.setdefault((name, levels[i - 1][1] if i else None), []).append(value)
+            order = {g: rules.order(g[0], values, states=[state], within=g[1]) for g, values in groups.items()}
+            rank: dict[str, tuple[int, ...]] = {}
+            for key, levels in parts.items():
+                ranks = []
+                for i, (name, value) in enumerate(levels):
+                    visible = order.get((name, levels[i - 1][1] if i else None), [])
+                    if value == _NULL:
+                        ranks.append(len(visible))
+                    elif value in visible:
+                        ranks.append(visible.index(value))
+                    else:
+                        break  # hidden by the rules
+                else:
+                    rank[key] = tuple(ranks)
+            gone = {key for key in parts if key not in rank}
             self.hidden += len(gone)
             cut.drop_rows(gone)
-            cut.rows = {k: v for k, v in cut.rows.items() if k not in gone}
+            kept = [k for k in cut.rows if k not in gone]
+            cut.rows = {k: cut.rows[k] for k in sorted(kept, key=lambda k: rank.get(k, (len(kept),)))}
 
     # -- output -------------------------------------------------------------------
 
