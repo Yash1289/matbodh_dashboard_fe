@@ -64,9 +64,9 @@ export function initialView(p: GridPayload, seatFields?: ReadonlySet<string>): F
   return {
     lens: p.meta.default_lens,
     // A tree is read from its first cut (an Overall cut before it would lay out the wrong table).
-    cut: (found.ok ? found.chain[0].id : p.cuts[0]?.id) ?? "",
+    cut: (found.ok && found.whole ? found.chain[0].id : p.cuts[0]?.id) ?? "",
     preset: p.mode === "compare" ? "both" : "share",
-    density: found.ok ? "cascaded" : "standard",
+    density: found.ok && found.whole ? "cascaded" : "standard",
     transposed: false,
     format: p.mode === "compare" ? "diverging" : "none",
     within: "column",

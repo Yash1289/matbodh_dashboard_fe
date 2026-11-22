@@ -5,7 +5,8 @@ import { payloadToGrid } from "./payloadToGrid";
 /** The id of the one virtual cut a cascaded table is read from. */
 export const CASCADE_CUT = "cascade";
 
-export type Cascadability = { ok: true; chain: Cut[] } | { ok: false; reason: string };
+/** `whole`: the chain covers every table, so Cascaded is the natural starting view. */
+export type Cascadability = { ok: true; chain: Cut[]; whole: boolean } | { ok: false; reason: string };
 
 const partsOf = (key: string): number => key.split("|").length;
 const lastLabel = (r: RowDef): string => { const labels = Object.values(r.labels); return labels[labels.length - 1] ?? ""; };
@@ -20,13 +21,15 @@ export function cascadable(cuts: Cut[], seatFields: ReadonlySet<string> = new Se
   const lead = cuts.find((c) => c.dimensions.length > 0)?.dimensions[0];
   const viewBy = lead !== undefined && seatFields.has(lead) && cuts.every((c) => c.dimensions.length === 0 || c.dimensions[0] === lead);
   const tables = viewBy ? cuts.map((c) => (c.dimensions[0] === lead ? { ...c, dimensions: c.dimensions.slice(1) } : c)) : cuts;
-  const chain = tables.filter((c) => c.dimensions.length > 0).sort((a, b) => a.dimensions.length - b.dimensions.length);
+  const dimensioned = tables.filter((c) => c.dimensions.length > 0);
   const startsFrom = "Cascaded needs cuts that start from the previous one, such as age group, then age group by gender";
-  if (chain.length < 2) return { ok: false, reason: startsFrom };
-  const nested = chain.every((c, i) => c.dimensions.length === i + 1
-    && (i === 0 || chain[i - 1].dimensions.every((d, j) => d === c.dimensions[j])));
-  if (!nested) return { ok: false, reason: startsFrom };
-  return { ok: true, chain };
+  const table = (dims: string[]) => dimensioned.find((c) => c.dimensions.length === dims.length && c.dimensions.every((d, i) => d === dims[i]));
+  // The longest chain of tables (each a parent of the next) is the tree; any other table stays a table of its own.
+  const chain = [...dimensioned].sort((a, b) => b.dimensions.length - a.dimensions.length)
+    .map((top) => top.dimensions.map((_, i) => table(top.dimensions.slice(0, i + 1))))
+    .find((tables) => tables.length >= 2 && tables.every(Boolean)) as Cut[] | undefined;
+  if (chain === undefined) return { ok: false, reason: startsFrom };
+  return { ok: true, chain, whole: chain.length === dimensioned.length };
 }
 
 /**

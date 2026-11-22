@@ -43,6 +43,12 @@ describe("cascadable", () => {
     expect(cascadable([cut("o", [], []), AGE, AGE_GENDER]).ok).toBe(true); // the Overall cut is left out
   });
 
+  it("trees the nested chain and leaves another table of its own out", () => {
+    const other = cut("g2", ["occupation"], []);
+    const found = cascadable([AGE, other, AGE_GENDER]);
+    expect(found.ok && found.chain.map((c) => c.id)).toEqual(["g0", "g1"]);
+  });
+
   it("refuses a finer cut without its parent cut, and unrelated cuts, with a reason", () => {
     const missing = cascadable([AGE_GENDER]);
     expect(missing.ok).toBe(false);
