@@ -199,6 +199,17 @@ describe("BenchmarkCard", () => {
       expect(within(all).getAllByRole("row").some((r) => /Behind/.test(r.textContent ?? ""))).toBe(true);
     });
 
+    it("scales each seat group's margin bars to that group's own largest bucket", async () => {
+      await open("Margin buckets");
+      const table = await screen.findByRole("table", { name: /Margin buckets/ });
+      const groups = Array.from(table.querySelectorAll("tbody"));
+      expect(groups.length).toBeGreaterThan(1); // all seats, then the split groups with fewer seats
+      for (const g of groups) {
+        const widths = Array.from(g.querySelectorAll<HTMLElement>("i[data-side]")).map((b) => parseFloat(b.style.width));
+        if (widths.length > 0) expect(Math.max(...widths)).toBeCloseTo(8, 5);
+      }
+    });
+
     it("shows the four flip classes with their engine counts and a bar that says the same in words", async () => {
       await open("Seat flips");
       const table = await screen.findByRole("table", { name: /Flips/ });

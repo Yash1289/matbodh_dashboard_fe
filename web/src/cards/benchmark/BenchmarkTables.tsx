@@ -169,7 +169,6 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
   if (view.table === "margin_buckets") {
     const sides = new Set(p.margin_buckets.map((x) => x.endpoint));
     const showReference = sides.has("reference");
-    const widest = Math.max(1, ...p.margin_buckets.map((x) => x.seats));
     return (
       <TableFrame minWidthEm={showReference ? 34 : 24}>
         <table>
@@ -183,6 +182,8 @@ export function BenchmarkTables({ payload: p, view }: { payload: BenchmarkPayloa
           </thead>
           {groups.map((g) => {
             const own = p.margin_buckets.filter((x) => `${x.group.set_id}|${JSON.stringify(x.group.dimensions)}` === g.key);
+            // Bars scale to this group's own largest bucket (both sides share it), so a small zone still reads.
+            const widest = Math.max(1, ...own.map((x) => x.seats));
             const at = (bucket: string, side: "target" | "reference") => own.find((x) => x.bucket === bucket && x.endpoint === side);
             // Each side reports its own eligible seats; a reference can cover fewer seats than the survey.
             const eligibleOf = (side: "target" | "reference") => own.find((x) => x.endpoint === side)?.eligible_seats ?? own[0]?.eligible_seats ?? 0;
