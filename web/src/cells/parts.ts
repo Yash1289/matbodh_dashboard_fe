@@ -1,4 +1,4 @@
-import type { CellPart, Density, RoundsBlock } from "../api/types";
+import type { CellPart, GridDensity, RoundsBlock } from "../api/types";
 
 export type ShowPreset = "share" | "delta" | "both" | "both_trend";
 
@@ -11,9 +11,8 @@ const PRESET_BASE: Record<ShowPreset, CellPart[]> = {
 };
 const DETAIL_ONLY: CellPart[] = ["base", "secondary", "flags"];
 
-export function partsFor(preset: ShowPreset, density: Density, allowed: CellPart[]): CellPart[] {
+export function partsFor(preset: ShowPreset, density: GridDensity, allowed: CellPart[]): CellPart[] {
   let wanted = PRESET_BASE[preset];
-  if (density === "compact") wanted = wanted.filter((p) => p !== "trend");
   if (density === "detailed") wanted = [...wanted, ...DETAIL_ONLY];
   const ok = new Set<CellPart>([...allowed, ...DETAIL_ONLY]);
   return ORDER.filter((p) => wanted.includes(p) && ok.has(p));

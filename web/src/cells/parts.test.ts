@@ -5,7 +5,7 @@ import { partsFor, seriesBreaks } from "./parts";
 describe("parts", () => {
   it("partsFor maps presets and density", () => {
     const all = ["value", "delta", "trend"] as const;
-    expect(partsFor("both_trend", "compact", [...all])).toEqual(["value", "delta"]);
+    expect(partsFor("both_trend", "standard", [...all])).toEqual(["value", "delta", "trend"]);
     expect(partsFor("both_trend", "detailed", [...all])).toEqual([
       "value", "delta", "trend", "base", "secondary", "flags",
     ]);

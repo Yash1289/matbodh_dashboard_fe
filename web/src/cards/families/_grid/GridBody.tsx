@@ -3,7 +3,7 @@ import type { CellPart, GridPayload, PresentationRules } from "../../../api/type
 import { partsFor } from "../../../cells/parts";
 import { CompositeTable } from "../../../table/CompositeTable";
 import { applyPresentationRules, transpose, type Header } from "../../../table/grid";
-import { payloadToGrid } from "../../grid/payloadToGrid";
+import { gridFor, keepWithAncestors } from "../../grid/cascade";
 import { ruleOf, type FamilyView } from "../../view";
 
 export interface GridBodyProps {
@@ -32,16 +32,19 @@ export function GridBody({ payload, view, onView, rules, order, colors }: GridBo
   }), [rules, order, colors]);
 
   const grid = useMemo(() => {
-    let g = payloadToGrid(payload, { lens: view.lens, cut: view.cut });
+    const tree = view.density === "cascaded";
+    let g = gridFor(payload, { lens: view.lens, cut: view.cut, density: view.density });
     if (view.hidden.length > 0) {
       const gone = new Set(view.hidden);
       g = { ...g, columns: g.columns.filter((c) => !gone.has(c.key)) };
     }
     const query = view.search.trim().toLowerCase();
-    if (query) g = { ...g, rows: g.rows.filter((r) => r.label.toLowerCase().includes(query)) };
-    g = applyPresentationRules(g, merged, columnName, rowName);
-    return view.transposed ? transpose(g) : g;
-  }, [payload, view.lens, view.cut, view.hidden, view.search, view.transposed, merged]);
+    const matches = (r: Header) => r.label.toLowerCase().includes(query);
+    if (query) g = { ...g, rows: tree ? keepWithAncestors(g.rows, matches) : g.rows.filter(matches) };
+    // A tree keeps the order its parents and children came in; rules still order its columns.
+    g = applyPresentationRules(g, tree ? { ...merged, rowOrder: undefined } : merged, columnName, rowName);
+    return view.transposed && !tree ? transpose(g) : g;
+  }, [payload, view.lens, view.cut, view.density, view.hidden, view.search, view.transposed, merged]);
 
   const parts = useMemo<CellPart[]>(() => {
     const allowed: CellPart[] = payload.mode === "compare" ? ["value", "delta"] : ["value"];

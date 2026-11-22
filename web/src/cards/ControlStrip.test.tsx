@@ -177,12 +177,12 @@ describe("changed-from-default state", () => {
 describe("View menu", () => {
   it("shows each setting's current value and how many are changed", async () => {
     const p = load(standaloneFixture);
-    mount(p, { density: "compact" }, "medium");
+    mount(p, { density: "detailed" }, "medium");
     const view = screen.getByRole("button", { name: /^View/ });
     expect(within(view).getByText("1")).toBeInTheDocument();
     await userEvent.click(view);
     const menu = await screen.findByRole("dialog");
-    expect(within(menu).getByTestId("view-row-density")).toHaveTextContent("Compact");
+    expect(within(menu).getByTestId("view-row-density")).toHaveTextContent("Detailed");
     expect(within(menu).getByTestId("view-row-format")).toHaveTextContent("None");
   });
 
@@ -190,5 +190,37 @@ describe("View menu", () => {
     mount(load(standaloneFixture), {}, "wide");
     expect(screen.getByText(/Format/)).toBeInTheDocument();
     expect(screen.queryByTestId("view-row-format")).not.toBeInTheDocument();
+  });
+});
+
+describe("Cascaded density", () => {
+  const nested = () => {
+    const p = load(standaloneFixture);
+    const base = p.cuts[0];
+    p.cuts = [{ ...base, id: "g0", dimensions: ["age_group"] }, { ...base, id: "g1", dimensions: ["age_group", "gender"] }];
+    return p;
+  };
+
+  it("offers Standard, Detailed and Cascaded, and no Compact", async () => {
+    mount(nested(), {}, "narrow");
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    for (const name of ["Standard", "Detailed", "Cascaded"]) expect(screen.getByRole("radio", { name })).toBeEnabled();
+    expect(screen.queryByRole("radio", { name: "Compact" })).not.toBeInTheDocument();
+  });
+
+  it("disables Cascaded and says why when the cuts do not nest", async () => {
+    const p = nested();
+    p.cuts[1].dimensions = ["gender"];
+    mount(p, {}, "narrow");
+    await userEvent.click(screen.getByRole("button", { name: /^View/ }));
+    expect(screen.getByRole("radio", { name: "Cascaded" })).toBeDisabled();
+    expect(screen.getByText(/start from the previous one/i)).toBeInTheDocument();
+  });
+
+  it("hides the cut and Transpose chips while Cascaded, since the whole chain is one table", () => {
+    mount(nested(), { density: "cascaded" });
+    expect(screen.queryByText(/Cut:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Transpose/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Sort/)).not.toBeInTheDocument();
   });
 });

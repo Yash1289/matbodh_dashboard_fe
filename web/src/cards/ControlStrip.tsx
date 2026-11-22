@@ -1,11 +1,12 @@
-import { Checkbox, Group, NativeSelect, SegmentedControl, Stack, TextInput, UnstyledButton } from "@mantine/core";
+import { Checkbox, Group, NativeSelect, SegmentedControl, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import type { ReactNode } from "react";
-import type { Density, GridPayload } from "../api/types";
+import type { GridDensity, GridPayload } from "../api/types";
 import type { ShowPreset } from "../cells/parts";
 import type { SortSpec } from "../table/grid";
 import { PopoverChip, chipProps, chipStyle } from "./PopoverChip";
 import type { SizeClass } from "./sizeClass";
 import { ViewMenu, type ViewRow } from "./ViewMenu";
+import { cascadable } from "./grid/cascade";
 import { cutLabel, initialView, type FamilyView, type Within } from "./view";
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
   size: SizeClass;
   /** Drawn first on the strip: the seat selector, when the cut has one. */
   leading?: ReactNode;
+  /** Fields that describe the seat: a cut starting with one is a selector, not a tree. */
+  seatFields?: ReadonlySet<string>;
 }
 
 /** Tabs only on a wide card with three lenses or fewer; a chip otherwise; nothing when there is one lens or none. */
@@ -50,8 +53,8 @@ const PRESET_LABELS: Record<ShowPreset, string> = {
 const PRESETS_BY_MODE: Record<string, ShowPreset[]> = {
   compare: ["share", "delta", "both"],
 };
-const DENSITIES: { value: Density; label: string }[] = [
-  { value: "compact", label: "Compact" }, { value: "standard", label: "Standard" }, { value: "detailed", label: "Detailed" },
+const DENSITIES: { value: GridDensity; label: string }[] = [
+  { value: "standard", label: "Standard" }, { value: "detailed", label: "Detailed" }, { value: "cascaded", label: "Cascaded" },
 ];
 const SCOPES: { value: Within; label: string }[] = [
   { value: "column", label: "Within column" }, { value: "row", label: "Within row" }, { value: "table", label: "Within all columns" },
@@ -61,8 +64,10 @@ const labelOf = <T extends { value: string; label: string }>(options: T[], value
   options.find((o) => o.value === value)?.label ?? value;
 
 /** Display-only controls: none of them triggers a request. Which ones show comes from the payload. */
-export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size, leading }: Props) {
-  const initial = initialView(payload);
+export function ControlStrip({ payload, view, onView, onMethod, onExport, canExport, onRefresh, size, leading, seatFields }: Props) {
+  const initial = initialView(payload, seatFields);
+  const cascade = cascadable(payload.cuts, seatFields);
+  const tree = view.density === "cascaded";
   const { meta, mode } = payload;
   const caps = meta.capabilities;
   const lens = meta.lenses.find((l) => l.id === view.lens) ?? meta.lenses.find((l) => l.id === meta.default_lens);
@@ -101,7 +106,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
   });
 
   // Sort options are payload columns; a transposed grid's columns are the rows, so there is nothing to offer.
-  if (caps.sort && !view.transposed) {
+  if (caps.sort && !view.transposed && !tree) {
     const part: SortSpec["part"] = deltaSort ? "delta" : "value";
     const current = view.sort ? `${view.sort.dir}:${view.sort.part}:${view.sort.column}` : "";
     const options = [
@@ -137,7 +142,13 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
 
   controls.push({
     id: "density", name: "Density", value: labelOf(DENSITIES, view.density), primary: false, label: `Density: ${labelOf(DENSITIES, view.density)} ▾`, selected: view.density !== initial.density,
-    content: <SegmentedControl size="xs" aria-label="Density" data={DENSITIES} value={view.density} onChange={(v) => onView({ density: v as Density })} />,
+    content: (
+      <>
+        <SegmentedControl size="xs" aria-label="Density" value={view.density} onChange={(v) => onView({ density: v as GridDensity })}
+          data={DENSITIES.map((d) => ({ ...d, disabled: d.value === "cascaded" && !cascade.ok }))} />
+        {!cascade.ok && <Text size="xs" c="dimmed" mt={4}>{cascade.reason}</Text>}
+      </>
+    ),
   });
 
   if (caps.details) {
@@ -146,7 +157,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
       toggle: { pressed: view.showDetails, onToggle: () => onView({ showDetails: !view.showDetails }) },
     });
   }
-  if (caps.transpose) {
+  if (caps.transpose && !tree) {
     controls.push({
       id: "transpose", name: "Transpose", value: ON_OFF(view.transposed), primary: size === "wide", label: "⇄ Transpose", selected: view.transposed,
       toggle: { pressed: view.transposed, onToggle: () => onView({ transposed: !view.transposed, sort: null }) },
@@ -186,7 +197,7 @@ export function ControlStrip({ payload, view, onView, onMethod, onExport, canExp
     id: c.id, label: c.name, value: c.value, selected: c.selected,
     node: c.toggle ? undefined : c.content, toggle: c.toggle,
   }));
-  const cutChip = payload.cuts.length > 1 && (
+  const cutChip = payload.cuts.length > 1 && !tree && (
     size === "narrow" ? (
       <PopoverChip label={`Cut: ${cutLabel(payload.cuts.find((c) => c.id === view.cut)?.dimensions ?? [])} ▾`} selected={false}>
         <SegmentedControl size="xs" aria-label="Cut" orientation="vertical" value={view.cut}

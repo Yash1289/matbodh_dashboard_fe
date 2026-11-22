@@ -9,7 +9,7 @@ import chrome from "./card.module.css";
 import { tokens } from "../theme";
 import { ControlStrip } from "./ControlStrip";
 import { FAMILY_BODIES } from "./families";
-import { payloadToGrid } from "./grid/payloadToGrid";
+import { gridFor } from "./grid/cascade";
 import { MethodDrawer } from "./LazyMethodDrawer";
 import { gridNotes } from "./notes";
 import { SeatSelector } from "./SeatSelector";
@@ -66,17 +66,18 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const { ref, width } = useElementSize();
   // The view is settled twice: first against the payload (cut and lens), then against the columns the layout
   // actually shows, so hidden columns and sorts refer to what the table has, not to the raw payload's columns.
-  const view1 = useMemo(
-    () => (shown === null ? null : settled(chosen ?? initialView(shown), shown)),
-    [chosen, shown],
-  );
-  const onView = useCallback((patch: Partial<FamilyView>) => {
-    // A different cut has a different seat field, so an earlier seat choice no longer applies.
-    setChosen((v) => ({ ...(v ?? (shown !== null ? initialView(shown) : (patch as FamilyView))), ...patch, ...(patch.cut !== undefined ? { seat: undefined } : {}) }));
-  }, [shown]);
   // A crossed cut whose first field describes the seat is read one seat group at a time (display only).
   const crossed = shown?.cuts.some((c) => c.dimensions.length >= 2) ?? false;
   const scopes = useFieldScopes(info.family, crossed ? ctx : null);
+  const seatFields = useMemo(() => new Set(Object.entries(scopes).filter(([, s]) => s === "seat").map(([f]) => f)), [scopes]);
+  const view1 = useMemo(
+    () => (shown === null ? null : settled(chosen ?? initialView(shown, seatFields), shown, seatFields)),
+    [chosen, shown, seatFields],
+  );
+  const onView = useCallback((patch: Partial<FamilyView>) => {
+    // A different cut has a different seat field, so an earlier seat choice no longer applies.
+    setChosen((v) => ({ ...(v ?? (shown !== null ? initialView(shown, seatFields) : (patch as FamilyView))), ...patch, ...(patch.cut !== undefined ? { seat: undefined } : {}) }));
+  }, [shown, seatFields]);
   const activeCut = shown !== null && view1 !== null ? shown.cuts.find((c) => c.id === view1.cut) : undefined;
   const split = activeCut ? seatSplit(activeCut.dimensions, scopes) : null;
   const choices = split && shown && activeCut ? seatChoices(shown, activeCut, split.field) : null;
@@ -91,12 +92,12 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const laid = useMemo(() => (shown !== null && view1 !== null ? withSeat(shown) : null), [shown, view1, withSeat]);
   const view = useMemo(
     () => (view1 === null || laid === null || shown === null ? view1
-      : settled({ ...(chosen ?? initialView(shown)), cut: view1.cut, lens: view1.lens }, laid)),
-    [view1, laid, chosen, shown],
+      : settled({ ...(chosen ?? initialView(shown, seatFields)), cut: view1.cut, lens: view1.lens }, laid, seatFields)),
+    [view1, laid, chosen, shown, seatFields],
   );
   const grid = useMemo(() => {
     if (shown === null || view === null || view.cut === "") return null;
-    return payloadToGrid(withSeat(shown), { lens: view.lens, cut: view.cut });
+    return gridFor(withSeat(shown), { lens: view.lens, cut: view.cut, density: view.density });
   }, [shown, view, withSeat]);
 
   const refresh = <Button size="xs" variant="default" w="fit-content" onClick={run.refresh}>Refresh</Button>;
@@ -107,7 +108,7 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
   const previous = run.previous && !blocked && view && (
     <div>
       <Text size="xs" c="dimmed">Showing previous selection</Text>
-      <div aria-busy="true" style={{ opacity: 0.5 }}>{bodyOf(run.previous, settled(view, run.previous))}</div>
+      <div aria-busy="true" style={{ opacity: 0.5 }}>{bodyOf(run.previous, settled(view, run.previous, seatFields))}</div>
     </div>
   );
 
@@ -158,7 +159,7 @@ function CardShellBody({ info, ctx, presentationRules, order, colors }: Props) {
           </div>
           {shown && view && grid && (
             <ControlStrip
-              payload={laid ?? shown} view={view} onView={onView} size={width === 0 ? "wide" : sizeClass(width)}
+              payload={laid ?? shown} view={view} onView={onView} seatFields={seatFields} size={width === 0 ? "wide" : sizeClass(width)}
               leading={(
                 <>
                   {split && choices && (

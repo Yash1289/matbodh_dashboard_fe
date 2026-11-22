@@ -1,7 +1,10 @@
 import type { Cell, Unit, PresentationRules } from "../api/types";
 
 export type { PresentationRules };
-export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number }
+/** `depth` indents a row header in a cascaded table. */
+export interface Header { key: string; label: string; colour: string | null; note?: string; sub?: string; width?: number; depth?: number }
+/** The fixed leading column of population shares; it is not a party or a lens column. */
+export const POP_KEY = "__pop";
 /** `roundFlags` (trend mode): one flag list per round, aligned with `Cell.trend`. */
 export interface GridCell { cell: Cell | null; unit: Unit; roundFlags?: string[][] }
 export interface CellGrid {
@@ -81,7 +84,9 @@ function reorderHeaders(headers: Header[], specifiedOrder?: string[], pinLast?: 
 export function applyPresentationRules(grid: CellGrid, rules?: PresentationRules | null,
   columnKey?: (h: Header) => string, rowKey?: (h: Header) => string): CellGrid {
   if (!rules) return grid;
-  const columns = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors, columnKey);
+  const reordered = reorderHeaders(grid.columns, rules.columnOrder, rules.pinLast, rules.entityColors, columnKey);
+  // Pop % is always the first value column, whatever the party rules say.
+  const columns = [...reordered.filter((c) => c.key === POP_KEY), ...reordered.filter((c) => c.key !== POP_KEY)];
   const rowOrder = Array.isArray(rules.rowOrder)
     ? rules.rowOrder
     : (rules.rowOrder && grid.rowDim ? rules.rowOrder[grid.rowDim] : undefined);

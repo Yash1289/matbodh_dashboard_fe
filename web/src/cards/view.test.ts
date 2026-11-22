@@ -50,3 +50,36 @@ describe("settled", () => {
     if (pp) expect(settled({ ...view, lens: pp.id }, p).format).toBe("diverging");
   });
 });
+
+describe("cascaded density", () => {
+  const nestedPayload = () => {
+    const p = PAYLOADS.distributionStandalone();
+    const base = p.cuts[0];
+    p.cuts = [{ ...base, id: "g0", dimensions: ["age_group"] }, { ...base, id: "g1", dimensions: ["age_group", "gender"] }];
+    return p;
+  };
+
+  it("starts Cascaded when the cuts nest, Standard otherwise", () => {
+    expect(initialView(nestedPayload()).density).toBe("cascaded");
+    expect(initialView(PAYLOADS.distributionStandalone()).density).toBe("standard");
+  });
+
+  it("starts Standard when the first field describes the seat", () => {
+    expect(initialView(nestedPayload(), new Set(["age_group"])).density).toBe("standard");
+  });
+
+  it("falls back to Standard when the cuts stop nesting", () => {
+    const p = nestedPayload();
+    const view = initialView(p);
+    p.cuts[1].dimensions = ["gender"];
+    expect(settled(view, p).density).toBe("standard");
+  });
+
+  it("drops a sort and a transpose while Cascaded, since both would flatten the tree", () => {
+    const p = nestedPayload();
+    const sort = { column: p.columns[0].key, part: "value" as const, dir: "asc" as const };
+    const fixed = settled({ ...initialView(p), sort, transposed: true }, p);
+    expect(fixed.sort).toBeNull();
+    expect(fixed.transposed).toBe(false);
+  });
+});

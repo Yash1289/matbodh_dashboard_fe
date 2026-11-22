@@ -5,7 +5,7 @@ import { CompositeCell } from "../cells/CompositeCell";
 import { PipeCell } from "../cells/PipeCell";
 import { cellStyle, type FormatRule } from "./formatRules";
 import { PIN, TableFrame } from "./TableFrame";
-import { sortRows, type CellGrid, type Header, type SortSpec } from "./grid";
+import { POP_KEY, sortRows, type CellGrid, type Header, type SortSpec } from "./grid";
 
 interface Props {
   grid: CellGrid;
@@ -39,6 +39,8 @@ const Swatch = ({ colour }: { colour: string | null }) =>
 export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Props) {
   const apiOrder = useMemo(() => grid.rows.map((r) => r.key), [grid.rows]);
   const ordered = useMemo(() => sortRows(grid, sort, apiOrder), [grid, sort, apiOrder]);
+  // Format rules colour the party columns against each other; the population share is not one of them.
+  const styled = useMemo(() => ({ ...ordered, columns: ordered.columns.filter((c) => c.key !== POP_KEY) }), [ordered]);
   const anchor = rounds.items.find((r) => r.obs_id === rounds.anchor)?.base_name ?? rounds.anchor;
 
   const columns = useMemo(
@@ -49,7 +51,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
         cell: ({ row }) => (
           <>
             <Swatch colour={row.original.colour} />
-            <span style={{ fontWeight: 600, color: "var(--mb-text)" }}>{row.original.label}</span>
+            <span style={{ fontWeight: row.original.depth ? 400 : 600, color: "var(--mb-text)", paddingLeft: (row.original.depth ?? 0) * 16, display: "inline-block" }}>{row.original.label}</span>
             {row.original.note && <small style={{ display: "block", color: "var(--mb-muted)" }}>{row.original.note}</small>}
           </>
         ),
@@ -68,7 +70,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
           ),
           cell: ({ row }) => {
             const gc = ordered.cells[row.original.key]?.[c.key];
-            if (grid.mode === "trend" && gc?.cell) {
+            if (grid.mode === "trend" && gc?.cell && c.key !== POP_KEY) {
               return <PipeCell values={gc.cell.trend} unit={gc.unit} labels={grid.roundLabels ?? []} flags={gc.roundFlags ?? []} />;
             }
             const deltaLabel = grid.mode === "compare" && grid.referenceLabel ? `Δ vs ${grid.referenceLabel}` : undefined;
@@ -115,7 +117,7 @@ export function CompositeTable({ grid, parts, rounds, rule, sort, onSort }: Prop
                   c.column.id === "__row" ? (
                     <th key={c.id} scope="row" className={PIN} style={{ verticalAlign: "top", width: widthOf("__row") }}>{flexRender(c.column.columnDef.cell, c.getContext())}</th>
                   ) : (
-                    <td key={c.id} style={{ verticalAlign: "top", ...cellStyle(ordered, r.original.key, c.column.id, rule) }}>
+                    <td key={c.id} style={{ verticalAlign: "top", ...(c.column.id === POP_KEY ? {} : cellStyle(styled, r.original.key, c.column.id, rule)) }}>
                       {flexRender(c.column.columnDef.cell, c.getContext())}
                     </td>
                   ),

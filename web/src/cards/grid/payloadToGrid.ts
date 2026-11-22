@@ -1,8 +1,9 @@
 import type { Cell, CellValue, DeltaValue, GridPayload, LensDef, Unit } from "../../api/types";
-import type { CellGrid, GridCell, Header } from "../../table/grid";
+import { POP_KEY, type CellGrid, type GridCell, type Header } from "../../table/grid";
 
 /** What the display controls pick from a payload; nothing here needs the network. */
-export interface GridView { lens: string; cut: string }
+/** `cascade` maps each row key of a cascaded cut to its depth. */
+export interface GridView { lens: string; cut: string; cascade?: Record<string, number> }
 
 const SEP = "\u0000";
 // The sample size comes first: a weight mass reads as a nonsense "n".
@@ -105,13 +106,33 @@ export function payloadToGrid(p: GridPayload, view: GridView): CellGrid {
     }
   }
 
+  const population = new Map((cut.population ?? []).map((x) => [x.row, x]));
+  const showPop = p.meta.capabilities.population === true;
+  if (showPop) {
+    for (const row of cut.rows) {
+      const x = population.get(row.key);
+      cells[row.key][POP_KEY] = {
+        cell: x ? { value: x.value, delta: null, trend: [], secondary: null, flags: statusFlags(x.status), base: null } : null,
+        unit: "pct",
+      };
+    }
+  }
+
   const multiScenario = new Set(columns.map((c) => c.scenario)).size > 1;
   const headers: Header[] = columns.map((c) => {
     const sub = [multiScenario && c.scenario !== c.label ? c.scenario : null, mode === "trend" ? roundLabels.join(" | ") : null]
       .filter((s): s is string => s !== null).join(" · ");
     return { key: c.key, label: c.label, colour: c.colour, ...(sub ? { sub } : {}) };
   });
-  const rows: Header[] = cut.rows.map((r) => ({ key: r.key, label: rowLabel(r.key, r.labels), colour: null }));
+  if (showPop) headers.unshift({ key: POP_KEY, label: "Pop %", colour: null });
+  const depthOf = view.cascade;
+  const rows: Header[] = cut.rows.map((r) => {
+    const depth = depthOf?.[r.key] ?? 0;
+    // A child of a cascaded table is named by its own value; its parents are the rows above it.
+    const own = Object.values(r.labels);
+    const label = depth > 0 ? (own[own.length - 1] ?? "(no value)") : rowLabel(r.key, r.labels);
+    return { key: r.key, label, colour: null, ...(depthOf ? { depth } : {}) };
+  });
 
   const grid: CellGrid = {
     rows, columns: headers, cells,

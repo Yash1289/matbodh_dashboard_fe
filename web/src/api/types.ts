@@ -2,6 +2,8 @@ export type Level = "ac" | "pc" | "zone" | "state";
 export type Unit = "pct" | "pp" | "seats";
 export type CellPart = "value" | "delta" | "trend" | "base" | "secondary" | "flags";
 export type Density = "compact" | "standard" | "detailed";
+/** Grid cards drop Compact and gain Cascaded (nested cuts drawn as one tree); ranking cards keep `Density`. */
+export type GridDensity = "standard" | "detailed" | "cascaded";
 
 export interface StateContext {
   state: string;
