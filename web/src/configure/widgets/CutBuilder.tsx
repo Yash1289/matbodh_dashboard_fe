@@ -6,6 +6,8 @@ import { Well } from "./Well";
 import styles from "./wells.module.css";
 
 const name = (cut: string[]) => (cut.length === 0 ? "Overall" : cut.join(" × "));
+/** Two cuts describe the same table when they hold the same fields, in any order (the card refuses repeats). */
+const sameGrain = (a: string[], b: string[]) => a.length === b.length && a.every((field) => b.includes(field));
 
 /** Independent cuts (each its own table); fields within one cut are crossed. The empty cut is Overall. */
 export function CutBuilder({ field, value, onChange, draft, ctx, error }: WidgetProps) {
@@ -17,6 +19,7 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
   const scopeOf = (name: string) => fields.find((o) => o.value === name)?.scope ?? null;
   const set = (next: string[][]) => onChange(next);
   const tables = cuts.length;
+  const taken = (cut: string[]) => cuts.some((c) => sameGrain(c, cut));
 
   return (
     <Well title={field.label} hint={field.help} badge={tables > 0 ? `${tables} table${tables === 1 ? "" : "s"}` : null}>
@@ -25,13 +28,13 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
           onChange={() => set(overall ? cuts.filter((c) => c.length > 0) : [[], ...cuts])} />
       </div>
       {cuts.map((cut, i) => (cut.length === 0 ? null : (
-        <Fragment key={name(cut)}>
+        <Fragment key={i}>
           <div className={styles.item}>
             <div className={styles.itemHead}>
               <span className={styles.itemName}>{name(cut)}</span>
               <NativeSelect size="xs" aria-label={`Cross ${name(cut)} with`} value=""
                 onChange={(e) => e.currentTarget.value && set(cuts.map((c, j) => (j === i ? [...c, e.currentTarget.value] : c)))}
-                data={[{ value: "", label: "Cross with…" }, ...selectData(pickable.filter((o) => !cut.includes(o.value)))]} />
+                data={[{ value: "", label: "Cross with…" }, ...selectData(pickable.filter((o) => !cut.includes(o.value) && !taken([...cut, o.value])))]} />
               <Button size="compact-sm" variant="subtle" color="gray" aria-label={`Remove cut ${name(cut)}`}
                 onClick={() => set(cuts.filter((_, j) => j !== i))}>Remove</Button>
             </div>
@@ -45,7 +48,7 @@ export function CutBuilder({ field, value, onChange, draft, ctx, error }: Widget
       )))}
       <NativeSelect size="sm" label="Add a cut" value=""
         onChange={(e) => e.currentTarget.value && set([...cuts, [e.currentTarget.value]])}
-        data={[{ value: "", label: "Choose a field…" }, ...selectData(fields)]} />
+        data={[{ value: "", label: "Choose a field…" }, ...selectData(fields.filter((o) => !taken([o.value])))]} />
       {error && <p className={styles.error}>{error}</p>}
     </Well>
   );
