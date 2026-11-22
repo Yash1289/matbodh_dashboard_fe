@@ -209,6 +209,8 @@ parties: origin, destination and joint share, size of impact). Every chip is dis
 - **Gender `Other` is never shown**, in any table: `config/presentation/global.yaml` has
   `field: gender, hidden: [Other]`, applied by the presentation rules (the grid cards' single gender cut and the
   relationship translator both read it).
+- **Display rules** (order, hide, rename, colour; order at every level of a cascaded table) are plain YAML in
+  `config/presentation/`; see [docs/display-rules.md](docs/display-rules.md).
 - **No cross-round comparison.** Each round is its own matrix (`cross_round_pairing: false`); a trend shows each
   round's values side by side as pipes, never deltas.
 - Explicit party options are not used: they close the engine's answer set and fail in ClickHouse with a division by

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import fakeredis
 import pytest
 from fastapi.testclient import TestClient
@@ -36,7 +38,22 @@ def client(service):
     return TestClient(create_app(service))
 
 
-def test_get_presentation_rules_for_state(client):
+@pytest.fixture
+def real_client(service):
+    """The endpoint over the repo's own rule files, as in production."""
+    service.rules = load_rules(Path(__file__).resolve().parents[1] / "config" / "presentation")
+    return TestClient(create_app(service))
+
+
+def test_endpoint_serves_the_up_gender_age_and_category_orders(real_client):
+    order = real_client.get("/presentation/Uttar Pradesh").json()["rowOrder"]
+    assert order["gender"] == ["Male", "Female"]
+    assert order["age_group"] == ["18-23", "24-35", "36-50", "51-60", "60+"]
+    assert order["category"] == ["GEN", "Yadav", "NY-OBC", "Jatav", "NJ-SC/ST", "Muslim"]
+
+
+def test_get_presentation_rules_for_state(real_client):
+    client = real_client
     res = client.get("/presentation/Uttar Pradesh")
     assert res.status_code == 200
     data = res.json()

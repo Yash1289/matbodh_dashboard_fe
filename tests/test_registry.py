@@ -188,3 +188,42 @@ def test_seed_config_loads():
         "party_zone", ["Rohilkhand", "Bundelkhand"], states=["Uttar Pradesh"]
     )
     assert zones == ["Bundelkhand", "Rohilkhand"]
+
+
+GLOBAL_RULES = """\
+rules:
+  - field: party
+    order: [NDA, SP+]
+    pin_last: [Other]
+    colours: {NDA: "#f90"}
+  - field: gender
+    order: [Male, Female]
+"""
+STATE_RULES = """\
+rules:
+  - field: gender
+    scope: {state: Uttar Pradesh}
+    order: [Female]
+  - field: party
+    scope: {state: Uttar Pradesh}
+    colours: {SP+: "#e11"}
+"""
+
+
+def test_presentation_body_merges_global_then_state_and_reads_any_state_spelling(tmp_path):
+    (tmp_path / "global.yaml").write_text(GLOBAL_RULES, encoding="utf-8")
+    (tmp_path / "uttar-pradesh.yaml").write_text(STATE_RULES, encoding="utf-8")
+    rules = load_rules(tmp_path)
+    for spelling in ("Uttar Pradesh", "uttar-pradesh"):
+        body = rules.presentation(spelling)
+        assert body["rowOrder"] == {"gender": ["Female"]}
+        assert body["columnOrder"] == ["NDA", "SP+"] and body["pinLast"] == ["Other"]
+        assert body["entityColors"] == {"NDA": "#f90", "SP+": "#e11"}
+    other = rules.presentation("Bihar")
+    assert other["rowOrder"] == {"gender": ["Male", "Female"]} and other["entityColors"] == {"NDA": "#f90"}
+
+
+def test_a_rule_file_mistake_names_the_file_entry_and_key(tmp_path):
+    (tmp_path / "bad.yaml").write_text("rules:\n  - field: gender\n    colors: {}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"bad\.yaml\[0\].*colors"):
+        load_rules(tmp_path)

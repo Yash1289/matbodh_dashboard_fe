@@ -97,6 +97,10 @@ def _natural_key(value: str) -> list[str | int]:
     return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", value.casefold())]
 
 
+def _slug(state: str) -> str:
+    return state.strip().lower().replace(" ", "-")
+
+
 def _dedupe(items: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(items))
 
@@ -196,6 +200,26 @@ class RuleSet:
         return sum(
             1 for v in _dedupe(values) if any(_matches(h, v) for h in patterns)
         )
+
+    def presentation(self, state: str) -> dict:
+        """The body of GET /api/presentation/{state}. Global rules first, then the state's, so a state's rule wins.
+
+        Party rules give the column order, the pinned-last parties and the colours; every other field gives a row
+        order. A setting no rule defines is left out (None / empty) for the caller to default.
+        """
+        mine = sorted((r for r in self.rules if r.state is None or _slug(r.state) == _slug(state)),
+                      key=lambda r: r.state is not None)
+        party = [r for r in mine if r.field == "party"]
+        colours: dict[str, str] = {}
+        for rule in party:
+            colours.update(rule.colours)
+        return {
+            "state": state,
+            "rowOrder": {r.field: list(r.order) for r in mine if r.field != "party" and r.order},
+            "columnOrder": next((list(r.order) for r in reversed(party) if r.order), None),
+            "pinLast": next((list(r.pin_last) for r in reversed(party) if r.pin_last is not None), None),
+            "entityColors": colours,
+        }
 
     def label(self, field: str, value: str, state: str | None = None) -> str:
         scopes = (state, None) if state else (None,)
