@@ -227,3 +227,18 @@ def test_a_rule_file_mistake_names_the_file_entry_and_key(tmp_path):
     (tmp_path / "bad.yaml").write_text("rules:\n  - field: gender\n    colors: {}\n", encoding="utf-8")
     with pytest.raises(ValueError, match=r"bad\.yaml\[0\].*colors"):
         load_rules(tmp_path)
+
+
+WITHIN_RULES = """\
+rules:
+  - field: caste
+    order: [Thakur]
+  - field: caste
+    within: GEN
+    order: [Brahmin]
+"""
+
+
+def test_presentation_row_order_ignores_a_rule_that_applies_only_within_a_parent(tmp_path):
+    (tmp_path / "global.yaml").write_text(WITHIN_RULES, encoding="utf-8")
+    assert load_rules(tmp_path).presentation("Uttar Pradesh")["rowOrder"] == {"caste": ["Thakur"]}

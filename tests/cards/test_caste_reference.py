@@ -75,3 +75,20 @@ def test_extra_observation_rows_are_dropped_from_a_surveys_result():
 def test_club_small_castes_defaults_on_in_every_family_that_offers_it():
     offered = [f for d in descriptors() for f in d.fields if f.path == "caste_clubbing"]
     assert offered and all(f.default is True for f in offered)
+
+
+def _catalogue_where_r3_lacks(field):
+    rows, levels = [], []
+    for i, name in enumerate((R1, R2, R3), 1):
+        fields = [f for f in FIELDS if not (name == R3 and f == field)]
+        rows.append(dataset_row(name, round_number=i, level="ac", available_fields=fields, available_scenarios=[*SCENARIOS]))
+        levels.append(level_row(name, range(1, 381)))
+    return load_catalogue(make_query(rows, levels))
+
+
+def test_anchor_read_only_as_the_reference_must_have_every_field_the_card_cuts_by():
+    # Surveys R1 and R2 have age_group; the anchor R3 (not a chosen survey) does not.
+    plan = compile_card(_config(surveys=[R1, R2], cuts=[["age_group", "caste"]], caste_clubbing=True),
+                        _ctx(), _catalogue_where_r3_lacks("age_group"), PRESET)
+    assert plan.jobs == ()
+    assert any(R3 in reason and "age_group" in reason for _, reason in plan.unavailable)

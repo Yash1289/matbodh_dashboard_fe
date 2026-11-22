@@ -176,13 +176,14 @@ def _comparisons(config: CardConfig, selection: _Selection) -> list[dict]:
     ]
 
 
-def _clubbing_blockers(config: CardConfig, selection: _Selection, anchor_round, anchor: str) -> list[str]:
+def _clubbing_blockers(config: CardConfig, selection: _Selection, anchor_round, anchor: str, fields) -> list[str]:
     """Why the anchor round cannot be the caste reference of every round the card reads; empty when it can."""
     lead = f"Club small castes uses the anchor survey {anchor}, which"
     if anchor_round is None:  # a chosen set of surveys left it out
         return [f"{lead} this card does not read; include it, or switch clubbing off"]
     reasons = []
-    gone = [f for f in ("category", "caste") if not field_available(anchor_round.dataset, f)]
+    # The anchor is read for every job, so it needs every field the card cuts or filters by, not only category and caste.
+    gone = [f for f in dict.fromkeys(["category", "caste", *fields]) if not field_available(anchor_round.dataset, f)]
     if gone:
         reasons.append(f"{lead} has no {' or '.join(gone)}")
     several = config.comparison.mode == "standalone" and len(config.surveys) > 1
@@ -291,7 +292,7 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
     anchor_round = _by_base_name(rounds, anchor)
     # Caste clubbing is keyed to the anchor round for every round the card reads, so all columns share one
     # set of separate and grouped-up castes.
-    clubbing_blockers = _clubbing_blockers(config, selection, anchor_round, anchor) if config.caste_clubbing else []
+    clubbing_blockers = _clubbing_blockers(config, selection, anchor_round, anchor, fields) if config.caste_clubbing else []
     if clubbing_blockers:
         unavailable.extend((GRID, reason) for reason in clubbing_blockers)
         return plan()

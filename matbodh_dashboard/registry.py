@@ -215,7 +215,8 @@ class RuleSet:
             colours.update(rule.colours)
         return {
             "state": state,
-            "rowOrder": {r.field: list(r.order) for r in mine if r.field != "party" and r.order},
+            # A rule that applies only within one parent value orders that parent's children, not the whole field.
+            "rowOrder": {r.field: list(r.order) for r in mine if r.field != "party" and r.order and r.within is None},
             "columnOrder": next((list(r.order) for r in reversed(party) if r.order), None),
             "pinLast": next((list(r.pin_last) for r in reversed(party) if r.pin_last is not None), None),
             "entityColors": colours,
