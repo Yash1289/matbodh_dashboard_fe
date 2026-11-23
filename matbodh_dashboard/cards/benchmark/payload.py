@@ -74,6 +74,7 @@ class BenchmarkPayload(_Strict):
     state: str
     rounds: dict
     reference: dict  # {"kind": "none" | "compare" | "election", "label": str | None}
+    anchor_question: str | None = None  # the card's question, named only when the comparison reads another
     focal_party: str | None
     parties: list[str]  # the major parties; Other is separate
     other_label: str

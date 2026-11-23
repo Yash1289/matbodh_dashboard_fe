@@ -13,6 +13,7 @@ from matbodh_dashboard.cards.configure.options import options_for, rounds_read
 from matbodh_dashboard.catalogue.store import load_catalogue
 from matbodh_dashboard.context import StateContext
 from matbodh_dashboard.presets import load_preset
+from matbodh_dashboard.registry import load_rules
 from tests.fixtures.catalogue_rows import dataset_row, level_row, make_query
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,7 +46,7 @@ def catalogue(level="ac", missing=None, fields_missing=None):
 
 
 def service(cat=None):
-    return SimpleNamespace(catalogue=cat or catalogue(), preset=PRESET, major_parties=FakeParties(),
+    return SimpleNamespace(catalogue=cat or catalogue(), preset=PRESET, major_parties=FakeParties(), rules=load_rules(Path(__file__).resolve().parents[2] / "config" / "presentation"),
                            elections={STATE: [ElectionOption(year=2022, election_type="VS", label="2022 VS")]})
 
 
@@ -59,6 +60,14 @@ def items(source, draft=None, svc=None, context=None, **params):
 
 def values(found):
     return [i.value for i in found if i.disabled_reason is None]
+
+
+def test_comparison_question_lists_the_comparison_surveys_party_questions():
+    svc = service(catalogue(missing={1: ("mla_choice_party",)}))  # R1, the comparison round, did not ask it
+    found = values(items("scenarios", svc=svc, kind="party", **{"in": "compare"}))
+    assert "vs_voting_intention" in found and "mla_choice_party" not in found
+    own = values(items("scenarios", {"compare_round": R2}, svc=svc, kind="party", **{"in": "compare"}))
+    assert "mla_choice_party" in own  # the card's own comparison survey decides, not the context's
 
 
 def test_party_scenarios_follow_q11():
@@ -182,25 +191,23 @@ def test_parties_rank_is_preset_keep():
 
 def test_parties_focal_benchmark_depends_on_reference():
     survey = items("parties", {"family": "seat_benchmark"}, use="focal")
-    assert values(survey) == ["BSP", "NDA", "SP+"]
+    assert values(survey) == ["NDA", "SP+", "BSP"]  # the Uttar Pradesh party rule, not the alphabet
     draft = {"family": "seat_benchmark", "benchmark": {"reference": {"kind": "election", "year": 2022,
                                                                      "election_type": "VS"}}}
     focal = {i.value: i for i in items("parties", draft, use="focal")}
     assert "not mapped for every endpoint" in focal["INDI"].disabled_reason  # the survey has no INDI
     assert focal["NDA"].disabled_reason is None
-    assert values(items("parties", draft, use="contenders")) == ["BSP", "INDI", "NDA", "SP+"]
+    assert values(items("parties", draft, use="contenders")) == ["NDA", "SP+", "BSP", "INDI"]
 
 
 def test_relationship_focal_is_the_survey_mapping():
     assert values(items("parties", {"family": "relationship"}, use="focal")) == ["BSP", "NDA", "SP+"]
 
 
-def test_elections_offer_nothing_the_comparison_round_and_past_elections():
+def test_elections_offer_past_elections_only():
     found = items("elections")
-    assert [i.value for i in found] == ["none", "compare", "election:2022:VS"]
-    assert found[2].label == "2022 VS"
-    no_compare = items("elections", context=ctx(compare=None))
-    assert no_compare[1].disabled_reason is not None
+    assert [i.value for i in found] == ["election:2022:VS"]
+    assert found[0].label == "2022 VS"
 
 
 def test_unknown_source_raises_key_error():

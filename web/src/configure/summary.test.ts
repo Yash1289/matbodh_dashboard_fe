@@ -77,5 +77,7 @@ describe("describeDraft", () => {
       .toBe("Shows how vs_past answers move to vs_voting_intention in R2, split by caste.");
     expect(describeDraft(card({ family: "seat_benchmark", scenarios: ["q"], benchmark: { grouping_sets: [["zone"]] } }), CTX))
       .toBe("Benchmarks q in R2, split by zone.");
+    expect(describeDraft(card({ family: "seat_benchmark", scenarios: ["q"], benchmark: { grouping_sets: [["zone"]], reference_scenario: "other" } }), CTX))
+      .toBe("Benchmarks q against other in R2, split by zone.");
   });
 });

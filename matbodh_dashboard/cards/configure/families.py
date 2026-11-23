@@ -105,8 +105,9 @@ def _survey(label="Survey", *, show_when=None, seat=False) -> FieldDescriptor:
               tier="primary", help="Empty uses the context's anchor round")
 
 
-def _compare_survey(seat=False, show_when=In(path="comparison.mode", values=["compare"])) -> FieldDescriptor:
-    return _f("compare_round", "Compared with survey", "choice", show_when=show_when, options=_options("surveys", seat=seat),
+def _compare_survey(seat=False, show_when=In(path="comparison.mode", values=["compare"]),
+                    label="Compared with survey") -> FieldDescriptor:
+    return _f("compare_round", label, "choice", show_when=show_when, options=_options("surveys", seat=seat),
               help="Empty uses the context's comparison round")
 
 
@@ -199,10 +200,18 @@ def _all() -> tuple[FamilyDescriptor, ...]:
         _family("seat_benchmark", "Seat benchmark",
                 "Seats won and vote share, against the comparison round or a past election.", [
                     _title(), _scenarios("party", multiple=False, show_when=None),
-                    _survey(seat=True), _compare_survey(seat=True, show_when=None),
+                    # Read only when the reference is the comparison round (empty counts as that).
+                    _survey(seat=True), _compare_survey(
+                        seat=True, label="Comparison survey",
+                        show_when=Not(of=In(path="benchmark.reference.kind", values=["election", "none"]))),
                     _f("benchmark.reference", "Compared with", "election_picker", tier="primary",
                        options=_options("elections"),
-                       help="Nothing, the comparison round (when left empty), or a past election"),
+                       help="Empty compares with the context's comparison round; or pick a past election"),
+                    _f("benchmark.reference_scenario", "Comparison question", "scenario_picker",
+                       options=_options("scenarios", kind="party", **{"in": "compare"}),
+                       show_when=Not(of=In(path="benchmark.reference.kind", values=["election", "none"])),
+                       help="Empty reads the comparison survey with this card's question. With the same survey "
+                            "in both fields, another question compares two questions in one survey"),
                     _f("benchmark.grouping_sets", "Group seats by", "cut_builder", tier="primary", default=[[]],
                        limits={"max_items": 8}, options=_options("fields", use="seat_attribute")),
                     _f("benchmark.focal_party", "Focal party", "party_picker",

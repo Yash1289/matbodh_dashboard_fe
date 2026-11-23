@@ -37,8 +37,10 @@ class FakeParties:
 
 
 def _catalogue(level="ac"):
+    # R2 also asked ls_voting_intention; R1 did not.
     rows = [dataset_row(f"2027 VS CAPI R{i}", round_number=i, level=level, available_fields=FIELDS,
-                        available_scenarios=list(SCENARIOS)) for i in (1, 2)]
+                        available_scenarios=[*SCENARIOS, *(["ls_voting_intention"] if i == 2 else [])])
+            for i in (1, 2)]
     levels = [level_row(f"2027 VS CAPI R{i}", range(1, 404)) for i in (1, 2)]
     return load_catalogue(make_query(rows, levels))
 
@@ -105,6 +107,59 @@ def test_default_reference_is_the_compare_round_when_the_context_has_one():
     assert with_compare.config["benchmark"]["reference"]["observation"] == "o1"
     (without,) = _compile(ctx=_ctx(compare=None)).jobs
     assert without.config["benchmark"]["reference"] is None
+
+
+def test_election_reference_ignores_the_contexts_comparison_round_a_card_anchor_collides_with():
+    # The card's own anchor is R1, which is also the context's comparison round.
+    card = _card(anchor_round=R1)
+    election = BenchmarkReference(kind="election", year=2022, election_type="VS")
+    plan = _compile(card=card, reference=election)
+    assert plan.unavailable == ()
+    assert plan.jobs[0].config["benchmark"]["reference"]["source"] == "election"
+    in_config = _card(anchor_round=R1, benchmark={"focal_party": "NDA", "grouping_sets": [[]],
+                                                  "reference": election.model_dump(exclude_none=True)})
+    assert _compile(card=in_config).unavailable == ()
+    # Comparing with the comparison round still needs two different rounds.
+    ((_, reason),) = _compile(card=card, reference=BenchmarkReference(kind="compare")).unavailable
+    assert "anchor round" in reason
+
+
+LS = "ls_voting_intention"
+
+
+def _two_questions(**overrides) -> CardConfig:
+    return _card(benchmark={"focal_party": "NDA", "grouping_sets": [[]], "reference_scenario": LS}, **overrides)
+
+
+def test_comparison_survey_can_be_read_with_another_question():
+    plan = _compile(card=_two_questions(compare_round=R2))  # R2 is also the anchor: two questions in one survey
+    assert plan.unavailable == ()
+    (job,) = plan.jobs
+    assert job.config["benchmark"]["target"] == {"source": "survey", "id": "target", "observation": "o2", "scenario": VS}
+    assert job.config["benchmark"]["reference"] == {"source": "survey", "id": "reference", "observation": "o2",
+                                                    "scenario": LS}
+    assert job.config["request"]["scenarios"] == [VS, LS]
+    assert [o["id"] for o in job.config["request"]["observations"]] == ["o2"]
+
+
+def test_the_same_question_in_the_same_survey_is_still_refused():
+    ((_, reason),) = _compile(card=_card(compare_round=R2)).unavailable
+    assert "anchor round" in reason
+
+
+def test_a_question_the_comparison_survey_did_not_ask_is_unavailable():
+    ((_, reason),) = _compile(card=_two_questions()).unavailable  # the context compares with R1, which lacks it
+    assert LS in reason and R1 in reason
+
+
+@pytest.mark.parametrize("benchmark, field", [
+    ({"reference_scenario": "cm_satisfaction"}, "benchmark.reference_scenario"),  # not a party question
+    ({"reference_scenario": LS, "reference": {"kind": "election", "year": 2022, "election_type": "VS"}},
+     "benchmark.reference_scenario"),  # an election has no questions to choose
+])
+def test_comparison_question_must_be_a_party_question_on_a_survey_reference(benchmark, field):
+    with pytest.raises(ValueError, match="compared question|survey reference"):
+        _card(benchmark={"focal_party": "NDA", "grouping_sets": [[]], **benchmark})
 
 
 @pytest.mark.parametrize("kwargs, expected", [

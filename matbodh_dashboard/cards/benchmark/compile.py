@@ -95,14 +95,17 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
     if scenario not in target.dataset.scenarios:
         unavailable.append((GRID, f"Scenario {scenario!r} was not asked in {anchor}"))
     reference_round = None
+    # The comparison survey may be read with another question; with the same survey that compares two questions.
+    question = (config.benchmark.reference_scenario or scenario) if ref.kind == "compare" else scenario
     if ref.kind == "compare":
         reference_round, error = _endpoint_round("compare", rounds, anchor, ctx)
         if error:
             unavailable.append((GRID, error))
-        elif reference_round.obs_id == target.obs_id:
-            unavailable.append((GRID, "The comparison round is the anchor round; choose a different one"))
-        elif scenario not in reference_round.dataset.scenarios:
-            unavailable.append((GRID, f"Scenario {scenario!r} was not asked in "
+        elif reference_round.obs_id == target.obs_id and question == scenario:
+            unavailable.append((GRID, "The comparison round is the anchor round; choose a different one, "
+                                      "or compare with another question"))
+        elif question not in reference_round.dataset.scenarios:
+            unavailable.append((GRID, f"Scenario {question!r} was not asked in "
                                       f"{reference_round.identity.base_name}"))
     elif ref.kind == "election" and not any(
             (o.year, o.election_type) == (ref.year, ref.election_type)
@@ -151,12 +154,13 @@ def compile_benchmark_card(config: CardConfig, ctx: StateContext, catalogue: Cat
         }
     elif reference_round is not None:
         reference_endpoint = {"source": "survey", "id": "reference",
-                              "observation": reference_round.obs_id, "scenario": scenario}
+                              "observation": reference_round.obs_id, "scenario": question}
     else:
         reference_endpoint = None
     wanted = {target.obs_id, *([reference_round.obs_id] if reference_round else [])}
     request = build_request(state=ctx.state, rounds=[r for r in rounds if r.obs_id in wanted],
-                            scenarios=[scenario], grouping_sets=[], preset=preset, keep=majors)
+                            scenarios=list(dict.fromkeys([scenario, question])), grouping_sets=[], preset=preset,
+                            keep=majors)
     benchmark = {
         # Not the card id: cards that differ only in their view must share one fingerprint.
         "id": "benchmark", "seat_level": level,

@@ -51,7 +51,8 @@ export function describeDraft(draft: CardConfigJson, ctx: StateContext): string 
   }
   if (draft.family === "seat_benchmark") {
     if (!some(draft.scenarios)) return null;
-    return `Benchmarks ${list(draft.scenarios)} in ${when}, ${cutsText(draft.benchmark?.grouping_sets)}.`;
+    const other = draft.benchmark?.reference_scenario;
+    return `Benchmarks ${list(draft.scenarios)}${other ? ` against ${other}` : ""} in ${when}, ${cutsText(draft.benchmark?.grouping_sets)}.`;
   }
   if (!some(draft.scenarios)) return null;
   return `Shows ${list(draft.scenarios)} in ${when}, ${cutsText(draft.cuts)}${filtersText(draft.filters)}.`;

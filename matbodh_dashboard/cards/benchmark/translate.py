@@ -33,13 +33,15 @@ def _slim(value: Any) -> Any:
     return copy.deepcopy(value)
 
 
-def _reference(spec: Mapping[str, Any] | None, context: TranslateContext) -> dict:
+def _reference(spec: Mapping[str, Any] | None, context: TranslateContext, target_question: str | None = None) -> dict:
     if spec is None:
         return {"kind": "none", "label": None}
     if spec["source"] == "election":
         c = spec["context"]
         return {"kind": "election", "label": f"{c['year']} {c['election_type']}"}
-    return {"kind": "compare", "label": context.labels.get(spec["observation"], spec["observation"])}
+    label = context.labels.get(spec["observation"], spec["observation"])
+    # Another question on the comparison survey: name it, or the two sides would read the same.
+    return {"kind": "compare", "label": label if spec["scenario"] == target_question else f"{label} · {spec['scenario']}"}
 
 
 def translate_benchmark(card: CardConfig, result: Mapping[str, Any], job_config: Mapping[str, Any],
@@ -97,8 +99,14 @@ def translate_benchmark(card: CardConfig, result: Mapping[str, Any], job_config:
 
     return BenchmarkPayload(
         family=card.family, card_id=context.card_id, state=context.state, rounds=context.rounds,
-        reference=_reference(reference_spec, context), focal_party=focal,
-        parties=list(benchmark["contenders"]), other_label=other_label,
+        reference=_reference(reference_spec, context, benchmark["target"]["scenario"]),
+        anchor_question=(benchmark["target"]["scenario"] if reference_spec is not None
+                         and reference_spec.get("scenario", benchmark["target"]["scenario"])
+                         != benchmark["target"]["scenario"] else None),
+        focal_party=focal,
+        # The party rule's order (Uttar Pradesh: NDA, SP+, BSP, ...); the rows and Summary columns follow this list.
+        parties=context.rules.order("party", benchmark["contenders"], states=[context.state]),
+        other_label=other_label,
         endpoint_parties={s: sorted(p) for s, p in endpoint_parties.items()},
         tables_available=available, default_table=default,
         comparisons=comparisons, summaries=summaries,

@@ -31,7 +31,8 @@ EXPECTED = {
                      "rank.partition_by", "rank.filters", "rank.top_k", "pipe_rounds"},
     "demographic_ranking": {*SURVEY, "title", "scenarios", *COMPARE, "rank.level", "rank.metric", "rank.party_id",
                             "rank.partition_by", "rank.top_k", "filters", "pipe_rounds"},
-    "seat_benchmark": {*SURVEY, "title", "scenarios", "benchmark.reference", "benchmark.focal_party",
+    "seat_benchmark": {*SURVEY, "title", "scenarios", "benchmark.reference", "benchmark.reference_scenario",
+                       "benchmark.focal_party",
                        "benchmark.grouping_sets", "benchmark.contenders"},
     "relationship": {"title", "relationship.origin", "relationship.destination", "relationship.focal_party",
                      "relationship.include_recalled.origin", "relationship.include_recalled.destination",
@@ -136,6 +137,13 @@ def test_normative_conditions():
             {"op": "equals", "path": "comparison.mode", "value": "trend"},
             {"op": "not", "of": {"op": "nonempty", "path": "surveys"}}]}
     assert dumped("relationship", "pipe_rounds") is None  # every round is its own matrix
+
+
+def test_benchmark_comparison_survey_shows_only_when_the_reference_reads_it():
+    # Empty reference means the comparison round; an election or "nothing" never reads a comparison survey.
+    assert field("seat_benchmark", "compare_round").label == "Comparison survey"
+    assert dumped("seat_benchmark", "compare_round") == {"op": "not", "of": {
+        "op": "in", "path": "benchmark.reference.kind", "values": ["election", "none"]}}
 
 
 def test_seat_type_is_never_offered():

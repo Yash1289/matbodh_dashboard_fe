@@ -204,8 +204,18 @@ def compile_card(config: CardConfig, ctx: StateContext, catalogue: Catalogue,
                  cohort=None) -> RunPlan:
     try:
         overridden = card_context(config, ctx)
+        chosen = reference if reference is not None else (config.benchmark.reference if config.benchmark else None)
+        if (config.family in BENCHMARK_FAMILIES and chosen is not None and chosen.kind != "compare"
+                and config.compare_round is None):
+            # An election (or no) reference never reads a comparison round, so the context's must not
+            # collide with this card's own anchor.
+            overridden = overridden.model_copy(update={"compare_round": None})
+        # A benchmark that reads the comparison survey with another question may use the anchor survey for it.
+        two_questions = (config.family in BENCHMARK_FAMILIES and config.benchmark is not None
+                         and config.benchmark.reference_scenario not in (None, config.scenarios[0]))
         if overridden is not ctx:  # the context is valid; its overridden form must be too (e.g. compare != anchor)
-            errors = validate_context(overridden, catalogue)
+            errors = validate_context(
+                overridden.model_copy(update={"compare_round": None}) if two_questions else overridden, catalogue)
             if errors:
                 raise ValueError(errors[0])
         ctx = overridden

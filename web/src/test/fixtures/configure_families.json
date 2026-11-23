@@ -1715,11 +1715,22 @@
    },
    {
     "path": "compare_round",
-    "label": "Compared with survey",
+    "label": "Comparison survey",
     "help": "Empty uses the context's comparison round",
     "widget": "choice",
     "required": false,
     "tier": "more",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "in",
+      "path": "benchmark.reference.kind",
+      "values": [
+       "election",
+       "none"
+      ]
+     }
+    },
     "options": {
      "source": "surveys",
      "params": {
@@ -1732,13 +1743,41 @@
    {
     "path": "benchmark.reference",
     "label": "Compared with",
-    "help": "Nothing, the comparison round (when left empty), or a past election",
+    "help": "Empty compares with the context's comparison round; or pick a past election",
     "widget": "election_picker",
     "required": false,
     "tier": "primary",
     "options": {
      "source": "elections",
      "params": {}
+    },
+    "limits": {},
+    "multiple": false
+   },
+   {
+    "path": "benchmark.reference_scenario",
+    "label": "Comparison question",
+    "help": "Empty reads the comparison survey with this card's question. With the same survey in both fields, another question compares two questions in one survey",
+    "widget": "scenario_picker",
+    "required": false,
+    "tier": "more",
+    "show_when": {
+     "op": "not",
+     "of": {
+      "op": "in",
+      "path": "benchmark.reference.kind",
+      "values": [
+       "election",
+       "none"
+      ]
+     }
+    },
+    "options": {
+     "source": "scenarios",
+     "params": {
+      "kind": "party",
+      "in": "compare"
+     }
     },
     "limits": {},
     "multiple": false

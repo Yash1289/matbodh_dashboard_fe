@@ -93,6 +93,9 @@ class BenchmarkConfig(_Strict):
     grouping_sets: list[list[str]] = Field(default_factory=lambda: [[]])
     # What the survey is compared with; None = the card's own default (the comparison round).
     reference: BenchmarkReference | None = None
+    # The party question the comparison survey is read with; None = the card's own question. Only for a
+    # survey reference. With the same survey on both sides it compares two questions within one round.
+    reference_scenario: str | None = None
     # The parties shown; None = every alliance major. Unlisted majors still compete and win seats.
     contenders: list[str] | None = None
 
@@ -315,6 +318,13 @@ class CardConfig(_Strict):
             _fail("scenarios", "a benchmark card uses exactly one scenario")
         if scenario_kind(self.scenarios[0]) != "party":
             _fail("scenarios", "a benchmark card needs a party scenario")
+        question = self.benchmark.reference_scenario
+        if question is not None:
+            if scenario_kind(question) != "party":
+                _fail("benchmark.reference_scenario", "the compared question must be a party question")
+            reference = self.benchmark.reference
+            if reference is not None and reference.kind != "compare":
+                _fail("benchmark.reference_scenario", "a compared question applies to a survey reference only")
 
     def _check_ranking(self, comparison: ComparisonConfig) -> None:
         rank = self.rank

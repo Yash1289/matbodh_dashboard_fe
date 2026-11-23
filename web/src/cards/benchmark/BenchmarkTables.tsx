@@ -30,7 +30,7 @@ export const count = (v: number | null) => (v === null ? null : String(v));
 export const signed = (v: number | null) => (v === null ? null : `${v > 0 ? "+" : ""}${v}`);
 
 export const anchorLabel = (p: BenchmarkPayload) =>
-  p.rounds.items.find((i) => i.obs_id === p.rounds.anchor)?.label ?? "Survey";
+  `${p.rounds.items.find((i) => i.obs_id === p.rounds.anchor)?.label ?? "Survey"}${p.anchor_question ? ` · ${p.anchor_question}` : ""}`;
 export const referenceLabel = (p: BenchmarkPayload) => p.reference.label ?? "Reference";
 
 const flipText = (bucket: string, t: string, r: string): string =>

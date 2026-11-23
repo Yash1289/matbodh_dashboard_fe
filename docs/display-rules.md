@@ -53,6 +53,7 @@ Values with no value in the data (shown "(no value)") sort last in their level.
 | `global.yaml` | `party` | order NDA, SP+, BSP, Other, Undecided, NOTA; the last three pinned last |
 | `global.yaml` | `gender` | `Other` hidden in every table |
 | `global.yaml` | `caste` | `Other *` pinned last |
+| `uttar-pradesh.yaml` | `party` | order NDA, SP+, BSP (Other stays last from `global.yaml`; any other party, such as INDI from a past election, follows the listed ones). Applies to party columns and to the Seat benchmark's rows, Summary columns and Parties shown / Focal party lists |
 | `uttar-pradesh.yaml` | `gender` | Male, Female |
 | `uttar-pradesh.yaml` | `age_group` | 18-23, 24-35, 36-50, 51-60, 60+ (the labels the UP surveys carry) |
 | `uttar-pradesh.yaml` | `category` | GEN, Yadav, NY-OBC, Jatav, NJ-SC/ST, Muslim |

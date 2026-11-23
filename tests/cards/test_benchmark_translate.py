@@ -114,6 +114,33 @@ def test_tables_available_and_default_table():
     assert with_ref.reference == {"kind": "election", "label": "2022 VS"}
 
 
+def test_another_question_on_the_comparison_survey_is_named_on_both_sides():
+    config = job_config()
+    config["benchmark"]["reference"] = {"source": "survey", "id": FIXTURE_ENDPOINT_IDS["reference"],
+                                        "observation": "o2", "scenario": "ls_voting_intention"}
+    payload = translate(config=config)
+    assert payload.reference == {"kind": "compare", "label": "o2 · ls_voting_intention"}
+    assert payload.anchor_question == VS
+    config["benchmark"]["reference"]["scenario"] = VS  # the same question: the round labels say it all
+    same = translate(config=config)
+    assert same.reference == {"kind": "compare", "label": "o2"} and same.anchor_question is None
+
+
+def test_party_order_follows_the_state_rule_not_the_alphabet():
+    from dataclasses import replace
+    from pathlib import Path
+
+    from matbodh_dashboard.registry import load_rules
+
+    rules = load_rules(Path(__file__).resolve().parents[2] / "config" / "presentation")
+    config = job_config()
+    config["benchmark"]["contenders"] = ["BSP", "INDI", "NDA", "SP+"]
+    ctx = replace(ranked_ctx("benchmark.test", ["o1", "o2"], "o2"), rules=rules)
+    payload = translate_benchmark(card(), load_benchmark_sample(), config, {"target": SURVEY, "reference": SURVEY}, ctx)
+    # NDA, SP+, BSP are listed for Uttar Pradesh; INDI follows them; Other is the payload's own last row.
+    assert payload.parties == ["NDA", "SP+", "BSP", "INDI"]
+
+
 def test_payload_carries_the_majors_other_label_and_no_seat_rows():
     payload = translate()
     dumped = payload.model_dump()

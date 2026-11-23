@@ -1,4 +1,10 @@
 rules:
+  # Party order in Uttar Pradesh until changed; Other stays last (pinned by global.yaml). Any other party,
+  # such as INDI from a past election, follows the listed ones, A to Z.
+  - field: party
+    scope: {state: Uttar Pradesh}
+    order: [NDA, SP+, BSP]
+
   - field: party_zone
     scope: {state: Uttar Pradesh}
     # Seed order: alphabetical (editable later).

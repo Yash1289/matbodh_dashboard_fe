@@ -281,6 +281,7 @@ export interface BenchmarkPayload {
   state: string;
   rounds: RoundsBlock;
   reference: { kind: BenchmarkReference["kind"]; label: string | null };
+  anchor_question?: string | null; // named only when the comparison reads another question
   focal_party: string | null;
   parties: string[]; // the major parties; Other is separate
   other_label: string;
@@ -444,7 +445,7 @@ export interface CardConfigJson {
   } | null;
   benchmark?: {
     focal_party?: string | null; grouping_sets?: string[][]; reference?: BenchmarkReference | null;
-    contenders?: string[] | null;
+    reference_scenario?: string | null; contenders?: string[] | null;
   } | null;
   relationship?: {
     origin?: string; destination?: string; focal_party?: string | null;

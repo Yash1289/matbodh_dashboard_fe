@@ -112,12 +112,15 @@ def _missing(rounds: list[ResolvedRound], present: Callable[[ResolvedRound], boo
 
 def _scenarios(params, draft, ctx, service) -> list[OptionItem]:
     read = rounds_read(draft, ctx, service.catalogue)
-    anchor = _by_name(resolve_rounds(ctx, service.catalogue), resolve_anchor(ctx, service.catalogue))
+    all_rounds = resolve_rounds(ctx, service.catalogue)
+    # `in: compare` lists the comparison survey's questions (a benchmark's comparison question).
+    listed = _by_name(all_rounds, ctx.compare_round if params.get("in") == "compare" and ctx.compare_round
+                      else resolve_anchor(ctx, service.catalogue))
     wanted = params.get("kind", "any")
-    allowed_party = set(party_scenarios_of(anchor.dataset.scenarios))  # Q-11: no external weights
+    allowed_party = set(party_scenarios_of(listed.dataset.scenarios))  # Q-11: no external weights
     catalogue = _scenario_catalogue()
     out = []
-    for scenario in sorted(anchor.dataset.scenarios):
+    for scenario in sorted(listed.dataset.scenarios):
         try:
             kind = scenario_kind(scenario)
         except ValueError:  # not in the engine catalogue: never guessed
@@ -240,7 +243,7 @@ def _parties(params, draft, ctx, service) -> list[OptionItem]:
         return [OptionItem(value=p, label=p) for p in sorted(relationship_majors(ctx.state, preset,
                                                                                service.major_parties))]
     endpoints = benchmark_endpoint_parties(ctx.state, preset, _reference(draft, ctx), service.major_parties)
-    majors = sorted(frozenset().union(*endpoints.values()))
+    majors = service.rules.order("party", frozenset().union(*endpoints.values()), states=[ctx.state])
     out = []
     for party in majors:
         unmapped = use == "focal" and any(party not in names for names in endpoints.values())
@@ -250,15 +253,9 @@ def _parties(params, draft, ctx, service) -> list[OptionItem]:
 
 
 def _elections(params, draft, ctx, service) -> list[OptionItem]:
-    anchor = resolve_anchor(ctx, service.catalogue)
-    no_compare = (None if ctx.compare_round and ctx.compare_round != anchor
-                  else "Choose a comparison round other than the anchor in the context")
-    return [
-        OptionItem(value="none", label="Nothing"),
-        OptionItem(value="compare", label="The comparison round", disabled_reason=no_compare),
-        *(OptionItem(value=f"election:{o.year}:{o.election_type}", label=o.label)
-          for o in service.elections.get(ctx.state, ())),
-    ]
+    """Past elections only; leaving the picker empty compares with the context's comparison round."""
+    return [OptionItem(value=f"election:{o.year}:{o.election_type}", label=o.label)
+            for o in service.elections.get(ctx.state, ())]
 
 
 SOURCES: dict[str, Callable[..., list[OptionItem]]] = {

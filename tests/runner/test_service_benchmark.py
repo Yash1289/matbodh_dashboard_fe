@@ -57,7 +57,7 @@ def test_benchmark_card_runs_one_job_and_assembles_a_payload(rules, cache):
     assert status.state == "done", status.errors
     assert len(runner.calls) == 1
     assert status.result["kind"] == "benchmark" and status.result["default_table"] == "comparison"
-    assert status.result["parties"] == ["BSP", "INDI", "NDA", "SP+"]
+    assert status.result["parties"] == ["NDA", "SP+", "BSP", "INDI"]  # the Uttar Pradesh party rule
     assert status.result["reference"] == {"kind": "election", "label": "2022 VS"}
 
 

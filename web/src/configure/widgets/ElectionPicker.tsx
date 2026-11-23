@@ -14,14 +14,14 @@ const toReference = (v: string): BenchmarkReference | undefined => {
   return { kind: "election", year: Number(year), election_type: type as "LS" | "VS" };
 };
 
-/** Nothing, the comparison round (the default when left empty), or a past election. */
+/** A past election, or empty for the context's comparison round. */
 export function ElectionPicker({ field, value, onChange, draft, ctx, error }: WidgetProps) {
   const options = useOptions(field.options?.source ?? "elections", asParams(field), draft, ctx);
   return (
     <NativeSelect {...rowProps} label={field.label} description={field.help} error={error}
       value={toValue(value as BenchmarkReference | undefined)}
       onChange={(e) => onChange(toReference(e.currentTarget.value))}
-      data={[{ value: "", label: "Default (the comparison round)" },
+      data={[{ value: "", label: "Context's comparison round" },
         ...(options.data ?? []).map((o) => ({ value: o.value, label: optionLabel(o), disabled: o.disabled_reason !== null }))]} />
   );
 }
