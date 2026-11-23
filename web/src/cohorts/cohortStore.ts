@@ -34,6 +34,13 @@ export function setCohort(state: string, cohort: CohortRef): void {
   emit();
 }
 
+/** A new name for the cohort of a state; the seats stay. A blank name changes nothing. */
+export function renameCohort(state: string, label: string): void {
+  const held = getCohort(state);
+  const next = label.trim().slice(0, 120);
+  if (held !== null && next !== "") setCohort(state, { ...held, label: next });
+}
+
 export function clearCohort(state: string): void {
   memory.delete(state);
   try {

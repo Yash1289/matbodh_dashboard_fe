@@ -173,6 +173,15 @@ describe("payloadToGrid for a cascaded payload and the Pop % column", () => {
     expect(g.cells["age_group=18-23"].__pop).toBeUndefined();
   });
 
+  it("has no Pop % column when the shares belong to rows the table no longer shows", () => {
+    // Several questions turn the answers into the rows; the engine's shares stay with the old "overall" row.
+    const answers = { ...cut("g0", [], [["NDA", { answer: "NDA" }, 40], ["SP+", { answer: "SP+" }, 41]]),
+      population: [{ row: "overall", value: 100, status: "available" }] };
+    const g = payloadToGrid(payload([answers]), { lens: "support_share", cut: "g0" });
+    expect(g.columns.map((c) => c.key)).toEqual(["p"]);
+    expect(g.cells.NDA.__pop).toBeUndefined();
+  });
+
   it("has no Pop % column for a family that returns no populations", () => {
     const g = payloadToGrid(payload([AGE], false), { lens: "support_share", cut: "g0" });
     expect(g.columns.map((c) => c.key)).toEqual(["p"]);

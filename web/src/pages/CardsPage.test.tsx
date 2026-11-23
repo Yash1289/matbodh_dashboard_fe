@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CardConfigJson } from "../api/types";
 import { _dropWorkspaceMemory, workspaceStore } from "../canvas/workspaceStore";
+import { clearCohort, setCohort } from "../cohorts/cohortStore";
 import { _dropMemory, cardStore } from "../configure/cardStore";
 import { CONTEXT_QUERY, PAYLOADS, RANKED, RELATIONSHIP, seedStoredCards, stubCardApi } from "../test/cardApi";
 import { renderWithProviders } from "../test/render";
@@ -29,6 +30,22 @@ describe("CardsPage", () => {
     renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
     for (const p of payloads) expect(await screen.findByRole("heading", { name: `Card ${p.card_id}` })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole("table")).toHaveLength(3));
+  });
+
+  it("runs the main tab's cards on the whole state while a cohort exists: the cohort belongs to its own page", async () => {
+    const payload = PAYLOADS.distributionStandalone();
+    const api = stubCardApi({ payloads: [payload] });
+    seedStoredCards(STATE, [payload]);
+    setCohort(STATE, { seat_level: "ac", seat_ids: [3, 12], label: "Top 2 AC", created_at: "2026-11-18T00:00:00Z" });
+    try {
+      renderWithProviders(<CardsPage />, { route: `/${CONTEXT_QUERY}` });
+      expect(await screen.findByRole("heading", { name: `Card ${payload.card_id}` })).toBeInTheDocument();
+      const runs = api.mock.calls.filter(([url]) => String(url) === "/api/cards/run" || String(url) === "/api/cards/plan");
+      expect(runs.length).toBeGreaterThan(0);
+      for (const [, init] of runs) expect(JSON.parse(String(init!.body)).context.cohort ?? null).toBeNull();
+    } finally {
+      clearCohort(STATE);
+    }
   });
 
   it("routes ranking families to the ranking card and grid families to the grid card", async () => {

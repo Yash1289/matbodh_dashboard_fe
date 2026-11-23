@@ -91,4 +91,28 @@ describe("CohortTab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Clear cohort" }));
     expect(await screen.findByText(/No cohort is active/)).toBeInTheDocument();
   });
+
+  it("is a canvas of its own: the first card is started for the analyst and more can be added", async () => {
+    stubCardApi({ payloads: [overall()] });
+    setCohort(STATE, COHORT);
+    renderWithProviders(<CohortTab />, { route: `/cohort${CONTEXT_QUERY}` });
+    expect(await screen.findByRole("button", { name: "Add card" })).toBeInTheDocument();
+    expect(screen.queryByText(/not configured/i)).not.toBeInTheDocument();
+    const { workspaceStore, COHORT_TAB_ID } = await import("../canvas/workspaceStore");
+    expect(workspaceStore.get(STATE).tabs.some((t) => t.id === COHORT_TAB_ID)).toBe(false); // never listed among the tabs
+    const stored = JSON.parse(localStorage.getItem(`mb.workspace.${STATE}`)!) as { tabs: { id: string; items: unknown[] }[] };
+    expect(stored.tabs.find((t) => t.id === COHORT_TAB_ID)!.items).toHaveLength(1); // started once, not once per render
+  });
+
+  it("renames the cohort on its page, keeping the seats", async () => {
+    stubCardApi({ payloads: [overall()] });
+    setCohort(STATE, COHORT);
+    renderWithProviders(<CohortTab />, { route: `/cohort${CONTEXT_QUERY}` });
+    await userEvent.click(await screen.findByRole("button", { name: "Rename" }));
+    const box = screen.getByRole("textbox", { name: "Cohort name" });
+    await userEvent.clear(box);
+    await userEvent.type(box, "Swing seats{Enter}");
+    expect(await screen.findByText("Swing seats")).toBeInTheDocument();
+    expect(screen.getByText(/2 AC seats/)).toBeInTheDocument();
+  });
 });

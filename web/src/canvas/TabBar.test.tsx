@@ -160,9 +160,10 @@ describe("TabBar", () => {
 
   describe("the session cohort", () => {
     const COHORT = { label: "Top 2 AC", open: false };
-    function WithCohort({ open = false, onOpen = () => {}, onSelect = () => {} }: { open?: boolean; onOpen?(): void; onSelect?(): void }) {
+    function WithCohort({ open = false, onOpen = () => {}, onSelect = () => {}, onRename = () => {}, onClear = () => {}, label = COHORT.label }:
+      { open?: boolean; onOpen?(): void; onSelect?(): void; onRename?(name: string): void; onClear?(): void; label?: string }) {
       const workspace = useWorkspace(STATE);
-      return <TabBar state={STATE} workspace={workspace} onSelect={onSelect} cohort={{ ...COHORT, open, onOpen }} />;
+      return <TabBar state={STATE} workspace={workspace} onSelect={onSelect} cohort={{ label, open, onOpen, onRename, onClear }} />;
     }
 
     it("is a sub-tab right under the active tab only", () => {
@@ -170,7 +171,7 @@ describe("TabBar", () => {
       workspaceStore.addTab(STATE);
       workspaceStore.setActiveTab(STATE, workspaceStore.get(STATE).tabs[1].id);
       renderWithProviders(<WithCohort />);
-      expect(tabNames()).toEqual(["Tab 1", "Tab 2", "Cohort · Top 2 AC", "Tab 3"]);
+      expect(tabNames()).toEqual(["Tab 1", "Tab 2", "Top 2 AC", "Tab 3"]);
     });
 
     it("opens the cohort when chosen, and is the selected one (not its parent) while open", async () => {
@@ -192,6 +193,36 @@ describe("TabBar", () => {
       renderWithProviders(<WithCohort open onSelect={() => seen.push("picked")} />);
       await user.click(screen.getByRole("tab", { name: "Tab 1" }));
       expect(seen).toEqual(["picked"]);
+    });
+
+    it("keeps a long name inside the sidebar: the full name is its tooltip, the box cuts it", () => {
+      const long = "Seat benchmark · won in both, margin from 3 to below 12 in the reference";
+      renderWithProviders(<WithCohort label={long} />);
+      const tab = screen.getByRole("tab", { name: `Cohort: ${long}` });
+      expect(tab).toHaveAttribute("title", `Cohort: ${long}`);
+      expect(tab.querySelector("[class*='tabLabel']")).not.toBeNull(); // the label span carries the ellipsis rule
+    });
+
+    it("renames the cohort from the tab's own menu, and clears it", async () => {
+      const user = userEvent.setup();
+      const names: string[] = [];
+      let cleared = 0;
+      renderWithProviders(<WithCohort open onRename={(n) => names.push(n)} onClear={() => { cleared += 1; }} />);
+      await user.click(screen.getByRole("button", { name: "Cohort actions" }));
+      await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+      const box = screen.getByRole("textbox", { name: "Cohort name" });
+      expect(box).toHaveValue("Top 2 AC");
+      await user.clear(box);
+      await user.type(box, "Swing seats{Enter}");
+      expect(names).toEqual(["Swing seats"]);
+      await user.click(screen.getByRole("button", { name: "Cohort actions" }));
+      await user.click(await screen.findByRole("menuitem", { name: "Clear cohort" }));
+      expect(cleared).toBe(1);
+    });
+
+    it("has no menu until the cohort page is open", () => {
+      renderWithProviders(<WithCohort />);
+      expect(screen.queryByRole("button", { name: "Cohort actions" })).toBeNull();
     });
 
     it("is absent without a cohort", () => {

@@ -121,7 +121,7 @@ describe("shell", () => {
       renderWithProviders(<AppRoutes />, { route: `/${CONTEXT_QUERY}` });
       const nav = screen.getByRole("navigation", { name: "Tabs" });
       await user.click(within(nav).getByRole("tab", { name: /^Cohort/ }));
-      expect(await screen.findByRole("heading", { level: 1, name: "Cohort" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { level: 1, name: "Top 2 AC" })).toBeInTheDocument(); // the cohort's own name
       expect(within(nav).getByRole("tab", { name: /^Cohort/ })).toHaveAttribute("aria-selected", "true");
       await user.click(within(nav).getByRole("tab", { name: "Tab 1" }));
       expect(await screen.findByRole("heading", { level: 1, name: "Tab 1" })).toBeInTheDocument();

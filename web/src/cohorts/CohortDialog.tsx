@@ -1,12 +1,17 @@
-import { Alert, Button, Group, Modal, NativeSelect, NumberInput, Stack, Text } from "@mantine/core";
+import { Alert, Button, Group, Modal, NumberInput, Stack, Text, TextInput } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError, getRun } from "../api/client";
-import type { BenchmarkReference, CardRef, CohortPreview, SelectionPredicate, StateContext } from "../api/types";
+import type { BenchmarkReference, CardRef, CohortPreview, StateContext } from "../api/types";
 import { startPreview } from "./cohortApi";
 import { chipStyle } from "../cards/PopoverChip";
 import { setCohort } from "./cohortStore";
+import styles from "./cohort.module.css";
+import {
+  CHANGE, NO_BENCHMARK_CHOICE, NO_RANKING_CHOICE, STANDING, benchmarkPredicate, cohortName, describeBenchmark, describeRanking,
+  rankingPredicate, type BenchmarkChoice, type Outcome, type OutcomeOption, type RankingChoice,
+} from "./selection";
 
 const POLL_MS = 1500;
 const MAX_LISTED = 40;
@@ -18,40 +23,39 @@ interface Props {
   kind: "ranking" | "benchmark";
   ctx: StateContext;
   reference: BenchmarkReference | null;
-  /** A flip compares two endpoints, so it is offered only when the card has a reference. */
+  /** A flip compares two surveys, so it is offered only when the card has a reference. */
   hasReference: boolean;
   cardTitle: string;
 }
 
 const message = (e: unknown) => (e instanceof ApiError ? e.errors.join("; ") || e.message : e instanceof Error ? e.message : String(e));
-const num = (v: number | string): number | undefined => (v === "" ? undefined : Number(v));
-const describe = (p: SelectionPredicate) =>
-  Object.entries(p).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(", ");
 
-const FLIPS = [["", "Any"], ["gain", "Gain"], ["loss", "Loss"], ["winning_both", "Winning in both"], ["losing_both", "Losing in both"]];
+/** One chip over a real radio button: native keyboard and screen-reader behaviour, the app's chip look. */
+function Choice({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange(): void }) {
+  return (
+    <label className={styles.choice} style={chipStyle(checked)}>
+      <input type="radio" name={name} value={value} checked={checked} onChange={onChange} />
+      {label}
+    </label>
+  );
+}
 
-/** Picks the selection for a seat ranking or benchmark card, previews the seat list, and keeps it as the session cohort. */
+/** Picks the seats of a seat ranking or benchmark card, finds them, and keeps them as the session cohort. */
 export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasReference, cardTitle }: Props) {
   const navigate = useNavigate();
   const { search } = useLocation();
-  const [fields, setFields] = useState<Record<string, number | string>>({});
+  const [bench, setBench] = useState<BenchmarkChoice>(NO_BENCHMARK_CHOICE);
+  const [rank, setRank] = useState<RankingChoice>(NO_RANKING_CHOICE);
+  const [name, setName] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
-  const field = (name: string) => fields[name] ?? "";
-  const edit = (name: string) => (value: number | string) => {
-    setFields((f) => ({ ...f, [name]: value }));
-    setRunId(null); // a changed selection makes the previous preview stale
-    setStartError(null);
-  };
+  /** A changed selection makes the previous result stale. */
+  const changed = () => { setRunId(null); setStartError(null); };
+  const editBench = (patch: Partial<BenchmarkChoice>) => { setBench((b) => ({ ...b, ...patch })); changed(); };
+  const editRank = (patch: Partial<RankingChoice>) => { setRank((r) => ({ ...r, ...patch })); changed(); };
 
-  const raw: Record<string, number | string | undefined> = kind === "ranking"
-    ? { rank_max: num(field("rank_max")), metric_min: num(field("metric_min")), metric_max: num(field("metric_max")) }
-    : {
-      endpoint: field("endpoint") || undefined, status: field("status") || undefined,
-      margin_min: num(field("margin_min")), margin_max: num(field("margin_max")),
-      flip: hasReference ? field("flip") || undefined : undefined,
-    };
-  const predicate = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== undefined)) as SelectionPredicate;
+  const predicate = kind === "ranking" ? rankingPredicate(rank) : benchmarkPredicate(bench, hasReference);
+  const what = kind === "ranking" ? describeRanking(rank) : describeBenchmark(bench, hasReference);
   const empty = Object.keys(predicate).length === 0;
 
   const run = useQuery({
@@ -64,76 +68,124 @@ export function CohortDialog({ opened, onClose, card, kind, ctx, reference, hasR
   const failure = startError ?? (run.isError ? message(run.error) : null)
     ?? (run.data?.state === "failed" ? Object.values(run.data.errors).map((e) => e.message).join("; ") : null);
   const running = runId !== null && preview === null && failure === null;
+  const found = preview !== null && preview.count > 0;
 
   const preparePreview = () => {
     setStartError(null);
     startPreview(card, ctx, predicate, reference).then(setRunId, (e: unknown) => setStartError(message(e)));
   };
 
+  const defaultName = cohortName(cardTitle, what);
   const use = () => {
     if (preview === null || preview.count === 0) return;
     setCohort(ctx.state, {
       seat_level: preview.seat_level, seat_ids: preview.seat_ids,
-      label: `${cardTitle} · ${describe(predicate)}`.slice(0, 120), created_at: new Date().toISOString(),
+      label: (name?.trim() || defaultName).slice(0, 120), created_at: new Date().toISOString(),
     });
     onClose();
     navigate({ pathname: "/cohort", search });
   };
 
+  const picked = [...STANDING, ...CHANGE].find((o) => o.value === bench.outcome);
+  const outcome = (o: OutcomeOption) => (
+    <Choice key={o.value} name="cohort-outcome" value={o.value} label={o.label} checked={bench.outcome === o.value}
+      onChange={() => editBench({ outcome: o.value })} />
+  );
+  const readIn: { value: BenchmarkChoice["readIn"]; label: string }[] = [{ value: "target", label: "This survey" }, { value: "reference", label: "The reference" }];
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Make cohort" centered>
-      <Stack gap="sm">
-        <Text size="sm" c="var(--mb-muted)">
-          Selects seats from this card&apos;s own result, in the whole state. The list is kept for this session only.
-        </Text>
-        <div data-testid="cohort-source" style={{ padding: "10px 12px", borderRadius: 10, background: "var(--mb-header-bg)", border: "1px solid var(--mb-border)" }}>
-          <Text size="xs" fw={600} c="var(--mb-muted)" mb={4}>Taken from this card</Text>
-          <Group gap={6}>
-            <span style={chipStyle(false)}>{cardTitle}</span>
-            <span style={chipStyle(false)}>{kind === "ranking" ? "Seat ranking" : hasReference ? "Seat benchmark with a reference" : "Seat benchmark"}</span>
-          </Group>
+    <Modal opened={opened} onClose={onClose} title="Make a cohort" centered>
+      <Stack gap="md">
+        <div data-testid="cohort-source">
+          <Text size="sm" c="var(--mb-muted)">
+            Taken from <b>{cardTitle}</b> ({kind === "ranking" ? "seat ranking" : hasReference ? "seat benchmark with a reference" : "seat benchmark"}),
+            across the whole state. The seats are kept for this session only.
+          </Text>
         </div>
+
         {kind === "ranking" ? (
           <>
-            <NumberInput label="Top N in each group" min={1} allowDecimal={false} value={field("rank_max")} onChange={edit("rank_max")}
-              description="Seats tied at the cut-off are included." />
-            <Group grow>
-              <NumberInput label="Metric at least" value={field("metric_min")} onChange={edit("metric_min")} />
-              <NumberInput label="Metric below" value={field("metric_max")} onChange={edit("metric_max")} />
-            </Group>
+            <NumberInput label="Top N in each group" min={1} allowDecimal={false} value={rank.rankMax}
+              onChange={(v) => editRank({ rankMax: v === "" ? "" : Number(v) })} description="Seats tied at the cut-off are included." />
+            <div className={styles.step} role="group" aria-label="Metric range">
+              <span className={styles.legend}>Metric range</span>
+              <div className={styles.range}>
+                <NumberInput label="Metric at least" value={rank.metricMin} onChange={(v) => editRank({ metricMin: v === "" ? "" : Number(v) })} />
+                <span className={styles.to} aria-hidden>to</span>
+                <NumberInput label="Metric below" value={rank.metricMax} onChange={(v) => editRank({ metricMax: v === "" ? "" : Number(v) })} />
+              </div>
+            </div>
           </>
         ) : (
           <>
-            <NativeSelect label="Status" value={String(field("status"))} onChange={(e) => edit("status")(e.currentTarget.value)}
-              data={[{ value: "", label: "Any" }, { value: "winning", label: "Winning" }, { value: "losing", label: "Losing" }]} />
-            <NativeSelect label="Endpoint" value={String(field("endpoint"))} onChange={(e) => edit("endpoint")(e.currentTarget.value)}
-              data={[{ value: "", label: "Default" }, { value: "target", label: "This survey" },
-                ...(hasReference ? [{ value: "reference", label: "Reference" }] : [])]} />
-            <Group grow>
-              <NumberInput label="Margin at least" value={field("margin_min")} onChange={edit("margin_min")} />
-              <NumberInput label="Margin below" value={field("margin_max")} onChange={edit("margin_max")} />
-            </Group>
+            <fieldset className={styles.step}>
+              <legend className={styles.legend}>Outcome</legend>
+              <div>
+                {hasReference && <div className={styles.sub}>In this survey</div>}
+                <div className={styles.row}>
+                  <Choice name="cohort-outcome" value="" label="Any" checked={bench.outcome === ""} onChange={() => editBench({ outcome: "" as Outcome })} />
+                  {STANDING.map(outcome)}
+                </div>
+              </div>
+              {hasReference && (
+                <div>
+                  <div className={styles.sub}>Compared with the reference</div>
+                  <div className={styles.row}>{CHANGE.map(outcome)}</div>
+                </div>
+              )}
+              <div className={styles.hint} aria-live="polite">{picked?.hint ?? ""}</div>
+            </fieldset>
+
+            <div className={styles.step} role="group" aria-label="Margin">
+              <span className={styles.legend}>Margin, in percentage points</span>
+              <div className={styles.range}>
+                <NumberInput label="Margin at least" value={bench.marginMin} onChange={(v) => editBench({ marginMin: v === "" ? "" : Number(v) })} />
+                <span className={styles.to} aria-hidden>to</span>
+                <NumberInput label="Margin below" value={bench.marginMax} onChange={(v) => editBench({ marginMax: v === "" ? "" : Number(v) })} />
+              </div>
+              <Text size="sm" c="var(--mb-muted)">Positive means ahead, negative means behind. Leave a side empty for no limit.</Text>
+            </div>
+
             {hasReference && (
-              <NativeSelect label="Flip" value={String(field("flip"))} onChange={(e) => edit("flip")(e.currentTarget.value)}
-                data={FLIPS.map(([value, label]) => ({ value, label }))} />
+              <fieldset className={styles.step}>
+                <legend className={styles.legend}>Read the outcome and margin in</legend>
+                <div className={styles.row}>
+                  {readIn.map((o) => (
+                    <Choice key={o.value} name="cohort-read-in" value={o.value} label={o.label} checked={bench.readIn === o.value}
+                      onChange={() => editBench({ readIn: o.value })} />
+                  ))}
+                </div>
+              </fieldset>
             )}
           </>
         )}
+
+        <div className={styles.sentence} data-empty={what === null} aria-live="polite" data-testid="cohort-sentence">
+          {what === null ? "Choose at least one condition to find seats." : <>Seats with <b>{what}</b>.</>}
+        </div>
+
         {failure !== null && <Alert color="red" role="alert">{failure}</Alert>}
         {preview !== null && (
-          <div>
-            <Text fw={600}>{preview.count === 0 ? "No seats matched" : `${preview.count} seat${preview.count === 1 ? "" : "s"} matched`}</Text>
-            {preview.count > 0 && (
-              <Text size="sm" c="var(--mb-muted)" data-testid="cohort-seats">
-                {preview.seat_level.toUpperCase()} {preview.seat_ids.slice(0, MAX_LISTED).join(", ")}{preview.count > MAX_LISTED ? " …" : ""}
-              </Text>
+          <div className={styles.result}>
+            <div className={styles.count}>{preview.count === 0 ? "No seats matched" : `${preview.count} seat${preview.count === 1 ? "" : "s"} matched`}</div>
+            {found && (
+              <>
+                <div className={styles.seats} data-testid="cohort-seats">
+                  {preview.seat_level.toUpperCase()} {preview.seat_ids.slice(0, MAX_LISTED).join(", ")}{preview.count > MAX_LISTED ? " …" : ""}
+                </div>
+                <TextInput label="Cohort name" description="Shown on the tab and in the top bar. You can rename it later."
+                  value={name ?? defaultName} maxLength={120} onChange={(e) => setName(e.currentTarget.value)} />
+              </>
             )}
           </div>
         )}
+
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button variant="default" disabled={empty || running} loading={running} onClick={preparePreview}>Find seats</Button>
-          <Button disabled={preview === null || preview.count === 0} onClick={use}>Use as cohort</Button>
+          <Button variant={found ? "default" : "filled"} disabled={empty || running} loading={running} onClick={preparePreview}>
+            {preview === null ? "Find seats" : "Find seats again"}
+          </Button>
+          <Button variant={found ? "filled" : "default"} disabled={!found} onClick={use}>Use as cohort</Button>
         </Group>
       </Stack>
     </Modal>

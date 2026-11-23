@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { TabBar } from "../canvas/TabBar";
 import { useWorkspace } from "../canvas/workspaceStore";
+import { clearCohort, renameCohort } from "../cohorts/cohortStore";
 import { useDashboardContext } from "../context/urlContext";
 import { ContextBar } from "../context/ContextBar";
 import { tokens } from "../theme";
@@ -42,7 +43,12 @@ export function Shell() {
   const hasNav = ctx !== null && !onHome;
   const tabs = ctx === null ? null : (
     <TabBar state={ctx.state} workspace={workspace}
-      cohort={ctx.cohort ? { label: ctx.cohort.label, open: pathname === "/cohort", onOpen: () => { setDrawerOpen(false); navigate({ pathname: "/cohort", search }); } } : undefined}
+      cohort={ctx.cohort ? {
+        label: ctx.cohort.label, open: pathname === "/cohort",
+        onOpen: () => { setDrawerOpen(false); navigate({ pathname: "/cohort", search }); },
+        onRename: (name) => renameCohort(ctx.state, name),
+        onClear: () => { clearCohort(ctx.state); if (pathname === "/cohort") navigate({ pathname: "/", search }); },
+      } : undefined}
       onSelect={() => { setDrawerOpen(false); if (pathname !== "/") navigate({ pathname: "/", search }); }} />
   );
   return (

@@ -10,6 +10,13 @@ import { defaultSize, firstFreeSpot, normalise, settle, COLUMNS, ROW_SCALE_V1, t
 export interface Tab { id: string; name: string; items: Item[] }
 export interface Workspace { version: 2; activeTab: string; tabs: Tab[] }
 
+/**
+ * The cohort page's canvas is a tab like the others, kept after them and hidden from the tab list: it is
+ * shown only while a cohort exists (the sub-tab), and its cards belong to this tab, never to the first one.
+ */
+export const COHORT_TAB_ID = "__cohort";
+const listed = (ws: Workspace): Workspace => ({ ...ws, tabs: ws.tabs.filter((t) => t.id !== COHORT_TAB_ID) });
+
 const memory = new Map<string, unknown>();
 const listeners = new Set<() => void>();
 const storageKey = (state: string) => `mb.workspace.${state}`;
@@ -48,7 +55,8 @@ export function reconcile(raw: unknown, cards: StoredCard[]): Workspace {
     const items = readItems(t.items, rowScale).filter((i) => known.has(i.cardId) && !seen.has(i.cardId) && seen.add(i.cardId));
     return [{ id: t.id, name: t.name, items }];
   });
-  if (tabs.length === 0) tabs.push(freshTab());
+  if (!tabs.some((t) => t.id !== COHORT_TAB_ID)) tabs.unshift(freshTab());
+  tabs.sort((a, b) => Number(a.id === COHORT_TAB_ID) - Number(b.id === COHORT_TAB_ID)); // the cohort tab is always last
   const first = tabs[0];
   let bottom = first.items.reduce((m, i) => Math.max(m, i.y + i.h), 0);
   for (const c of cards) {
@@ -57,7 +65,8 @@ export function reconcile(raw: unknown, cards: StoredCard[]): Workspace {
     first.items.push({ cardId: c.id, x: 0, y: bottom, w: COLUMNS, h });
     bottom += h;
   }
-  const active = isObject(raw) && typeof raw.activeTab === "string" && tabs.some((t) => t.id === raw.activeTab) ? raw.activeTab : first.id;
+  const active = isObject(raw) && typeof raw.activeTab === "string" && raw.activeTab !== COHORT_TAB_ID && tabs.some((t) => t.id === raw.activeTab)
+    ? raw.activeTab : first.id;
   return { version: 2, activeTab: active, tabs };
 }
 
@@ -95,7 +104,15 @@ const withTab = (ws: Workspace, tabId: string, change: (t: Tab) => Tab): Workspa
 export interface Removal { card: StoredCard; index: number; tabId: string; item: Item }
 
 export const workspaceStore = {
-  get: (state: string): Workspace => reconcile(readRaw(state), cardStore.list(state)),
+  get: (state: string): Workspace => listed(reconcile(readRaw(state), cardStore.list(state))),
+
+  /** Makes sure the cohort page has its canvas; returns whether it was created just now. */
+  ensureCohortTab(state: string): boolean {
+    const ws = current(state);
+    if (ws.tabs.some((t) => t.id === COHORT_TAB_ID)) return false;
+    write(state, { ...ws, tabs: [...ws.tabs, { id: COHORT_TAB_ID, name: "Cohort", items: [] }] });
+    return true;
+  },
 
   /** Store the config and place the card at the first free spot of the tab (default: the active tab). */
   addCard(state: string, config: CardConfigJson, tabId?: string): StoredCard {
@@ -174,7 +191,7 @@ export const workspaceStore = {
 
   addTab(state: string): Tab {
     const ws = current(state);
-    const tab: Tab = { id: newId("tab"), name: `Tab ${ws.tabs.length + 1}`, items: [] };
+    const tab: Tab = { id: newId("tab"), name: `Tab ${listed(ws).tabs.length + 1}`, items: [] };
     write(state, { ...ws, tabs: [...ws.tabs, tab], activeTab: tab.id });
     return tab;
   },
@@ -200,7 +217,7 @@ export const workspaceStore = {
     const ws = current(state);
     const index = ws.tabs.findIndex((t) => t.id === tabId);
     if (index < 0) return 0;
-    if (ws.tabs.length === 1) throw new Error("The last tab cannot be deleted");
+    if (tabId === COHORT_TAB_ID || listed(ws).tabs.length === 1) throw new Error("The last tab cannot be deleted");
     const gone = ws.tabs[index];
     gone.items.forEach((i) => cardStore.remove(state, i.cardId));
     const tabs = ws.tabs.filter((t) => t.id !== tabId);
@@ -235,9 +252,16 @@ const subscribe = (listener: () => void) => {
 
 const EMPTY: Workspace = reconcile(null, []);
 
-/** The workspace for a state, consistent with its cards; re-renders on any change to either. */
+/** The workspace for a state, consistent with its cards; re-renders on any change to either. The cohort page's canvas is not a listed tab. */
 export function useWorkspace(state: string | null): Workspace {
   const cards = useStoredCards(state);
   const raw = useSyncExternalStore(subscribe, () => (state === null ? null : readRaw(state)));
-  return useMemo(() => (state === null ? EMPTY : reconcile(raw, cards)), [state, raw, cards]);
+  return useMemo(() => (state === null ? EMPTY : listed(reconcile(raw, cards))), [state, raw, cards]);
+}
+
+/** The cohort page's canvas, once it exists. */
+export function useCohortTab(state: string | null): Tab | undefined {
+  const cards = useStoredCards(state);
+  const raw = useSyncExternalStore(subscribe, () => (state === null ? null : readRaw(state)));
+  return useMemo(() => (state === null ? undefined : reconcile(raw, cards).tabs.find((t) => t.id === COHORT_TAB_ID)), [state, raw, cards]);
 }

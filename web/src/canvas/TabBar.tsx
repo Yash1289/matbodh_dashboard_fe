@@ -8,8 +8,8 @@ interface Props {
   workspace: Workspace;
   /** Called when the analyst chooses a tab (not when tabs change), so a host can close a drawer or leave another page. */
   onSelect?(): void;
-  /** The session cohort, shown as a sub-tab under the active tab while one exists. */
-  cohort?: { label: string; open: boolean; onOpen(): void };
+  /** The session cohort, shown as a sub-tab under the active tab while one exists; its menu renames or clears it. */
+  cohort?: { label: string; open: boolean; onOpen(): void; onRename(name: string): void; onClear(): void };
 }
 
 const COHORT_TAB = "__cohort";
@@ -21,7 +21,14 @@ export function TabBar({ state, workspace, onSelect, cohort }: Props) {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [confirming, setConfirming] = useState<Tab | null>(null);
+  const [renamingCohort, setRenamingCohort] = useState(false);
+  const [cohortDraft, setCohortDraft] = useState("");
   const { tabs, activeTab } = workspace;
+
+  const finishCohortRename = (save: boolean) => {
+    if (save && cohortDraft.trim() !== "") cohort?.onRename(cohortDraft);
+    setRenamingCohort(false);
+  };
 
   const startRename = (tab: Tab) => { setDraft(tab.name); setRenaming(tab.id); };
   const finishRename = (save: boolean) => {
@@ -33,15 +40,15 @@ export function TabBar({ state, workspace, onSelect, cohort }: Props) {
   return (
     <>
       <Stack gap="sm">
-        <Tabs value={cohort?.open ? COHORT_TAB : activeTab} orientation="vertical" variant="pills" classNames={{ tab: styles.tab }}
+        <Tabs value={cohort?.open ? COHORT_TAB : activeTab} orientation="vertical" variant="pills" classNames={{ tab: styles.tab, tabLabel: styles.tabLabel }}
           onChange={(id) => {
             if (id === COHORT_TAB) cohort?.onOpen();
             else if (id !== null) { workspaceStore.setActiveTab(state, id); onSelect?.(); }
           }}>
-          <Tabs.List style={{ width: "100%" }}>
+          <Tabs.List style={{ width: "100%", minWidth: 0 }}>
             {tabs.map((tab, index) => (
               <Fragment key={tab.id}>
-              <Group gap={2} wrap="nowrap" justify="space-between">
+              <Group gap={2} wrap="nowrap" justify="space-between" style={{ width: "100%", minWidth: 0 }}>
                 {renaming === tab.id ? (
                   <TextInput
                     aria-label="Tab name" size="xs" value={draft} autoFocus data-autofocus style={{ flex: 1 }}
@@ -53,7 +60,7 @@ export function TabBar({ state, workspace, onSelect, cohort }: Props) {
                     }}
                   />
                 ) : (
-                  <Tabs.Tab value={tab.id} style={{ flex: 1, justifyContent: "flex-start" }}>{tab.name}</Tabs.Tab>
+                  <Tabs.Tab value={tab.id} title={tab.name} style={{ flex: 1, minWidth: 0, justifyContent: "flex-start" }}>{tab.name}</Tabs.Tab>
                 )}
                 {tab.id === activeTab && renaming !== tab.id && (
                   <Menu position="bottom-start" withinPortal>
@@ -70,7 +77,33 @@ export function TabBar({ state, workspace, onSelect, cohort }: Props) {
                 )}
               </Group>
               {cohort !== undefined && tab.id === activeTab && (
-                <Tabs.Tab value={COHORT_TAB} style={{ marginLeft: 16, justifyContent: "flex-start" }}>Cohort · {cohort.label}</Tabs.Tab>
+                <Group gap={2} wrap="nowrap" justify="space-between" style={{ width: "calc(100% - 16px)", marginLeft: 16, minWidth: 0 }}>
+                  {renamingCohort ? (
+                    <TextInput
+                      aria-label="Cohort name" size="xs" value={cohortDraft} autoFocus data-autofocus style={{ flex: 1 }} maxLength={120}
+                      onChange={(e) => setCohortDraft(e.currentTarget.value)}
+                      onBlur={() => finishCohortRename(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") finishCohortRename(true);
+                        else if (e.key === "Escape") finishCohortRename(false);
+                      }}
+                    />
+                  ) : (
+                    <Tabs.Tab value={COHORT_TAB} title={`Cohort: ${cohort.label}`} aria-label={`Cohort: ${cohort.label}`}
+                      style={{ flex: 1, minWidth: 0, justifyContent: "flex-start" }}>{cohort.label}</Tabs.Tab>
+                  )}
+                  {cohort.open && !renamingCohort && (
+                    <Menu position="bottom-start" withinPortal>
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" size={28} aria-label="Cohort actions">⋯</ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item onClick={() => { setCohortDraft(cohort.label); setRenamingCohort(true); }}>Rename</Menu.Item>
+                        <Menu.Item color="red" onClick={cohort.onClear}>Clear cohort</Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
+                </Group>
               )}
               </Fragment>
             ))}

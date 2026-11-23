@@ -60,20 +60,59 @@ describe("CohortDialog", () => {
     expect(screen.getByRole("button", { name: "Use as cohort" })).toBeDisabled();
   });
 
-  it("a benchmark offers flip only when the card has a reference", async () => {
+  it("a benchmark offers the change since the reference only when the card has a reference", async () => {
     mount({ kind: "benchmark", hasReference: false });
-    expect(screen.queryByLabelText("Flip")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Status")).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Gain" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Read the outcome and margin in")).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Winning" })).toBeInTheDocument();
   });
 
-  it("a benchmark with a reference sends flip, endpoint and margins", async () => {
+  it("the outcome is one choice: picking a change since the reference replaces a standing", async () => {
+    mount({ kind: "benchmark", hasReference: true, reference: { kind: "compare" } as never });
+    await userEvent.click(screen.getByRole("radio", { name: "Winning" }));
+    expect(screen.getByRole("radio", { name: "Winning" })).toBeChecked();
+    await userEvent.click(screen.getByRole("radio", { name: "Gain" }));
+    expect(screen.getByRole("radio", { name: "Gain" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Winning" })).not.toBeChecked();
+    expect(screen.getByText("Not won in the reference, won in this survey.")).toBeInTheDocument();
+  });
+
+  it("a benchmark with a reference sends the flip, never status and flip together", async () => {
     const { api } = mount({ kind: "benchmark", hasReference: true, reference: { kind: "compare" } as never });
-    await userEvent.selectOptions(screen.getByLabelText("Flip"), "gain");
+    await userEvent.click(screen.getByRole("radio", { name: "Winning" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Gain" }));
     await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
     await screen.findByText("3 seats matched");
     const [, body] = postBodies(api).find(([u]) => u === "/api/cohorts/preview")!;
     expect(body.predicate).toEqual({ flip: "gain" });
     expect(body.reference).toEqual({ kind: "compare" });
+  });
+
+  it("combines an outcome with a margin range and the survey it is read in", async () => {
+    const { api } = mount({ kind: "benchmark", hasReference: true, reference: { kind: "compare" } as never });
+    await userEvent.click(screen.getByRole("radio", { name: "Losing" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Margin at least" }), "-13");
+    await userEvent.type(screen.getByRole("textbox", { name: "Margin below" }), "-3");
+    await userEvent.click(screen.getByRole("radio", { name: "The reference" }));
+    expect(screen.getByTestId("cohort-sentence")).toHaveTextContent("losing in the reference, margin from −13 to below −3 in the reference");
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
+    await screen.findByText("3 seats matched");
+    const [, body] = postBodies(api).find(([u]) => u === "/api/cohorts/preview")!;
+    expect(body.predicate).toEqual({ status: "losing", margin_min: -13, margin_max: -3, endpoint: "reference" });
+  });
+
+  it("says what is missing until something is chosen, and names the cohort from the choice", async () => {
+    mount({ kind: "benchmark", hasReference: false, cardTitle: "Seat benchmark" });
+    expect(screen.getByTestId("cohort-sentence")).toHaveTextContent("Choose at least one condition");
+    await userEvent.click(screen.getByRole("radio", { name: "Winning" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find seats" }));
+    await screen.findByText("3 seats matched");
+    expect(screen.getByRole("textbox", { name: "Cohort name" })).toHaveValue("Seat benchmark · winning");
+    await userEvent.clear(screen.getByRole("textbox", { name: "Cohort name" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Cohort name" }), "Safe seats");
+    await userEvent.click(screen.getByRole("button", { name: "Use as cohort" }));
+    const { getCohort } = await import("./cohortStore");
+    expect(getCohort("Uttar Pradesh")!.label).toBe("Safe seats");
   });
 
   it("shows the reason when the card cannot make a cohort", async () => {
@@ -88,7 +127,7 @@ describe("CohortDialog", () => {
   it("shows what the cohort is taken from, read-only, before the rule", () => {
     mount({ cardTitle: "AC ranking", kind: "benchmark", hasReference: true, reference: null });
     const source = screen.getByTestId("cohort-source");
-    expect(source).toHaveTextContent("Taken from this card");
+    expect(source).toHaveTextContent("Taken from AC ranking");
     expect(source).toHaveTextContent("AC ranking");
     expect(within(source).queryByRole("textbox")).toBeNull();
   });

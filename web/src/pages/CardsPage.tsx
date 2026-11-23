@@ -1,5 +1,5 @@
 import { Button, Group, Modal, Skeleton, Stack, Text, Title } from "@mantine/core";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useCards, useFamilies } from "../api/queries";
 import {
   isBenchmarkFamily, isRankingFamily, isRelationshipFamily,
@@ -8,7 +8,7 @@ import {
 import { CardShell } from "../cards/CardShell";
 import { AddCardMenu } from "../configure/AddCardMenu";
 import { Canvas } from "../canvas/Canvas";
-import { useWorkspace, workspaceStore } from "../canvas/workspaceStore";
+import { COHORT_TAB_ID, useCohortTab, useWorkspace, workspaceStore } from "../canvas/workspaceStore";
 import { cardStore, configOfInfo, useStoredCards, type StoredCard } from "../configure/cardStore";
 import { ContextStep } from "../context/ContextStep";
 import { useDashboardContext } from "../context/urlContext";
@@ -57,12 +57,17 @@ const UNDO_MS = 10_000;
 
 type Editing = { kind: "new"; descriptor: FamilyDescriptor } | { kind: "edit"; stored: StoredCard };
 
-function CardsList({ ctx }: { ctx: StateContext }) {
+/**
+ * The cards of one tab with the way to add, configure and remove them. Without `tabId` it is the active tab;
+ * the cohort page passes its own canvas and a heading of its own.
+ */
+export function CardsList({ ctx, tabId, heading, emptyText }: { ctx: StateContext; tabId?: string; heading?: ReactNode; emptyText?: string }) {
   const library = useCards();
   const families = useFamilies();
   const stored = useStoredCards(ctx.state);
   const workspace = useWorkspace(ctx.state);
-  const tab = workspace.tabs.find((t) => t.id === workspace.activeTab) ?? workspace.tabs[0];
+  const cohortTab = useCohortTab(ctx.state);
+  const tab = (tabId === COHORT_TAB_ID ? cohortTab : workspace.tabs.find((t) => t.id === workspace.activeTab)) ?? workspace.tabs[0];
   const [editing, setEditing] = useState<Editing | null>(null);
   // The way to take back the last Remove; offered for a while, then forgotten.
   const [undo, setUndo] = useState<(() => void) | null>(null);
@@ -87,7 +92,7 @@ function CardsList({ ctx }: { ctx: StateContext }) {
   const metaOf = (family: string): FamilyMeta | undefined => families.data?.find((d) => d.family === family)?.meta;
 
   const apply = (config: CardConfigJson) => {
-    if (editing?.kind === "new") workspaceStore.addCard(ctx.state, config);
+    if (editing?.kind === "new") workspaceStore.addCard(ctx.state, config, tab.id);
     else if (editing?.kind === "edit") cardStore.replace(ctx.state, editing.stored.id, config);
     closeEditing();
   };
@@ -101,7 +106,7 @@ function CardsList({ ctx }: { ctx: StateContext }) {
   const libraryCards = library.data ?? [];
   const body = (() => {
     if (families.isPending) return <Skeleton height={80} aria-label="Loading cards…" />;
-    if (tab.items.length === 0) return <Text>This tab is empty. Add a card to start.</Text>;
+    if (tab.items.length === 0) return <Text>{emptyText ?? "This tab is empty. Add a card to start."}</Text>;
     return (
       <Canvas state={ctx.state} tab={tab} renderCard={renderStored}
         onRemoved={(restore) => setUndo(() => restore)}
@@ -112,10 +117,10 @@ function CardsList({ ctx }: { ctx: StateContext }) {
   return (
     <Stack gap={tokens.layout.gap}>
       <Group justify="space-between">
-        <Title order={1} fz={tokens.font.pageTitle} fw={700}>{tab.name}</Title>
+        {heading ?? <Title order={1} fz={tokens.font.pageTitle} fw={700}>{tab.name}</Title>}
         <AddCardMenu families={families.data ?? []} library={libraryCards}
           onPickFamily={(descriptor) => setEditing({ kind: "new", descriptor })}
-          onPickLibrary={(info) => workspaceStore.addCard(ctx.state, configOfInfo(info))} />
+          onPickLibrary={(info) => workspaceStore.addCard(ctx.state, configOfInfo(info), tab.id)} />
       </Group>
       {library.isError && <Text c="red" role="alert">{library.error.message}</Text>}
       {undo !== null && (
@@ -144,6 +149,8 @@ function CardsList({ ctx }: { ctx: StateContext }) {
 /** The analyst's own cards for the current context, plus any library cards the owner has shared. */
 export function CardsPage() {
   const { ctx } = useDashboardContext();
+  // A cohort narrows only its own page's cards (the sub-tab); the tabs' cards keep reading the whole state.
+  const whole = useMemo(() => (ctx !== null && ctx.cohort ? { ...ctx, cohort: null } : ctx), [ctx]);
   // Without a context the first step is the only content; nothing runs until it is chosen.
-  return ctx === null ? <ContextStep /> : <CardsList ctx={ctx} />;
+  return whole === null ? <ContextStep /> : <CardsList ctx={whole} />;
 }

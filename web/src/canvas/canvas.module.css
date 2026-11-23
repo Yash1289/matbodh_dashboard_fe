@@ -228,3 +228,16 @@
   color: var(--mb-primary);
   font-weight: 600;
 }
+
+/* A long tab name is cut with an ellipsis inside the sidebar; it never runs onto the canvas (the full name is the tooltip). */
+.tab.tab {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tabLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
